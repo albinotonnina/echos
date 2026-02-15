@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "lib": ["ES2022"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "paths": {
+      "@echos/shared": ["./packages/shared/src/index.ts"],
+      "@echos/shared/*": ["./packages/shared/src/*"],
+      "@echos/core": ["./packages/core/src/index.ts"],
+      "@echos/core/*": ["./packages/core/src/*"],
+      "@echos/telegram": ["./packages/telegram/src/index.ts"],
+      "@echos/web": ["./packages/web/src/index.ts"],
+      "@echos/tui": ["./packages/tui/src/index.ts"],
+      "@echos/scheduler": ["./packages/scheduler/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "data"]
+}

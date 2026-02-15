@@ -1,0 +1,34 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  echos:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ../.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=production
+    volumes:
+      - ../data/knowledge:/app/data/knowledge
+      - ../data/db:/app/data/db
+      - ../data/sessions:/app/data/sessions
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+
+volumes:
+  redis-data:

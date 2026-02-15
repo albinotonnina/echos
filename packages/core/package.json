@@ -1,0 +1,36 @@
+{
+  "name": "@echos/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@echos/shared": "workspace:*",
+    "@lancedb/lancedb": "^0.22.3",
+    "@mariozechner/pi-agent-core": "^0.52.12",
+    "@mariozechner/pi-ai": "^0.52.12",
+    "@mozilla/readability": "^0.6.0",
+    "@sinclair/typebox": "^0.34.48",
+    "better-sqlite3": "^12.6.2",
+    "gray-matter": "^4.0.3",
+    "isomorphic-dompurify": "3.0.0-rc.2",
+    "jsdom": "^28.1.0",
+    "pino": "^9.14.0",
+    "uuid": "^13.0.0",
+    "youtube-transcript": "^1.2.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/jsdom": "^27.0.0",
+    "@types/node": "^25.2.3",
+    "@types/uuid": "^11.0.0",
+    "typescript": "^5.7.0"
+  }
+}

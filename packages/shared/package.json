@@ -1,0 +1,30 @@
+{
+  "name": "@echos/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./config": "./dist/config/index.js",
+    "./security": "./dist/security/index.js",
+    "./errors": "./dist/errors/index.js",
+    "./logging": "./dist/logging/index.js",
+    "./types": "./dist/types/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "pino": "^9.14.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "typescript": "^5.7.0"
+  }
+}
