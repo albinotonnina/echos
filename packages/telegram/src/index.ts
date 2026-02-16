@@ -2,8 +2,9 @@ import { Bot } from 'grammy';
 import type { Logger } from 'pino';
 import type { Config, InterfaceAdapter } from '@echos/shared';
 import type { AgentDeps } from '@echos/core';
+import { computeSessionUsage } from '@echos/core';
 import { createAuthMiddleware, createRateLimitMiddleware, createErrorHandler } from './middleware/index.js';
-import { getOrCreateSession, clearAllSessions } from './session.js';
+import { getOrCreateSession, getSession, clearAllSessions } from './session.js';
 import { streamAgentResponse } from './streaming.js';
 
 export interface TelegramAdapterOptions {
@@ -42,6 +43,34 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Interfac
       clearSession(userId);
       await ctx.reply('Session cleared. Starting fresh.');
     }
+  });
+
+  // /usage command - show session usage stats
+  bot.command('usage', async (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    const agent = getSession(userId);
+    if (!agent) {
+      await ctx.reply('No active session. Send a message to start one.');
+      return;
+    }
+
+    const usage = computeSessionUsage(agent);
+    const costStr = usage.totalCost < 0.01
+      ? `<$0.01`
+      : `$${usage.totalCost.toFixed(2)}`;
+
+    await ctx.reply(
+      `Session usage:\n` +
+      `Messages: ${usage.messageCount}\n` +
+      `Input tokens: ${usage.inputTokens.toLocaleString()}\n` +
+      `Output tokens: ${usage.outputTokens.toLocaleString()}\n` +
+      `Cache read: ${usage.cacheReadTokens.toLocaleString()}\n` +
+      `Cache write: ${usage.cacheWriteTokens.toLocaleString()}\n` +
+      `Cost: ${costStr}\n` +
+      `Context window: ${usage.contextWindowPercent.toFixed(1)}%`,
+    );
   });
 
   // Handle all text messages via agent

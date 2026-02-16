@@ -25,3 +25,4 @@ export {
 } from './agent/categorization.js';
 export { PluginRegistry, type EchosPlugin, type PluginContext } from './plugins/index.js';
 export { analyzeStyle, type StyleProfile } from './style/analyzer.js';
+export { computeSessionUsage, type SessionUsage } from './agent/usage-tracker.js';

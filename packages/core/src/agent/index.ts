@@ -3,6 +3,7 @@ import type { AgentTool } from '@mariozechner/pi-agent-core';
 import { getModel } from '@mariozechner/pi-ai';
 import type { Logger } from 'pino';
 import { SYSTEM_PROMPT } from './system-prompt.js';
+import { createContextWindow } from './context-manager.js';
 import {
   createNoteTool,
   searchKnowledgeTool,
@@ -90,6 +91,7 @@ export function createEchosAgent(deps: AgentDeps): Agent {
       tools,
       thinkingLevel: 'off',
     },
+    transformContext: createContextWindow(80_000),
   });
 }
 
