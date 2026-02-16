@@ -11,6 +11,9 @@ importers:
       '@echos/plugin-article':
         specifier: workspace:*
         version: link:plugins/article
+      '@echos/plugin-content-creation':
+        specifier: workspace:*
+        version: link:plugins/content-creation
       '@echos/plugin-youtube':
         specifier: workspace:*
         version: link:plugins/youtube

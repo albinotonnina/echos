@@ -29,7 +29,8 @@
   "license": "MIT",
   "dependencies": {
     "@echos/plugin-youtube": "workspace:*",
-    "@echos/plugin-article": "workspace:*"
+    "@echos/plugin-article": "workspace:*",
+    "@echos/plugin-content-creation": "workspace:*"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
