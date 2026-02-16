@@ -93,9 +93,9 @@ export function createSaveArticleTool(
         links: [],
         category,
         sourceUrl: params.url,
-        gist,
       };
       if (processed.metadata.author) metadata.author = processed.metadata.author;
+      if (gist) metadata.gist = gist;
 
       const filePath = context.markdown.save(metadata, processed.content);
       context.sqlite.upsertNote(metadata, processed.content, filePath);

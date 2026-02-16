@@ -95,8 +95,8 @@ export function createSaveYoutubeTool(
         links: [],
         category,
         sourceUrl: params.url,
-        gist,
       };
+      if (gist) metadata.gist = gist;
 
       const filePath = context.markdown.save(metadata, processed.content);
       context.sqlite.upsertNote(metadata, processed.content, filePath);

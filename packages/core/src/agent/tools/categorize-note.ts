@@ -41,6 +41,7 @@ export function createCategorizeNoteTool(
       if (!noteRow) {
         return {
           content: [{ type: 'text' as const, text: `Note not found: ${params.noteId}` }],
+          details: {},
         };
       }
 
@@ -55,8 +56,15 @@ export function createCategorizeNoteTool(
           deps.logger,
         );
 
-        // Parse existing metadata
-        const note = deps.markdown.load(noteRow.filePath);
+        // Parse existing note
+        const note = deps.markdown.read(noteRow.filePath);
+        if (!note) {
+          return {
+            content: [{ type: 'text' as const, text: `Failed to read note file: ${noteRow.filePath}` }],
+            details: {},
+          };
+        }
+
         const metadata = note.metadata;
 
         // Update metadata with categorization results
@@ -69,7 +77,7 @@ export function createCategorizeNoteTool(
         }
 
         // Save updated note
-        deps.markdown.save(metadata, noteRow.content);
+        deps.markdown.update(noteRow.filePath, metadata, noteRow.content);
         deps.sqlite.upsertNote(metadata, noteRow.content, noteRow.filePath);
 
         // Update vector store
@@ -110,6 +118,7 @@ export function createCategorizeNoteTool(
               text: `Failed to categorize note: ${error instanceof Error ? error.message : 'Unknown error'}`,
             },
           ],
+          details: {},
         };
       }
     },

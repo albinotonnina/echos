@@ -2,12 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { categorizeLightweight, processFull, categorizeContent } from './categorization.js';
 import { createLogger } from '@echos/shared';
 
-// Mock the pi-ai module
-vi.mock('@mariozechner/pi-ai', () => ({
-  getModel: vi.fn(() => ({
-    generateStructuredData: vi.fn(),
-  })),
-}));
+// Mock fetch for Anthropic API
+global.fetch = vi.fn();
 
 describe('Categorization Service', () => {
   const logger = createLogger('test');
@@ -21,28 +17,32 @@ describe('Categorization Service', () => {
 
   describe('categorizeLightweight', () => {
     it('should return category and tags on success', async () => {
-      const { getModel } = await import('@mariozechner/pi-ai');
-      const mockModel = {
-        generateStructuredData: vi.fn().mockResolvedValue({
-          category: 'programming',
-          tags: ['typescript', 'javascript', 'web-development'],
-        }),
+      const mockResponse = {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              category: 'programming',
+              tags: ['typescript', 'javascript', 'web-development'],
+            }),
+          },
+        ],
       };
-      (getModel as ReturnType<typeof vi.fn>).mockReturnValue(mockModel);
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
 
       const result = await categorizeLightweight(title, content, testApiKey, logger);
 
       expect(result.category).toBe('programming');
       expect(result.tags).toEqual(['typescript', 'javascript', 'web-development']);
-      expect(mockModel.generateStructuredData).toHaveBeenCalledOnce();
+      expect(global.fetch).toHaveBeenCalledOnce();
     });
 
     it('should return default values on error', async () => {
-      const { getModel } = await import('@mariozechner/pi-ai');
-      const mockModel = {
-        generateStructuredData: vi.fn().mockRejectedValue(new Error('API error')),
-      };
-      (getModel as ReturnType<typeof vi.fn>).mockReturnValue(mockModel);
+      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('API error'));
 
       const result = await categorizeLightweight(title, content, testApiKey, logger);
 
@@ -53,7 +53,6 @@ describe('Categorization Service', () => {
 
   describe('processFull', () => {
     it('should return full processing result on success', async () => {
-      const { getModel } = await import('@mariozechner/pi-ai');
       const mockResult = {
         category: 'programming',
         tags: ['typescript', 'javascript'],
@@ -61,10 +60,20 @@ describe('Categorization Service', () => {
         summary: 'TypeScript is a powerful language that extends JavaScript with type safety...',
         keyPoints: ['Static typing', 'Compiles to JavaScript', 'Better tooling'],
       };
-      const mockModel = {
-        generateStructuredData: vi.fn().mockResolvedValue(mockResult),
+
+      const mockResponse = {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(mockResult),
+          },
+        ],
       };
-      (getModel as ReturnType<typeof vi.fn>).mockReturnValue(mockModel);
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
 
       const result = await processFull(title, content, testApiKey, logger);
 
@@ -76,11 +85,7 @@ describe('Categorization Service', () => {
     });
 
     it('should return fallback values on error', async () => {
-      const { getModel } = await import('@mariozechner/pi-ai');
-      const mockModel = {
-        generateStructuredData: vi.fn().mockRejectedValue(new Error('API error')),
-      };
-      (getModel as ReturnType<typeof vi.fn>).mockReturnValue(mockModel);
+      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('API error'));
 
       const result = await processFull(title, content, testApiKey, logger);
 
@@ -94,14 +99,22 @@ describe('Categorization Service', () => {
 
   describe('categorizeContent', () => {
     it('should call categorizeLightweight for lightweight mode', async () => {
-      const { getModel } = await import('@mariozechner/pi-ai');
-      const mockModel = {
-        generateStructuredData: vi.fn().mockResolvedValue({
-          category: 'programming',
-          tags: ['typescript'],
-        }),
+      const mockResponse = {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              category: 'programming',
+              tags: ['typescript'],
+            }),
+          },
+        ],
       };
-      (getModel as ReturnType<typeof vi.fn>).mockReturnValue(mockModel);
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
 
       const result = await categorizeContent(title, content, 'lightweight', testApiKey, logger);
 
@@ -110,17 +123,27 @@ describe('Categorization Service', () => {
     });
 
     it('should call processFull for full mode', async () => {
-      const { getModel } = await import('@mariozechner/pi-ai');
-      const mockModel = {
-        generateStructuredData: vi.fn().mockResolvedValue({
-          category: 'programming',
-          tags: ['typescript'],
-          gist: 'Test gist',
-          summary: 'Test summary',
-          keyPoints: ['Point 1'],
-        }),
+      const mockResult = {
+        category: 'programming',
+        tags: ['typescript'],
+        gist: 'Test gist',
+        summary: 'Test summary',
+        keyPoints: ['Point 1'],
       };
-      (getModel as ReturnType<typeof vi.fn>).mockReturnValue(mockModel);
+
+      const mockResponse = {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(mockResult),
+          },
+        ],
+      };
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
 
       const result = await categorizeContent(title, content, 'full', testApiKey, logger);
 
