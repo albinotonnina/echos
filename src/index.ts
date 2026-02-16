@@ -22,6 +22,7 @@ import { createTuiAdapter } from '@echos/tui';
 // Plugins
 import youtubePlugin from '@echos/plugin-youtube';
 import articlePlugin from '@echos/plugin-article';
+import contentCreationPlugin from '@echos/plugin-content-creation';
 
 const logger = createLogger('echos');
 
@@ -44,6 +45,7 @@ async function main(): Promise<void> {
   const pluginRegistry = new PluginRegistry(logger);
   pluginRegistry.register(articlePlugin);
   pluginRegistry.register(youtubePlugin);
+  pluginRegistry.register(contentCreationPlugin);
 
   await pluginRegistry.setupAll({
     sqlite,

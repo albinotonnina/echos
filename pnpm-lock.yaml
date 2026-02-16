@@ -263,6 +263,43 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  plugins/content-creation:
+    dependencies:
+      '@echos/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@echos/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@mariozechner/pi-agent-core':
+        specifier: ^0.52.12
+        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+      '@mariozechner/pi-ai':
+        specifier: ^0.52.12
+        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+      '@sinclair/typebox':
+        specifier: ^0.34.30
+        version: 0.34.48
+      pino:
+        specifier: ^9.14.0
+        version: 9.14.0
+      uuid:
+        specifier: ^13.0.0
+        version: 13.0.0
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^25.2.3
+        version: 25.2.3
+      '@types/uuid':
+        specifier: ^11.0.0
+        version: 11.0.0
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   plugins/youtube:
     dependencies:
       '@distube/ytdl-core':
