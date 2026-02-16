@@ -12,6 +12,7 @@ export interface ContentWorkerDeps {
   vectorDb: VectorStorage;
   generateEmbedding: (text: string) => Promise<number[]>;
   logger: Logger;
+  openaiApiKey?: string;
   notifyUser?: (chatId: number, message: string) => Promise<void>;
 }
 
@@ -25,7 +26,7 @@ export function createContentProcessor(deps: ContentWorkerDeps) {
     const processed =
       type === 'process_article'
         ? await processArticle(url, deps.logger)
-        : await processYoutube(url, deps.logger);
+        : await processYoutube(url, deps.logger, deps.openaiApiKey);
 
     const now = new Date().toISOString();
     const id = uuidv4();

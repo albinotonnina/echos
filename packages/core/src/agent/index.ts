@@ -30,6 +30,7 @@ export interface AgentDeps {
   generateEmbedding: (text: string) => Promise<number[]>;
   modelId?: string;
   logger: Logger;
+  openaiApiKey?: string;
 }
 
 export function createEchosAgent(deps: AgentDeps): Agent {
@@ -60,7 +61,11 @@ export function createEchosAgent(deps: AgentDeps): Agent {
       vectorDb: deps.vectorDb,
     }),
     saveArticleTool({ ...storageDeps, logger: deps.logger }),
-    saveYoutubeTool({ ...storageDeps, logger: deps.logger }),
+    saveYoutubeTool({
+      ...storageDeps,
+      logger: deps.logger,
+      ...(deps.openaiApiKey ? { openaiApiKey: deps.openaiApiKey } : {}),
+    }),
     addReminderTool({ sqlite: deps.sqlite }),
     completeReminderTool({ sqlite: deps.sqlite }),
     linkNotesTool({ sqlite: deps.sqlite, markdown: deps.markdown }),

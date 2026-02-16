@@ -24,7 +24,8 @@
     "jsdom": "^28.1.0",
     "pino": "^9.14.0",
     "uuid": "^13.0.0",
-    "youtube-transcript": "^1.2.1"
+    "@distube/ytdl-core": "^4.14.4",
+    "openai": "^4.77.3"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

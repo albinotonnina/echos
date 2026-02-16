@@ -17,6 +17,7 @@
     "start": "tsx --env-file=.env src/index.ts",
     "start:web-only": "ENABLE_TELEGRAM=false ENABLE_TUI=false tsx --env-file=.env src/index.ts",
     "start:tui-only": "ENABLE_TELEGRAM=false ENABLE_WEB=false ENABLE_TUI=true tsx --env-file=.env src/index.ts",
+    "stop": "pkill -f 'tsx.*src/index.ts' || true",
     "cli": "tsx packages/core/src/cli.ts",
     "clean": "pnpm -r clean && rm -rf node_modules"
   },

@@ -43,6 +43,7 @@ async function main(): Promise<void> {
     generateEmbedding,
     modelId: config.defaultModel,
     logger,
+    openaiApiKey: config.openaiApiKey,
   };
 
   const interfaces: InterfaceAdapter[] = [];

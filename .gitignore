@@ -4,6 +4,15 @@ node_modules/
 # Build output
 dist/
 *.tsbuildinfo
+# Build artifacts in source (TypeScript compilation to JS)
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+src/**/*.d.ts.map
 
 # Runtime data
 data/

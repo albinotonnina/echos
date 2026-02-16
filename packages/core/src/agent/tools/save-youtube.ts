@@ -14,6 +14,7 @@ export interface SaveYoutubeToolDeps {
   vectorDb: VectorStorage;
   generateEmbedding: (text: string) => Promise<number[]>;
   logger: Logger;
+  openaiApiKey?: string;
 }
 
 const schema = Type.Object({
@@ -36,7 +37,7 @@ export function saveYoutubeTool(deps: SaveYoutubeToolDeps): AgentTool<typeof sch
         details: { phase: 'fetching' },
       });
 
-      const processed = await processYoutube(params.url, deps.logger);
+      const processed = await processYoutube(params.url, deps.logger, deps.openaiApiKey);
 
       const now = new Date().toISOString();
       const id = uuidv4();
