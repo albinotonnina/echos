@@ -11,3 +11,7 @@ export {
   recallKnowledgeTool,
   type MemoryToolDeps,
 } from './memory.js';
+export {
+  createCategorizeNoteTool,
+  type CategorizeNoteToolDeps,
+} from './categorize-note.js';

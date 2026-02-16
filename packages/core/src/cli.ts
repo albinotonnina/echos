@@ -38,6 +38,7 @@ async function main(): Promise<void> {
     vectorDb,
     search,
     generateEmbedding,
+    anthropicApiKey: process.env['ANTHROPIC_API_KEY'] ?? 'dummy-key',
     logger,
   });
 

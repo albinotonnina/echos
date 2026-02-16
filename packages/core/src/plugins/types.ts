@@ -14,7 +14,10 @@ export interface PluginContext {
   vectorDb: VectorStorage;
   generateEmbedding: (text: string) => Promise<number[]>;
   logger: Logger;
-  config: Record<string, unknown>;
+  config: Record<string, unknown> & {
+    openaiApiKey?: string;
+    anthropicApiKey?: string;
+  };
 }
 
 /**
