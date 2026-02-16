@@ -7,6 +7,13 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@echos/plugin-article':
+        specifier: workspace:*
+        version: link:plugins/article
+      '@echos/plugin-youtube':
+        specifier: workspace:*
+        version: link:plugins/youtube
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
@@ -41,9 +48,6 @@ importers:
 
   packages/core:
     dependencies:
-      '@distube/ytdl-core':
-        specifier: ^4.14.4
-        version: 4.16.12
       '@echos/shared':
         specifier: workspace:*
         version: link:../shared
@@ -56,9 +60,6 @@ importers:
       '@mariozechner/pi-ai':
         specifier: ^0.52.12
         version: 0.52.12(ws@8.19.0)(zod@3.25.76)
-      '@mozilla/readability':
-        specifier: ^0.6.0
-        version: 0.6.0
       '@sinclair/typebox':
         specifier: ^0.34.48
         version: 0.34.48
@@ -68,15 +69,6 @@ importers:
       gray-matter:
         specifier: ^4.0.3
         version: 4.0.3
-      isomorphic-dompurify:
-        specifier: 3.0.0-rc.2
-        version: 3.0.0-rc.2
-      jsdom:
-        specifier: ^28.1.0
-        version: 28.1.0
-      openai:
-        specifier: ^4.77.3
-        version: 4.104.0(ws@8.19.0)(zod@3.25.76)
       pino:
         specifier: ^9.14.0
         version: 9.14.0
@@ -87,9 +79,6 @@ importers:
       '@types/better-sqlite3':
         specifier: ^7.6.13
         version: 7.6.13
-      '@types/jsdom':
-        specifier: ^27.0.0
-        version: 27.0.0
       '@types/node':
         specifier: ^25.2.3
         version: 25.2.3
@@ -105,6 +94,12 @@ importers:
       '@echos/core':
         specifier: workspace:*
         version: link:../core
+      '@echos/plugin-article':
+        specifier: workspace:*
+        version: link:../../plugins/article
+      '@echos/plugin-youtube':
+        specifier: workspace:*
+        version: link:../../plugins/youtube
       '@echos/shared':
         specifier: workspace:*
         version: link:../shared
@@ -221,6 +216,86 @@ importers:
       '@types/node':
         specifier: ^25.2.3
         version: 25.2.3
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  plugins/article:
+    dependencies:
+      '@echos/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@echos/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@mariozechner/pi-agent-core':
+        specifier: ^0.52.12
+        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+      '@mariozechner/pi-ai':
+        specifier: ^0.52.12
+        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+      '@mozilla/readability':
+        specifier: ^0.6.0
+        version: 0.6.0
+      isomorphic-dompurify:
+        specifier: 3.0.0-rc.2
+        version: 3.0.0-rc.2
+      jsdom:
+        specifier: ^28.1.0
+        version: 28.1.0
+      pino:
+        specifier: ^9.14.0
+        version: 9.14.0
+      uuid:
+        specifier: ^13.0.0
+        version: 13.0.0
+    devDependencies:
+      '@types/jsdom':
+        specifier: ^27.0.0
+        version: 27.0.0
+      '@types/node':
+        specifier: ^25.2.3
+        version: 25.2.3
+      '@types/uuid':
+        specifier: ^11.0.0
+        version: 11.0.0
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  plugins/youtube:
+    dependencies:
+      '@distube/ytdl-core':
+        specifier: ^4.14.4
+        version: 4.16.12
+      '@echos/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@echos/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@mariozechner/pi-agent-core':
+        specifier: ^0.52.12
+        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+      '@mariozechner/pi-ai':
+        specifier: ^0.52.12
+        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+      openai:
+        specifier: ^4.77.3
+        version: 4.104.0(ws@8.19.0)(zod@3.25.76)
+      pino:
+        specifier: ^9.14.0
+        version: 9.14.0
+      uuid:
+        specifier: ^13.0.0
+        version: 13.0.0
+    devDependencies:
+      '@types/node':
+        specifier: ^25.2.3
+        version: 25.2.3
+      '@types/uuid':
+        specifier: ^11.0.0
+        version: 11.0.0
       typescript:
         specifier: ^5.7.0
         version: 5.9.3

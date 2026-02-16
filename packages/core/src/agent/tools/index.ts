@@ -4,8 +4,6 @@ export { getNoteTool, type GetNoteToolDeps } from './get-note.js';
 export { listNotesTool, type ListNotesToolDeps } from './list-notes.js';
 export { updateNoteTool, type UpdateNoteToolDeps } from './update-note.js';
 export { deleteNoteTool, type DeleteNoteToolDeps } from './delete-note.js';
-export { saveArticleTool, type SaveArticleToolDeps } from './save-article.js';
-export { saveYoutubeTool, type SaveYoutubeToolDeps } from './save-youtube.js';
 export { addReminderTool, completeReminderTool, type ReminderToolDeps } from './reminder.js';
 export { linkNotesTool, type LinkNotesToolDeps } from './link-notes.js';
 export {

@@ -12,11 +12,16 @@ import {
   createMarkdownStorage,
   createVectorStorage,
   createSearchService,
+  PluginRegistry,
   type AgentDeps,
 } from '@echos/core';
 import { createTelegramAdapter } from '@echos/telegram';
 import { createWebAdapter } from '@echos/web';
 import { createTuiAdapter } from '@echos/tui';
+
+// Plugins
+import youtubePlugin from '@echos/plugin-youtube';
+import articlePlugin from '@echos/plugin-article';
 
 const logger = createLogger('echos');
 
@@ -35,6 +40,22 @@ async function main(): Promise<void> {
     return new Array(1536).fill(0);
   };
 
+  // Initialize plugins
+  const pluginRegistry = new PluginRegistry(logger);
+  pluginRegistry.register(articlePlugin);
+  pluginRegistry.register(youtubePlugin);
+
+  await pluginRegistry.setupAll({
+    sqlite,
+    markdown,
+    vectorDb,
+    generateEmbedding,
+    logger,
+    config: {
+      openaiApiKey: config.openaiApiKey,
+    },
+  });
+
   const agentDeps: AgentDeps = {
     sqlite,
     markdown,
@@ -43,7 +64,7 @@ async function main(): Promise<void> {
     generateEmbedding,
     modelId: config.defaultModel,
     logger,
-    openaiApiKey: config.openaiApiKey,
+    pluginTools: pluginRegistry.getTools(),
   };
 
   const interfaces: InterfaceAdapter[] = [];
@@ -72,6 +93,7 @@ async function main(): Promise<void> {
     for (const iface of interfaces) {
       await iface.stop();
     }
+    await pluginRegistry.teardownAll();
     sqlite.close();
     vectorDb.close();
     process.exit(0);

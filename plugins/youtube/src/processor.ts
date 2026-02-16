@@ -187,7 +187,6 @@ async function downloadAudio(videoId: string, logger: Logger): Promise<string> {
       stream.on('progress', (_chunkLength, downloaded, _total) => {
         downloadedBytes = downloaded;
 
-        // Check size limit during download
         if (downloadedBytes > WHISPER_MAX_SIZE_BYTES) {
           stream.destroy();
           reject(
@@ -331,15 +330,11 @@ export async function processYoutube(
 ): Promise<ProcessedContent> {
   logger.debug({ url }, 'Processing YouTube video');
 
-  // Validate URL
   const validatedUrl = validateUrl(url);
-
-  // Extract video ID
   const videoId = extractVideoId(validatedUrl);
 
   logger.debug({ videoId }, 'Video ID extracted');
 
-  // Get video metadata
   const metadata = await getVideoMetadata(videoId, logger);
 
   let transcript: string;
@@ -347,13 +342,11 @@ export async function processYoutube(
   let audioFilePath: string | null = null;
 
   try {
-    // Try to fetch YouTube transcript first
     transcript = await fetchYoutubeTranscript(videoId, logger);
     transcriptSource = 'youtube';
 
     logger.info({ videoId, source: 'youtube' }, 'Transcript obtained from YouTube');
   } catch (transcriptError) {
-    // Fallback to Whisper if YouTube transcript not available
     const errorMessage =
       transcriptError instanceof Error ? transcriptError.message : 'Unknown error';
     logger.warn(
@@ -369,29 +362,22 @@ export async function processYoutube(
     }
 
     try {
-      // Download audio
       audioFilePath = await downloadAudio(videoId, logger);
-
-      // Transcribe with Whisper
       transcript = await transcribeWithWhisper(audioFilePath, videoId, openaiApiKey, logger);
       transcriptSource = 'whisper';
 
       logger.info({ videoId, source: 'whisper' }, 'Transcript obtained from Whisper');
     } catch (whisperError) {
-      // Clean up audio file if it exists
       if (audioFilePath) {
         try {
           await unlink(audioFilePath);
-          logger.debug({ audioFilePath }, 'Temporary audio file deleted');
         } catch (unlinkError) {
           logger.warn({ audioFilePath, error: unlinkError }, 'Failed to delete temporary audio file');
         }
       }
 
-      // Both methods failed
       const whisperErrorMsg = whisperError instanceof Error ? whisperError.message : 'Unknown error';
 
-      // Check if it's a 403 error (YouTube blocking)
       if (whisperErrorMsg.includes('403')) {
         throw new ProcessingError(
           'YouTube transcript unavailable and video download blocked by YouTube. Please try a video with captions/subtitles enabled.',
@@ -405,18 +391,15 @@ export async function processYoutube(
       );
     }
 
-    // Clean up audio file on success
     if (audioFilePath) {
       try {
         await unlink(audioFilePath);
-        logger.debug({ audioFilePath }, 'Temporary audio file deleted');
       } catch (unlinkError) {
         logger.warn({ audioFilePath, error: unlinkError }, 'Failed to delete temporary audio file');
       }
     }
   }
 
-  // Sanitize content
   const sanitizedTitle = sanitizeHtml(metadata.title);
   const sanitizedTranscript = sanitizeHtml(transcript);
   const sanitizedChannel = metadata.channel ? sanitizeHtml(metadata.channel) : undefined;

@@ -2,20 +2,8 @@ import { Type, type Static } from '@mariozechner/pi-ai';
 import type { AgentTool } from '@mariozechner/pi-agent-core';
 import { v4 as uuidv4 } from 'uuid';
 import type { NoteMetadata } from '@echos/shared';
-import { processYoutube } from '../../processors/youtube.js';
-import type { SqliteStorage } from '../../storage/sqlite.js';
-import type { MarkdownStorage } from '../../storage/markdown.js';
-import type { VectorStorage } from '../../storage/vectordb.js';
-import type { Logger } from 'pino';
-
-export interface SaveYoutubeToolDeps {
-  sqlite: SqliteStorage;
-  markdown: MarkdownStorage;
-  vectorDb: VectorStorage;
-  generateEmbedding: (text: string) => Promise<number[]>;
-  logger: Logger;
-  openaiApiKey?: string;
-}
+import type { PluginContext } from '@echos/core';
+import { processYoutube } from './processor.js';
 
 const schema = Type.Object({
   url: Type.String({ description: 'YouTube video URL' }),
@@ -25,7 +13,11 @@ const schema = Type.Object({
 
 type Params = Static<typeof schema>;
 
-export function saveYoutubeTool(deps: SaveYoutubeToolDeps): AgentTool<typeof schema> {
+export function createSaveYoutubeTool(
+  context: PluginContext,
+): AgentTool<typeof schema> {
+  const openaiApiKey = context.config['openaiApiKey'] as string | undefined;
+
   return {
     name: 'save_youtube',
     label: 'Save YouTube',
@@ -37,7 +29,7 @@ export function saveYoutubeTool(deps: SaveYoutubeToolDeps): AgentTool<typeof sch
         details: { phase: 'fetching' },
       });
 
-      const processed = await processYoutube(params.url, deps.logger, deps.openaiApiKey);
+      const processed = await processYoutube(params.url, context.logger, openaiApiKey);
 
       const now = new Date().toISOString();
       const id = uuidv4();
@@ -54,13 +46,13 @@ export function saveYoutubeTool(deps: SaveYoutubeToolDeps): AgentTool<typeof sch
         sourceUrl: params.url,
       };
 
-      const filePath = deps.markdown.save(metadata, processed.content);
-      deps.sqlite.upsertNote(metadata, processed.content, filePath);
+      const filePath = context.markdown.save(metadata, processed.content);
+      context.sqlite.upsertNote(metadata, processed.content, filePath);
 
       if (processed.embedText) {
         try {
-          const vector = await deps.generateEmbedding(processed.embedText);
-          await deps.vectorDb.upsert({
+          const vector = await context.generateEmbedding(processed.embedText);
+          await context.vectorDb.upsert({
             id,
             text: processed.embedText,
             vector,

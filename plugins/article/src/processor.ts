@@ -49,7 +49,6 @@ export async function processArticle(url: string, logger: Logger): Promise<Proce
     throw new Error('Could not extract article content');
   }
 
-  // Clean the extracted content
   const content = sanitizeHtml(article.content ?? '');
   const title = sanitizeHtml(article.title ?? 'Untitled Article');
 

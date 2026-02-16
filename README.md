@@ -6,12 +6,13 @@ Agent-driven personal knowledge management system. Capture, process, search, and
 
 ### Core
 - LLM agent with tool calling — no rigid command routing
+- Plugin architecture for content processors (YouTube, articles, etc.)
 - Hybrid search: full-text (FTS5) + semantic (vector embeddings) + reranking
 - Markdown-first storage with YAML frontmatter (Obsidian-compatible)
 - Multi-interface: Telegram bot (default), Web API (default), Terminal UI (optional)
 
 ### Knowledge Management
-- Save and summarize web articles, YouTube videos, notes, journal entries
+- Save and summarize web articles (plugin), YouTube videos (plugin), notes, journal entries
 - Semantic search across your entire knowledge base
 - Bidirectional note linking
 - AI-generated categorization and summaries
@@ -27,9 +28,11 @@ Agent-driven personal knowledge management system. Capture, process, search, and
 User (Telegram / Web / TUI)
     → Interface Adapter (auth, normalize, stream)
     → Agent Core (pi-agent-core + pi-ai)
-    → Tools (create_note, search, save_article, ...)
+    → Core Tools (create_note, search, ...) + Plugin Tools (save_article, save_youtube, ...)
     → Storage (Markdown + SQLite/FTS5 + LanceDB vectors)
 ```
+
+Content processors (YouTube, article, etc.) are **plugins** in `plugins/`, not core code. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ## Quick Start
 
@@ -188,10 +191,10 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) if you encounter setup is
 - [x] 6 core CRUD tools (create, search, get, list, update, delete)
 - [x] CLI test script
 
-### Phase 4: Content Processors ✅
-- [x] Article processor (Readability + DOMPurify)
-- [x] YouTube processor (transcript extraction)
-- [x] save_article and save_youtube tools
+### Phase 4: Content Processors → Plugins ✅
+- [x] Plugin system (EchosPlugin interface, PluginRegistry, PluginContext)
+- [x] Article plugin (Readability + DOMPurify) → `plugins/article/`
+- [x] YouTube plugin (transcript extraction) → `plugins/youtube/`
 - [x] Reminder tools (add + complete)
 - [x] Bidirectional note linking
 

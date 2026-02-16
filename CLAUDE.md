@@ -25,12 +25,14 @@ EchOS is a secure, self-hosted, agent-driven personal knowledge management syste
 echos/
 ├── packages/
 │   ├── shared/       # Types, utils, security, config, logging, errors
-│   ├── core/         # Agent, tools, storage, search, processors, memory
+│   ├── core/         # Agent, tools, storage, search, plugin system
 │   ├── telegram/     # Telegram bot interface (grammY)
 │   ├── web/          # Web UI interface (Fastify + pi-web-ui)
 │   ├── tui/          # Terminal UI interface (pi-tui)
 │   └── scheduler/    # Background jobs (BullMQ) and cron tasks
-├── plugins/          # Plugin packages
+├── plugins/
+│   ├── youtube/      # YouTube transcript extraction plugin
+│   └── article/      # Web article extraction plugin
 ├── docker/           # Docker configuration
 ├── scripts/          # Deploy, backup, setup scripts
 └── data/             # Runtime data (gitignored)
@@ -38,8 +40,28 @@ echos/
 
 ## Patterns
 
-### Tool Definitions (in @echos/core)
-Tools use TypeBox schemas for pi-agent-core compatibility:
+### Plugin System
+Content processors are plugins, not core code. Each plugin implements `EchosPlugin`:
+```typescript
+import type { EchosPlugin, PluginContext } from '@echos/core';
+
+const myPlugin: EchosPlugin = {
+  name: 'my-processor',
+  description: 'Processes some content type',
+  version: '0.1.0',
+  setup(context: PluginContext) {
+    // Return AgentTool[] to register with the agent
+    return [createMyTool(context)];
+  },
+};
+export default myPlugin;
+```
+
+Plugins receive a `PluginContext` with access to storage, embeddings, logger, and config.
+Register plugins via `PluginRegistry` in the entry point.
+
+### Tool Definitions (in @echos/core or plugins)
+Core tools use TypeBox schemas for pi-agent-core compatibility:
 ```typescript
 import { Type } from '@sinclair/typebox';
 

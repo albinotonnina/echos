@@ -1,7 +1,8 @@
 import type { Job } from 'bullmq';
 import type { Logger } from 'pino';
 import type { JobData } from '../queue.js';
-import { processArticle, processYoutube } from '@echos/core';
+import { processArticle } from '@echos/plugin-article';
+import { processYoutube } from '@echos/plugin-youtube';
 import type { SqliteStorage, MarkdownStorage, VectorStorage } from '@echos/core';
 import type { NoteMetadata } from '@echos/shared';
 import { v4 as uuidv4 } from 'uuid';

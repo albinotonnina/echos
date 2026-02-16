@@ -1,4 +1,5 @@
 import { Agent } from '@mariozechner/pi-agent-core';
+import type { AgentTool } from '@mariozechner/pi-agent-core';
 import { getModel } from '@mariozechner/pi-ai';
 import type { Logger } from 'pino';
 import { SYSTEM_PROMPT } from './system-prompt.js';
@@ -9,8 +10,6 @@ import {
   listNotesTool,
   updateNoteTool,
   deleteNoteTool,
-  saveArticleTool,
-  saveYoutubeTool,
   addReminderTool,
   completeReminderTool,
   linkNotesTool,
@@ -30,7 +29,9 @@ export interface AgentDeps {
   generateEmbedding: (text: string) => Promise<number[]>;
   modelId?: string;
   logger: Logger;
-  openaiApiKey?: string;
+  /** Additional tools registered by plugins */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  pluginTools?: AgentTool<any>[];
 }
 
 export function createEchosAgent(deps: AgentDeps): Agent {
@@ -46,7 +47,8 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     generateEmbedding: deps.generateEmbedding,
   };
 
-  const tools = [
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const coreTools: AgentTool<any>[] = [
     createNoteTool(storageDeps),
     searchKnowledgeTool({
       search: deps.search,
@@ -60,12 +62,6 @@ export function createEchosAgent(deps: AgentDeps): Agent {
       markdown: deps.markdown,
       vectorDb: deps.vectorDb,
     }),
-    saveArticleTool({ ...storageDeps, logger: deps.logger }),
-    saveYoutubeTool({
-      ...storageDeps,
-      logger: deps.logger,
-      ...(deps.openaiApiKey ? { openaiApiKey: deps.openaiApiKey } : {}),
-    }),
     addReminderTool({ sqlite: deps.sqlite }),
     completeReminderTool({ sqlite: deps.sqlite }),
     linkNotesTool({ sqlite: deps.sqlite, markdown: deps.markdown }),
@@ -73,7 +69,12 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     recallKnowledgeTool({ sqlite: deps.sqlite }),
   ];
 
-  deps.logger.info({ model: model.id, toolCount: tools.length }, 'Creating EchOS agent');
+  const tools = [...coreTools, ...(deps.pluginTools ?? [])];
+
+  deps.logger.info(
+    { model: model.id, coreTools: coreTools.length, pluginTools: (deps.pluginTools ?? []).length, totalTools: tools.length },
+    'Creating EchOS agent',
+  );
 
   return new Agent({
     initialState: {

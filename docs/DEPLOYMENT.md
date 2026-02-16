@@ -45,7 +45,7 @@ pnpm start
 
 #### Module Not Found Errors
 
-If you see `Cannot find package '@echos/shared'` or similar:
+If you see `Cannot find package '@echos/shared'` or `'@echos/plugin-youtube'` or similar:
 
 ```bash
 # Rebuild all workspace packages

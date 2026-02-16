@@ -2,19 +2,8 @@ import { Type, type Static } from '@mariozechner/pi-ai';
 import type { AgentTool } from '@mariozechner/pi-agent-core';
 import { v4 as uuidv4 } from 'uuid';
 import type { NoteMetadata } from '@echos/shared';
-import { processArticle } from '../../processors/article.js';
-import type { SqliteStorage } from '../../storage/sqlite.js';
-import type { MarkdownStorage } from '../../storage/markdown.js';
-import type { VectorStorage } from '../../storage/vectordb.js';
-import type { Logger } from 'pino';
-
-export interface SaveArticleToolDeps {
-  sqlite: SqliteStorage;
-  markdown: MarkdownStorage;
-  vectorDb: VectorStorage;
-  generateEmbedding: (text: string) => Promise<number[]>;
-  logger: Logger;
-}
+import type { PluginContext } from '@echos/core';
+import { processArticle } from './processor.js';
 
 const schema = Type.Object({
   url: Type.String({ description: 'URL of the article to save', format: 'uri' }),
@@ -24,7 +13,9 @@ const schema = Type.Object({
 
 type Params = Static<typeof schema>;
 
-export function saveArticleTool(deps: SaveArticleToolDeps): AgentTool<typeof schema> {
+export function createSaveArticleTool(
+  context: PluginContext,
+): AgentTool<typeof schema> {
   return {
     name: 'save_article',
     label: 'Save Article',
@@ -36,7 +27,7 @@ export function saveArticleTool(deps: SaveArticleToolDeps): AgentTool<typeof sch
         details: { phase: 'fetching' },
       });
 
-      const processed = await processArticle(params.url, deps.logger);
+      const processed = await processArticle(params.url, context.logger);
 
       const now = new Date().toISOString();
       const id = uuidv4();
@@ -54,13 +45,13 @@ export function saveArticleTool(deps: SaveArticleToolDeps): AgentTool<typeof sch
       };
       if (processed.metadata.author) metadata.author = processed.metadata.author;
 
-      const filePath = deps.markdown.save(metadata, processed.content);
-      deps.sqlite.upsertNote(metadata, processed.content, filePath);
+      const filePath = context.markdown.save(metadata, processed.content);
+      context.sqlite.upsertNote(metadata, processed.content, filePath);
 
       if (processed.embedText) {
         try {
-          const vector = await deps.generateEmbedding(processed.embedText);
-          await deps.vectorDb.upsert({
+          const vector = await context.generateEmbedding(processed.embedText);
+          await context.vectorDb.upsert({
             id,
             text: processed.embedText,
             vector,
