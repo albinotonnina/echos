@@ -116,13 +116,16 @@ export function createSaveYoutubeTool(
         }
       }
 
-      let responseText = `Saved YouTube video "${processed.title}" (id: ${id})\n`;
-      responseText += `Transcript: ${processed.content.length} characters\n`;
-      responseText += `Category: ${category}\n`;
-      responseText += `Tags: [${tags.join(', ')}]`;
+      let responseText = `**YouTube video saved successfully!**\n\n`;
+      responseText += `**Title:** ${processed.title}\n`;
+      responseText += `**ID:** ${id}\n`;
+      responseText += `**Category:** ${category}\n`;
+      responseText += `**Tags:** [${tags.join(', ')}]\n`;
+      responseText += `**Transcript length:** ${processed.content.length} characters\n`;
       if (gist) {
-        responseText += `\nGist: ${gist}`;
+        responseText += `**Gist:** ${gist}\n`;
       }
+      responseText += `\n---\n\n**Full Transcript:**\n\n${processed.content}`;
 
       return {
         content: [
@@ -131,7 +134,17 @@ export function createSaveYoutubeTool(
             text: responseText,
           },
         ],
-        details: { id, filePath, title: processed.title, category, tags },
+        details: {
+          id,
+          filePath,
+          title: processed.title,
+          category,
+          tags,
+          content: processed.content,
+          transcript: processed.content,
+          metadata,
+          gist,
+        },
       };
     },
   };
