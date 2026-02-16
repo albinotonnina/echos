@@ -103,12 +103,25 @@ import type { AgentTool } from '@mariozechner/pi-agent-core';
 import { v4 as uuidv4 } from 'uuid';
 import type { NoteMetadata } from '@echos/shared';
 import type { PluginContext } from '@echos/core';
+import { categorizeContent, type ProcessingMode } from '@echos/core';
 import { processMyContent } from './processor.js';
 
 const schema = Type.Object({
   url: Type.String({ description: 'URL to process' }),
   tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags' })),
   category: Type.Optional(Type.String({ description: 'Category' })),
+  autoCategorize: Type.Optional(
+    Type.Boolean({
+      description: 'Automatically categorize using AI (default: false)',
+      default: false,
+    }),
+  ),
+  processingMode: Type.Optional(
+    Type.Union([Type.Literal('lightweight'), Type.Literal('full')], {
+      description: 'AI processing mode: "lightweight" (category+tags) or "full" (includes summary, gist, key points). Only used if autoCategorize is true.',
+      default: 'full',
+    }),
+  ),
 });
 
 type Params = Static<typeof schema>;
@@ -119,7 +132,7 @@ export function createMyTool(
   return {
     name: 'save_my_content',
     label: 'Save My Content',
-    description: 'Describe what this tool does — the agent reads this to decide when to use it.',
+    description: 'Describe what this tool does — the agent reads this to decide when to use it. Optionally auto-categorize with AI.',
     parameters: schema,
     execute: async (_toolCallId, params: Params, _signal, onUpdate) => {
       onUpdate?.({
@@ -132,17 +145,55 @@ export function createMyTool(
       const now = new Date().toISOString();
       const id = uuidv4();
 
+      let category = params.category ?? 'uncategorized';
+      let tags = params.tags ?? [];
+      let gist: string | undefined;
+
+      // Auto-categorize if requested and API key available
+      if (params.autoCategorize && context.config.anthropicApiKey) {
+        onUpdate?.({
+          content: [{ type: 'text', text: 'Categorizing content with AI...' }],
+          details: { phase: 'categorizing' },
+        });
+
+        try {
+          const mode: ProcessingMode = params.processingMode ?? 'full';
+          const result = await categorizeContent(
+            processed.title,
+            processed.content,
+            mode,
+            context.config.anthropicApiKey as string,
+            context.logger,
+          );
+
+          category = result.category;
+          tags = result.tags;
+
+          if ('gist' in result) {
+            gist = result.gist;
+          }
+
+          context.logger.info(
+            { category, tags, mode },
+            'Content auto-categorized',
+          );
+        } catch (error) {
+          context.logger.error({ error }, 'Auto-categorization failed, using defaults');
+        }
+      }
+
       const metadata: NoteMetadata = {
         id,
         type: 'note',
         title: processed.title,
         created: now,
         updated: now,
-        tags: params.tags ?? [],
+        tags,
         links: [],
-        category: params.category ?? 'uncategorized',
+        category,
         sourceUrl: params.url,
       };
+      if (gist) metadata.gist = gist;
 
       // Save to all three storage layers
       const filePath = context.markdown.save(metadata, processed.content);
@@ -167,15 +218,17 @@ export function createMyTool(
         content: [
           {
             type: 'text' as const,
-            text: `Saved "${processed.title}" (id: ${id})`,
+            text: `Saved "${processed.title}" (id: ${id})\nCategory: ${category}\nTags: [${tags.join(', ')}]${gist ? `\nGist: ${gist}` : ''}`,
           },
         ],
-        details: { id, filePath, title: processed.title },
+        details: { id, filePath, title: processed.title, category, tags },
       };
     },
   };
 }
 ```
+
+**New in this example**: AI-powered auto-categorization support using the `categorizeContent` function from `@echos/core`. When `autoCategorize=true`, the plugin will automatically extract category, tags, and optionally gist/summary/key points from the content.
 
 ### 4. Export the plugin
 
@@ -251,6 +304,42 @@ Every plugin receives a `PluginContext` with:
 | `generateEmbedding` | `(text: string) => Promise<number[]>` | Generate embedding vectors |
 | `logger` | `Logger` (Pino) | Structured logger |
 | `config` | `Record<string, unknown>` | App config (API keys, etc.) |
+
+## AI Categorization
+
+Plugins can use the built-in categorization service from `@echos/core`:
+
+```typescript
+import { categorizeContent, type ProcessingMode } from '@echos/core';
+
+// Lightweight mode: ~1-2 seconds, category + tags only
+const result = await categorizeContent(
+  title,
+  content,
+  'lightweight',
+  context.config.anthropicApiKey as string,
+  context.logger,
+);
+// result: { category: string, tags: string[] }
+
+// Full mode: ~3-5 seconds, includes gist, summary, key points
+const fullResult = await categorizeContent(
+  title,
+  content,
+  'full',
+  context.config.anthropicApiKey as string,
+  context.logger,
+);
+// fullResult: { category, tags, gist, summary, keyPoints }
+```
+
+The categorization service automatically:
+- Analyzes content using Claude AI
+- Extracts structured metadata (category, tags, etc.)
+- Handles errors with safe defaults (fallback to 'uncategorized')
+- Respects content length limits (5000 chars for lightweight, 10000 for full)
+
+See [CATEGORIZATION.md](CATEGORIZATION.md) for detailed documentation.
 
 ## Existing plugins
 

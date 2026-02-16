@@ -63,8 +63,10 @@ Content processors live in `plugins/` as separate workspace packages. Each plugi
 - Receives a `PluginContext` with storage, embeddings, logger, and config
 - Is registered via `PluginRegistry` in the application entry point
 
-Core tools (create_note, search, get, list, update, delete, reminders, memory, linking) remain in `@echos/core`.
+Core tools (create_note, search, get, list, update, delete, reminders, memory, linking, categorize_note) remain in `@echos/core`.
 Domain-specific processors (YouTube, article, etc.) are plugins.
+
+Plugins can optionally use the AI categorization service from `@echos/core` to automatically extract category, tags, gist, summary, and key points from content. See [CATEGORIZATION.md](CATEGORIZATION.md) for details.
 
 ## Storage Architecture
 
