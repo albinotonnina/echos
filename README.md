@@ -13,9 +13,11 @@ Agent-driven personal knowledge management system. Capture, process, search, and
 
 ### Knowledge Management
 - Save and summarize web articles (plugin), YouTube videos (plugin), notes, journal entries
+- **AI-powered categorization**: Automatic category, tags, and summaries using Claude AI
+  - Lightweight mode: Fast categorization with category + tags
+  - Full mode: Comprehensive analysis with gist, summary, and key points
 - Semantic search across your entire knowledge base
 - Bidirectional note linking
-- AI-generated categorization and summaries
 
 ### Memory & Style (Planned)
 - Personal memory: facts, preferences, projects, expertise
@@ -159,6 +161,16 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md#telegram-bot-conflicts) fo
 
 See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) if you encounter setup issues.
 
+## Documentation
+
+- [CATEGORIZATION.md](docs/CATEGORIZATION.md) - AI-powered categorization guide
+- [PLUGINS.md](docs/PLUGINS.md) - Creating custom plugins
+- [INTERFACES.md](docs/INTERFACES.md) - Using Telegram, Web, and TUI
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - System architecture
+- [DEPLOYMENT.md](docs/DEPLOYMENT.md) - Production deployment
+- [SECURITY.md](docs/SECURITY.md) - Security considerations
+- [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Common issues and fixes
+
 ## Tech Stack
 
 | Component | Technology |
@@ -212,6 +224,12 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) if you encounter setup is
 ### Phase 7: Memory & Style ✅
 - [x] Memory tools (remember_about_me, recall_knowledge)
 - [x] Style analyzer (sentence/paragraph/vocabulary analysis)
+
+### Phase 9: AI Categorization ✅
+- [x] Categorization service with lightweight and full processing modes
+- [x] categorize_note tool for existing content
+- [x] Auto-categorization support in article and YouTube plugins
+- [x] Structured extraction using Claude API (category, tags, gist, summary, key points)
 
 ### Phase 8: Deployment & Polish ✅
 - [x] Docker multi-stage build

@@ -15,6 +15,7 @@ import {
   linkNotesTool,
   rememberAboutMeTool,
   recallKnowledgeTool,
+  createCategorizeNoteTool,
 } from './tools/index.js';
 import type { SqliteStorage } from '../storage/sqlite.js';
 import type { MarkdownStorage } from '../storage/markdown.js';
@@ -27,6 +28,7 @@ export interface AgentDeps {
   vectorDb: VectorStorage;
   search: SearchService;
   generateEmbedding: (text: string) => Promise<number[]>;
+  anthropicApiKey: string;
   modelId?: string;
   logger: Logger;
   /** Additional tools registered by plugins */
@@ -67,6 +69,11 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     linkNotesTool({ sqlite: deps.sqlite, markdown: deps.markdown }),
     rememberAboutMeTool({ sqlite: deps.sqlite }),
     recallKnowledgeTool({ sqlite: deps.sqlite }),
+    createCategorizeNoteTool({
+      ...storageDeps,
+      anthropicApiKey: deps.anthropicApiKey,
+      logger: deps.logger,
+    }),
   ];
 
   const tools = [...coreTools, ...(deps.pluginTools ?? [])];

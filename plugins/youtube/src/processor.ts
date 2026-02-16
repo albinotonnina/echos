@@ -1,10 +1,11 @@
 import ytdl from '@distube/ytdl-core';
 import OpenAI from 'openai';
 import { createWriteStream } from 'fs';
-import { unlink } from 'fs/promises';
+import { unlink, mkdir } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { spawn } from 'child_process';
+import { existsSync } from 'fs';
 import type { Logger } from 'pino';
 import { validateUrl, sanitizeHtml, ProcessingError, ExternalServiceError } from '@echos/shared';
 import type { ProcessedContent } from '@echos/shared';
@@ -13,6 +14,48 @@ const WHISPER_MAX_SIZE_BYTES = 25 * 1024 * 1024; // 25MB (OpenAI limit)
 const DOWNLOAD_TIMEOUT_MS = 300000; // 5 minutes for audio download
 const MAX_TRANSCRIPT_LENGTH = 500000; // ~500k characters
 const TRANSCRIPT_TIMEOUT_MS = 30000; // 30 seconds for transcript fetch
+const YTDL_CACHE_DIR = join(process.cwd(), 'data', 'cache', 'ytdl');
+
+/**
+ * Ensure ytdl cache directory exists
+ */
+async function ensureCacheDir(): Promise<void> {
+  if (!existsSync(YTDL_CACHE_DIR)) {
+    await mkdir(YTDL_CACHE_DIR, { recursive: true });
+  }
+}
+
+/**
+ * Execute ytdl operation with proper cache directory
+ * ytdl-core saves player scripts to process.cwd(), so we temporarily change it
+ */
+async function withYtdlCache<T>(operation: () => Promise<T>): Promise<T> {
+  await ensureCacheDir();
+  const originalCwd = process.cwd();
+  try {
+    process.chdir(YTDL_CACHE_DIR);
+    return await operation();
+  } finally {
+    process.chdir(originalCwd);
+  }
+}
+
+/**
+ * Execute ytdl stream operation with proper cache directory (synchronous start)
+ */
+function withYtdlCacheSync<T>(operation: () => T): T {
+  // Ensure cache dir exists synchronously
+  if (!existsSync(YTDL_CACHE_DIR)) {
+    require('fs').mkdirSync(YTDL_CACHE_DIR, { recursive: true });
+  }
+  const originalCwd = process.cwd();
+  try {
+    process.chdir(YTDL_CACHE_DIR);
+    return operation();
+  } finally {
+    process.chdir(originalCwd);
+  }
+}
 
 /**
  * Extract YouTube video ID from URL
@@ -182,7 +225,7 @@ async function downloadAudio(videoId: string, logger: Logger): Promise<string> {
         },
       } as const;
 
-      const stream = ytdl(url, options);
+      const stream = withYtdlCacheSync(() => ytdl(url, options));
 
       stream.on('progress', (_chunkLength, downloaded, _total) => {
         downloadedBytes = downloaded;
@@ -304,7 +347,7 @@ async function getVideoMetadata(
       },
     };
 
-    const info = await ytdl.getInfo(url, options);
+    const info = await withYtdlCache(async () => ytdl.getInfo(url, options));
 
     return {
       title: info.videoDetails.title || 'Untitled',

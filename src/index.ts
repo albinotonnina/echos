@@ -53,6 +53,7 @@ async function main(): Promise<void> {
     logger,
     config: {
       openaiApiKey: config.openaiApiKey,
+      anthropicApiKey: config.anthropicApiKey,
     },
   });
 
@@ -62,6 +63,7 @@ async function main(): Promise<void> {
     vectorDb,
     search,
     generateEmbedding,
+    anthropicApiKey: config.anthropicApiKey,
     modelId: config.defaultModel,
     logger,
     pluginTools: pluginRegistry.getTools(),

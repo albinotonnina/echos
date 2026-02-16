@@ -15,5 +15,13 @@ export {
 } from './storage/index.js';
 
 export { createEchosAgent, SYSTEM_PROMPT, type AgentDeps } from './agent/index.js';
+export {
+  categorizeContent,
+  categorizeLightweight,
+  processFull,
+  type CategorizationResult,
+  type FullProcessingResult,
+  type ProcessingMode,
+} from './agent/categorization.js';
 export { PluginRegistry, type EchosPlugin, type PluginContext } from './plugins/index.js';
 export { analyzeStyle, type StyleProfile } from './style/analyzer.js';
