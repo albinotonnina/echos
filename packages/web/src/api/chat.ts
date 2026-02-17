@@ -61,6 +61,16 @@ export function registerChatRoutes(
       unsubscribe();
     }
 
+    // Check for agent errors (pi-agent-core swallows errors internally)
+    const agentError = agent.state.error;
+    if (!responseText && agentError) {
+      return reply.status(500).send({
+        response: '',
+        error: agentError,
+        toolCalls,
+      });
+    }
+
     return reply.send({
       response: responseText,
       toolCalls,
