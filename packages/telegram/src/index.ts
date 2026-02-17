@@ -7,6 +7,7 @@ import { createAuthMiddleware, createRateLimitMiddleware, createErrorHandler } f
 import { getOrCreateSession, getSession, clearAllSessions } from './session.js';
 import { streamAgentResponse } from './streaming.js';
 import { createTelegramNotificationService } from './notification.js';
+import { handleVoiceMessage } from './voice.js';
 
 export interface TelegramAdapterOptions {
   config: Config;
@@ -42,6 +43,7 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
       '- Send text to create notes\n' +
       '- Send URLs to save articles\n' +
       '- Ask questions about your knowledge\n' +
+      '- Send voice messages to transcribe and process them\n' +
       '- Manage reminders and more',
     );
   });
@@ -91,6 +93,20 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
 
     const agent = getOrCreateSession(userId, agentDeps);
     await streamAgentResponse(agent, ctx.message.text, ctx);
+  });
+
+  // Handle voice messages via Whisper transcription
+  bot.on('message:voice', async (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    if (!config.openaiApiKey) {
+      await ctx.reply('Voice messages require OpenAI API key configuration.');
+      return;
+    }
+
+    const agent = getOrCreateSession(userId, agentDeps);
+    await handleVoiceMessage(ctx, agent, config.openaiApiKey, logger);
   });
 
   return {
