@@ -39,7 +39,31 @@ export function updateNoteTool(deps: UpdateNoteToolDeps): AgentTool<typeof schem
       if (params.tags) partialMeta.tags = params.tags;
       if (params.category) partialMeta.category = params.category;
 
-      const updated = deps.markdown.update(row.filePath, partialMeta, params.content);
+      let updated: { metadata: NoteMetadata; content: string; filePath: string };
+
+      if (deps.markdown.read(row.filePath)) {
+        updated = deps.markdown.update(row.filePath, partialMeta, params.content);
+      } else {
+        // File missing — reconstruct from SQLite then apply updates
+        const baseMetadata: NoteMetadata = {
+          id: row.id,
+          type: row.type,
+          title: row.title,
+          created: row.created,
+          updated: new Date().toISOString(),
+          tags: row.tags ? row.tags.split(',').filter(Boolean) : [],
+          links: row.links ? row.links.split(',').filter(Boolean) : [],
+          category: row.category,
+        };
+        if (row.sourceUrl != null) baseMetadata.sourceUrl = row.sourceUrl;
+        if (row.author != null) baseMetadata.author = row.author;
+        if (row.gist != null) baseMetadata.gist = row.gist;
+        const metadata: NoteMetadata = { ...baseMetadata, ...partialMeta, updated: new Date().toISOString() };
+        const content = params.content ?? row.content;
+        const filePath = deps.markdown.save(metadata, content);
+        updated = { metadata, content, filePath };
+      }
+
       deps.sqlite.upsertNote(updated.metadata, updated.content, updated.filePath);
 
       const embedText = `${updated.metadata.title}\n\n${updated.content}`;

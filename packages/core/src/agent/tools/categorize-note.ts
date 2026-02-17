@@ -56,29 +56,42 @@ export function createCategorizeNoteTool(
           deps.logger,
         );
 
-        // Parse existing note
-        const note = deps.markdown.read(noteRow.filePath);
-        if (!note) {
-          return {
-            content: [{ type: 'text' as const, text: `Failed to read note file: ${noteRow.filePath}` }],
-            details: {},
-          };
-        }
-
-        const metadata = note.metadata;
+        // Parse existing note - fall back to SQLite content if file is missing
+        const existingNote = deps.markdown.read(noteRow.filePath);
+        const oldCategory = existingNote?.metadata.category ?? noteRow.category;
+        const existingMetadata = existingNote?.metadata ?? {
+          id: noteRow.id,
+          type: noteRow.type,
+          title: noteRow.title,
+          created: noteRow.created,
+          updated: noteRow.updated,
+          tags: noteRow.tags ? noteRow.tags.split(',').filter(Boolean) : [],
+          links: noteRow.links ? noteRow.links.split(',').filter(Boolean) : [],
+          category: noteRow.category,
+        };
 
         // Update metadata with categorization results
-        metadata.category = result.category;
-        metadata.tags = result.tags;
-        metadata.updated = new Date().toISOString();
+        const metadata = {
+          ...existingMetadata,
+          category: result.category,
+          tags: result.tags,
+          updated: new Date().toISOString(),
+          ...('gist' in result ? { gist: result.gist } : {}),
+        };
 
-        if ('gist' in result) {
-          metadata.gist = result.gist;
+        // If category changed, move the file to the new directory
+        let savedFilePath: string;
+        if (result.category !== oldCategory || !existingNote) {
+          savedFilePath = deps.markdown.save(metadata, noteRow.content);
+          if (existingNote) {
+            deps.markdown.remove(noteRow.filePath);
+          }
+        } else {
+          deps.markdown.update(noteRow.filePath, metadata, noteRow.content);
+          savedFilePath = noteRow.filePath;
         }
 
-        // Save updated note
-        deps.markdown.update(noteRow.filePath, metadata, noteRow.content);
-        deps.sqlite.upsertNote(metadata, noteRow.content, noteRow.filePath);
+        deps.sqlite.upsertNote(metadata, noteRow.content, savedFilePath);
 
         // Update vector store
         try {
