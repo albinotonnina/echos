@@ -53,11 +53,7 @@ export function createReminderCheckProcessor(deps: ReminderWorkerDeps) {
     // Mark all notified reminders as completed so they won't appear in future checks
     const nowIso = new Date(now).toISOString();
     for (const r of due) {
-      sqlite.upsertReminder({
-        ...r,
-        completed: true,
-        updated: nowIso,
-      });
+      sqlite.upsertReminder({ ...r, completed: true, updated: nowIso });
     }
 
     logger.info({ count: due.length }, 'Due reminder notifications sent and marked as completed');
