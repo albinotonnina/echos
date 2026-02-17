@@ -114,45 +114,54 @@ async function main(): Promise<void> {
       },
     };
 
-    queueService = createQueue({ redisUrl: config.redisUrl, logger });
+    try {
+      queueService = createQueue({ redisUrl: config.redisUrl, logger });
 
-    const contentProcessor = createContentProcessor({
-      sqlite,
-      markdown,
-      vectorDb,
-      generateEmbedding,
-      logger,
-      openaiApiKey: config.openaiApiKey,
-    });
+      const contentProcessor = createContentProcessor({
+        sqlite,
+        markdown,
+        vectorDb,
+        generateEmbedding,
+        logger,
+        openaiApiKey: config.openaiApiKey,
+      });
 
-    const digestProcessor = createDigestProcessor({
-      agentDeps,
-      notificationService,
-      logger,
-    });
+      const digestProcessor = createDigestProcessor({
+        agentDeps,
+        notificationService,
+        logger,
+      });
 
-    const reminderProcessor = createReminderCheckProcessor({
-      sqlite,
-      notificationService,
-      logger,
-    });
+      const reminderProcessor = createReminderCheckProcessor({
+        sqlite,
+        notificationService,
+        logger,
+      });
 
-    const jobRouter = createJobRouter({
-      contentProcessor,
-      digestProcessor,
-      reminderProcessor,
-      logger,
-    });
+      const jobRouter = createJobRouter({
+        contentProcessor,
+        digestProcessor,
+        reminderProcessor,
+        logger,
+      });
 
-    worker = createWorker({
-      redisUrl: config.redisUrl,
-      logger,
-      processor: jobRouter,
-      concurrency: 2,
-    });
+      worker = createWorker({
+        redisUrl: config.redisUrl,
+        logger,
+        processor: jobRouter,
+        concurrency: 2,
+      });
 
-    await registerScheduledJobs(queueService.queue, config, logger);
-    logger.info('Scheduler initialized');
+      await registerScheduledJobs(queueService.queue, config, logger);
+      logger.info('Scheduler initialized');
+    } catch (err) {
+      logger.warn(
+        { err, redisUrl: config.redisUrl },
+        'Scheduler unavailable: Redis connection failed. Running without background jobs.',
+      );
+      queueService = undefined;
+      worker = undefined;
+    }
   }
 
   for (const iface of interfaces) {
