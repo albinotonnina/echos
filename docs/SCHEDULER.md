@@ -44,6 +44,8 @@ Queries the SQLite database for pending reminders with a due date in the past. D
 REMINDER_CHECK_SCHEDULE=*/15 * * * *    # Every 15 minutes
 ```
 
+**Important**: Once a reminder is shown in a "Reminder Check" notification, it is automatically marked as completed and will not appear in future checks. This prevents the same reminder from being shown repeatedly.
+
 This job does not use AI and has no API cost.
 
 ### Content Processing
