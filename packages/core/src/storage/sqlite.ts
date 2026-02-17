@@ -165,13 +165,17 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
         category=@category, source_url=@sourceUrl, author=@author, gist=@gist, updated=@updated
     `),
     deleteNote: db.prepare('DELETE FROM notes WHERE id = ?'),
-    getNote: db.prepare('SELECT * FROM notes WHERE id = ?'),
-    listNotes: db.prepare('SELECT * FROM notes ORDER BY created DESC LIMIT ? OFFSET ?'),
+    getNote: db.prepare(
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated FROM notes WHERE id = ?',
+    ),
+    listNotes: db.prepare(
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated FROM notes ORDER BY created DESC LIMIT ? OFFSET ?',
+    ),
     listNotesByType: db.prepare(
-      'SELECT * FROM notes WHERE type = ? ORDER BY created DESC LIMIT ? OFFSET ?',
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated FROM notes WHERE type = ? ORDER BY created DESC LIMIT ? OFFSET ?',
     ),
     searchFts: db.prepare(`
-      SELECT notes.*, bm25(notes_fts) as rank
+      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, bm25(notes_fts) as rank
       FROM notes_fts
       JOIN notes ON notes.rowid = notes_fts.rowid
       WHERE notes_fts MATCH ?
@@ -179,7 +183,7 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       LIMIT ?
     `),
     searchFtsWithType: db.prepare(`
-      SELECT notes.*, bm25(notes_fts) as rank
+      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, bm25(notes_fts) as rank
       FROM notes_fts
       JOIN notes ON notes.rowid = notes_fts.rowid
       WHERE notes_fts MATCH ? AND notes.type = ?

@@ -1,5 +1,6 @@
 import { Type, type Static } from '@mariozechner/pi-ai';
 import type { AgentTool } from '@mariozechner/pi-agent-core';
+import type { NoteMetadata } from '@echos/shared';
 import type { SqliteStorage } from '../../storage/sqlite.js';
 import type { MarkdownStorage } from '../../storage/markdown.js';
 
@@ -26,12 +27,30 @@ export function getNoteTool(deps: GetNoteToolDeps): AgentTool<typeof schema> {
         throw new Error(`Note not found: ${params.id}`);
       }
 
-      const note = deps.markdown.read(row.filePath);
-      if (!note) {
-        throw new Error(`Note file missing for: ${params.id}`);
+      const noteFile = deps.markdown.read(row.filePath);
+      let meta: NoteMetadata;
+      let content: string;
+      if (noteFile) {
+        meta = noteFile.metadata;
+        content = noteFile.content;
+      } else {
+        // File missing from disk - reconstruct from SQLite content
+        meta = {
+          id: row.id,
+          type: row.type,
+          title: row.title,
+          created: row.created,
+          updated: row.updated,
+          tags: row.tags ? row.tags.split(',').filter(Boolean) : [],
+          links: row.links ? row.links.split(',').filter(Boolean) : [],
+          category: row.category,
+        };
+        if (row.sourceUrl != null) meta.sourceUrl = row.sourceUrl;
+        if (row.author != null) meta.author = row.author;
+        if (row.gist != null) meta.gist = row.gist;
+        content = row.content;
       }
 
-      const meta = note.metadata;
       const text = [
         `# ${meta.title}`,
         `**Type:** ${meta.type} | **Category:** ${meta.category}`,
@@ -40,7 +59,7 @@ export function getNoteTool(deps: GetNoteToolDeps): AgentTool<typeof schema> {
         meta.sourceUrl ? `**Source:** ${meta.sourceUrl}` : '',
         meta.gist ? `**Summary:** ${meta.gist}` : '',
         `---`,
-        note.content,
+        content,
       ]
         .filter(Boolean)
         .join('\n');

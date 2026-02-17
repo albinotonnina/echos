@@ -1,5 +1,5 @@
 import type { Logger } from 'pino';
-import type { SearchOptions, SearchResult, Note } from '@echos/shared';
+import type { SearchOptions, SearchResult, Note, NoteMetadata } from '@echos/shared';
 import type { SqliteStorage, NoteRow, FtsOptions } from './sqlite.js';
 import type { VectorStorage, VectorSearchResult } from './vectordb.js';
 import type { MarkdownStorage } from './markdown.js';
@@ -12,14 +12,33 @@ export interface SearchService {
 
 const RRF_K = 60; // Reciprocal rank fusion constant
 
+function noteRowToNote(row: NoteRow): Note {
+  const metadata: NoteMetadata = {
+    id: row.id,
+    type: row.type,
+    title: row.title,
+    created: row.created,
+    updated: row.updated,
+    tags: row.tags ? row.tags.split(',').filter(Boolean) : [],
+    links: row.links ? row.links.split(',').filter(Boolean) : [],
+    category: row.category,
+  };
+  if (row.sourceUrl != null) metadata.sourceUrl = row.sourceUrl;
+  if (row.author != null) metadata.author = row.author;
+  if (row.gist != null) metadata.gist = row.gist;
+  return { metadata, content: row.content, filePath: row.filePath };
+}
+
 function noteRowToSearchResult(
   row: NoteRow,
   score: number,
   mdStorage: MarkdownStorage,
-): SearchResult | undefined {
-  const note = mdStorage.read(row.filePath);
-  if (!note) return undefined;
-  return { note, score };
+  logger: Logger,
+): SearchResult {
+  const mdNote = mdStorage.read(row.filePath);
+  if (mdNote) return { note: mdNote, score };
+  logger.warn({ id: row.id, filePath: row.filePath }, 'Note file missing from disk, falling back to SQLite content');
+  return { note: noteRowToNote(row), score };
 }
 
 function reciprocalRankFusion(
@@ -56,8 +75,7 @@ export function createSearchService(
 
       const results: SearchResult[] = [];
       for (const row of rows) {
-        const result = noteRowToSearchResult(row, 1, mdStorage);
-        if (result) results.push(result);
+        results.push(noteRowToSearchResult(row, 1, mdStorage, logger));
       }
 
       logger.debug({ query: opts.query, resultCount: results.length }, 'Keyword search');
@@ -72,8 +90,7 @@ export function createSearchService(
         if (opts.type && vr.type !== opts.type) continue;
         const noteRow = sqlite.getNote(vr.id);
         if (!noteRow) continue;
-        const result = noteRowToSearchResult(noteRow, vr.score, mdStorage);
-        if (result) results.push(result);
+        results.push(noteRowToSearchResult(noteRow, vr.score, mdStorage, logger));
       }
 
       logger.debug({ query: opts.query, resultCount: results.length }, 'Semantic search');
@@ -106,8 +123,7 @@ export function createSearchService(
       for (const { id, score } of fused.slice(0, limit)) {
         const noteRow = sqlite.getNote(id);
         if (!noteRow) continue;
-        const result = noteRowToSearchResult(noteRow, score, mdStorage);
-        if (result) results.push(result);
+        results.push(noteRowToSearchResult(noteRow, score, mdStorage, logger));
       }
 
       logger.debug(

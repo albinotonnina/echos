@@ -68,7 +68,8 @@
       "Bash(xargs *)",
       "Bash(pnpm typecheck:*)",
       "Bash(docker build:*)",
-      "Bash(docker run:*)"
+      "Bash(docker run:*)",
+      "Bash(ssh oracle-cloud 'docker exec $\\(docker ps --filter name=echos -q | head -1\\) node --import tsx -e \"\"\nimport { createSqliteStorage } from \\\\\"\"./packages/core/dist/storage/sqlite.js\\\\\"\";\nconst s = createSqliteStorage\\(\\\\\"\"data/db/echos.db\\\\\"\", { info: \\(\\)=>{}, debug: \\(\\)=>{}, error: \\(\\)=>{} }\\);\nconst rows = s.listNotes\\({ type: \\\\\"\"note\\\\\"\", limit: 5 }\\);\nrows.forEach\\(r => console.log\\(r.title, \\\\\"\"|\\\\\"\", r.filePath\\)\\);\ns.close\\(\\);\n\"\" 2>&1 | head -20')"
     ]
   }
 }
