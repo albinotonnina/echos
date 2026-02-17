@@ -20,6 +20,7 @@ export type {
   ReminderEntry,
   ProcessedContent,
   InterfaceAdapter,
+  NotificationService,
 } from './types/index.js';
 export {
   validateUrl,

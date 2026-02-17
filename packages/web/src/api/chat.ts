@@ -51,8 +51,12 @@ export function registerChatRoutes(
       }
     });
 
+    // Prepend current date/time context to the message
+    const now = new Date();
+    const contextualMessage = `[Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: 'UTC' })} UTC)]\n\n${message}`;
+
     try {
-      await agent.prompt(message);
+      await agent.prompt(contextualMessage);
     } finally {
       unsubscribe();
     }

@@ -11,7 +11,7 @@ export interface ReminderToolDeps {
 const addSchema = Type.Object({
   title: Type.String({ description: 'Reminder title', minLength: 1 }),
   description: Type.Optional(Type.String({ description: 'Additional details' })),
-  due_date: Type.Optional(Type.String({ description: 'Due date (ISO 8601 or natural language date)' })),
+  due_date: Type.Optional(Type.String({ description: 'Due date in ISO 8601 format (e.g. "2026-02-16T19:49:00Z"). Always compute the exact date/time — do NOT use relative expressions like "in 20 minutes".' })),
   priority: Type.Optional(
     StringEnum(['low', 'medium', 'high'], { description: 'Priority level', default: 'medium' }),
   ),
@@ -38,7 +38,13 @@ export function addReminderTool(deps: ReminderToolDeps): AgentTool<typeof addSch
         updated: now,
       };
       if (params.description) entry.description = params.description;
-      if (params.due_date) entry.dueDate = params.due_date;
+      if (params.due_date) {
+        const parsed = new Date(params.due_date);
+        if (isNaN(parsed.getTime())) {
+          throw new Error(`Invalid due date: "${params.due_date}". Provide an ISO 8601 date (e.g. "2026-02-16T19:49:00Z").`);
+        }
+        entry.dueDate = parsed.toISOString();
+      }
 
       deps.sqlite.upsertReminder(entry);
 

@@ -145,6 +145,13 @@ See `.env.example` for the full list. Required:
 Optional but recommended:
 - `OPENAI_API_KEY` - Required for embeddings and Whisper transcription
 
+Scheduler (requires Redis):
+- `ENABLE_SCHEDULER` - Set to `true` to enable background jobs (default: `false`)
+- `DIGEST_SCHEDULE` - Cron expression for AI daily digest (e.g. `0 8 * * *` for 8am daily)
+- `REMINDER_CHECK_SCHEDULE` - Cron expression for due reminder checks (e.g. `*/15 * * * *` for every 15min)
+
+See [SCHEDULER.md](./SCHEDULER.md) for details.
+
 ## Process Management
 
 ### Development

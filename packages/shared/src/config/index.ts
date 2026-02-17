@@ -45,10 +45,17 @@ export const configSchema = z.object({
   // Web
   webPort: z.coerce.number().int().positive().default(3000),
 
+  // Scheduler
+  enableScheduler: z
+    .string()
+    .transform((s) => s === 'true')
+    .default('false'),
+
   // Schedules
   digestSchedule: optionalCron,
   newsletterSchedule: optionalCron,
   trendingSchedule: optionalCron,
+  reminderCheckSchedule: optionalCron,
 });
 
 export type Config = z.infer<typeof configSchema>;
@@ -73,9 +80,11 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     enableWeb: env['ENABLE_WEB'],
     enableTui: env['ENABLE_TUI'],
     webPort: env['WEB_PORT'],
+    enableScheduler: env['ENABLE_SCHEDULER'],
     digestSchedule: env['DIGEST_SCHEDULE'],
     newsletterSchedule: env['NEWSLETTER_SCHEDULE'],
     trendingSchedule: env['TRENDING_SCHEDULE'],
+    reminderCheckSchedule: env['REMINDER_CHECK_SCHEDULE'],
   });
 
   if (!result.success) {

@@ -19,7 +19,8 @@
     "start:tui-only": "ENABLE_TELEGRAM=false ENABLE_WEB=false ENABLE_TUI=true tsx --env-file=.env src/index.ts",
     "stop": "pkill -f 'tsx.*src/index.ts' || true",
     "cli": "tsx packages/core/src/cli.ts",
-    "clean": "pnpm -r clean && rm -rf node_modules"
+    "clean": "pnpm -r clean && rm -rf node_modules",
+    "deploy": "./scripts/deploy-fast.sh"
   },
   "engines": {
     "node": ">=20.0.0",
@@ -30,7 +31,8 @@
   "dependencies": {
     "@echos/plugin-youtube": "workspace:*",
     "@echos/plugin-article": "workspace:*",
-    "@echos/plugin-content-creation": "workspace:*"
+    "@echos/plugin-content-creation": "workspace:*",
+    "@echos/scheduler": "workspace:*"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

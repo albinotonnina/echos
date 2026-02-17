@@ -17,6 +17,9 @@ importers:
       '@echos/plugin-youtube':
         specifier: workspace:*
         version: link:plugins/youtube
+      '@echos/scheduler':
+        specifier: workspace:*
+        version: link:packages/scheduler
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
@@ -106,6 +109,9 @@ importers:
       '@echos/shared':
         specifier: workspace:*
         version: link:../shared
+      '@mariozechner/pi-agent-core':
+        specifier: ^0.52.12
+        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
       bullmq:
         specifier: ^5.69.2
         version: 5.69.2

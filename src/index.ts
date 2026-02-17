@@ -6,7 +6,7 @@
  */
 
 import { join } from 'node:path';
-import { loadConfig, createLogger, type InterfaceAdapter } from '@echos/shared';
+import { loadConfig, createLogger, type InterfaceAdapter, type NotificationService } from '@echos/shared';
 import {
   createSqliteStorage,
   createMarkdownStorage,
@@ -15,9 +15,19 @@ import {
   PluginRegistry,
   type AgentDeps,
 } from '@echos/core';
-import { createTelegramAdapter } from '@echos/telegram';
+import { createTelegramAdapter, type TelegramAdapter } from '@echos/telegram';
 import { createWebAdapter } from '@echos/web';
 import { createTuiAdapter } from '@echos/tui';
+import {
+  createQueue,
+  createWorker,
+  registerScheduledJobs,
+  createContentProcessor,
+  createDigestProcessor,
+  createReminderCheckProcessor,
+  createJobRouter,
+  type QueueService,
+} from '@echos/scheduler';
 
 // Plugins
 import youtubePlugin from '@echos/plugin-youtube';
@@ -72,9 +82,11 @@ async function main(): Promise<void> {
   };
 
   const interfaces: InterfaceAdapter[] = [];
+  let telegramAdapter: TelegramAdapter | undefined;
 
   if (config.enableTelegram) {
-    interfaces.push(createTelegramAdapter({ config, agentDeps, logger }));
+    telegramAdapter = createTelegramAdapter({ config, agentDeps, logger });
+    interfaces.push(telegramAdapter);
   }
 
   if (config.enableWeb) {
@@ -85,15 +97,83 @@ async function main(): Promise<void> {
     interfaces.push(createTuiAdapter({ agentDeps, logger }));
   }
 
+  // Scheduler setup (requires Redis, opt-in via ENABLE_SCHEDULER=true)
+  let queueService: QueueService | undefined;
+  let worker: ReturnType<typeof createWorker> | undefined;
+
+  if (config.enableScheduler) {
+    logger.info('Initializing scheduler...');
+
+    // Get notification service from Telegram or use log-only fallback
+    const notificationService: NotificationService = telegramAdapter?.notificationService ?? {
+      async sendMessage(userId: number, text: string): Promise<void> {
+        logger.info({ userId, text }, 'Notification (no delivery channel)');
+      },
+      async broadcast(text: string): Promise<void> {
+        logger.info({ text }, 'Broadcast notification (no delivery channel)');
+      },
+    };
+
+    queueService = createQueue({ redisUrl: config.redisUrl, logger });
+
+    const contentProcessor = createContentProcessor({
+      sqlite,
+      markdown,
+      vectorDb,
+      generateEmbedding,
+      logger,
+      openaiApiKey: config.openaiApiKey,
+    });
+
+    const digestProcessor = createDigestProcessor({
+      agentDeps,
+      notificationService,
+      logger,
+    });
+
+    const reminderProcessor = createReminderCheckProcessor({
+      sqlite,
+      notificationService,
+      logger,
+    });
+
+    const jobRouter = createJobRouter({
+      contentProcessor,
+      digestProcessor,
+      reminderProcessor,
+      logger,
+    });
+
+    worker = createWorker({
+      redisUrl: config.redisUrl,
+      logger,
+      processor: jobRouter,
+      concurrency: 2,
+    });
+
+    await registerScheduledJobs(queueService.queue, config, logger);
+    logger.info('Scheduler initialized');
+  }
+
   for (const iface of interfaces) {
     await iface.start();
   }
 
-  logger.info({ interfaceCount: interfaces.length }, 'EchOS started');
+  logger.info({ interfaceCount: interfaces.length, schedulerEnabled: config.enableScheduler }, 'EchOS started');
 
   // Graceful shutdown
   const shutdown = async (): Promise<void> => {
     logger.info('Shutting down...');
+
+    // Close scheduler first (stop accepting new jobs)
+    if (worker) {
+      await worker.close();
+      logger.info('Worker closed');
+    }
+    if (queueService) {
+      await queueService.close();
+    }
+
     for (const iface of interfaces) {
       await iface.stop();
     }

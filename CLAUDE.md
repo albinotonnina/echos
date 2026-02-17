@@ -131,6 +131,19 @@ Same requirements as the original CLAUDE.md apply:
 - Test security-critical functions thoroughly
 - Use `vitest run` from root
 
+## Documentation
+
+After completing any feature work, ALWAYS update the relevant documentation:
+- Architecture changes → `docs/ARCHITECTURE.md`
+- New interfaces or API changes → `docs/INTERFACES.md`
+- New plugins or plugin changes → `docs/PLUGINS.md`
+- Deployment changes → `docs/DEPLOYMENT.md`
+- Security changes → `docs/SECURITY.md`
+- Setup or configuration changes → `docs/SETUP_FIXES.md`
+- Categorization logic changes → `docs/CATEGORIZATION.md`
+
+Review `docs/TROUBLESHOOTING.md` to add any new common issues or solutions.
+
 ## Do NOT
 
 - Use `eval()`, `Function()`, or `vm` module

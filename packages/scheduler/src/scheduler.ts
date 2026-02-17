@@ -5,6 +5,7 @@ export interface ScheduleConfig {
   digestSchedule: string;
   newsletterSchedule: string;
   trendingSchedule: string;
+  reminderCheckSchedule: string;
 }
 
 export async function registerScheduledJobs(
@@ -37,5 +38,14 @@ export async function registerScheduledJobs(
       { name: 'trending', data: { type: 'trending' } },
     );
     logger.info({ schedule: config.trendingSchedule }, 'Trending job scheduled');
+  }
+
+  if (config.reminderCheckSchedule) {
+    await queue.upsertJobScheduler(
+      'reminder-check',
+      { pattern: config.reminderCheckSchedule },
+      { name: 'reminder_check', data: { type: 'reminder_check' } },
+    );
+    logger.info({ schedule: config.reminderCheckSchedule }, 'Reminder check job scheduled');
   }
 }

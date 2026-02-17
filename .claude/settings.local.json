@@ -65,7 +65,8 @@
       "Bash(sort *)",
       "Bash(uniq *)",
       "Bash(tr *)",
-      "Bash(xargs:*)"
+      "Bash(xargs *)",
+      "Bash(pnpm typecheck:*)"
     ]
   }
 }

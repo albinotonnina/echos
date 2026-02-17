@@ -1,11 +1,12 @@
 import { Bot } from 'grammy';
 import type { Logger } from 'pino';
-import type { Config, InterfaceAdapter } from '@echos/shared';
+import type { Config, InterfaceAdapter, NotificationService } from '@echos/shared';
 import type { AgentDeps } from '@echos/core';
 import { computeSessionUsage } from '@echos/core';
 import { createAuthMiddleware, createRateLimitMiddleware, createErrorHandler } from './middleware/index.js';
 import { getOrCreateSession, getSession, clearAllSessions } from './session.js';
 import { streamAgentResponse } from './streaming.js';
+import { createTelegramNotificationService } from './notification.js';
 
 export interface TelegramAdapterOptions {
   config: Config;
@@ -13,9 +14,19 @@ export interface TelegramAdapterOptions {
   logger: Logger;
 }
 
-export function createTelegramAdapter(options: TelegramAdapterOptions): InterfaceAdapter {
+export interface TelegramAdapter extends InterfaceAdapter {
+  notificationService: NotificationService;
+}
+
+export function createTelegramAdapter(options: TelegramAdapterOptions): TelegramAdapter {
   const { config, agentDeps, logger } = options;
   const bot = new Bot(config.telegramBotToken);
+
+  const notificationService = createTelegramNotificationService({
+    bot,
+    allowedUserIds: config.allowedUserIds,
+    logger,
+  });
 
   // Middleware chain: error -> auth -> rate limit
   bot.catch(createErrorHandler(logger));
@@ -83,6 +94,8 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Interfac
   });
 
   return {
+    notificationService,
+
     async start(): Promise<void> {
       logger.info('Starting Telegram bot...');
       bot.start({

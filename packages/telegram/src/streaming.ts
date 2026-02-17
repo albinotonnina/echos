@@ -60,8 +60,12 @@ export async function streamAgentResponse(
   const sent = await ctx.reply('_Thinking..._', { parse_mode: 'Markdown' });
   messageId = sent.message_id;
 
+  // Prepend current date/time context to the prompt
+  const now = new Date();
+  const contextualPrompt = `[Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: 'UTC' })} UTC)]\n\n${prompt}`;
+
   try {
-    await agent.prompt(prompt);
+    await agent.prompt(contextualPrompt);
   } finally {
     unsubscribe();
     if (editTimeout) clearTimeout(editTimeout);

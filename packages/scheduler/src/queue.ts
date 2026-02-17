@@ -6,7 +6,7 @@ export interface QueueConfig {
   logger: Logger;
 }
 
-export type JobType = 'process_article' | 'process_youtube' | 'digest' | 'newsletter' | 'trending';
+export type JobType = 'process_article' | 'process_youtube' | 'digest' | 'newsletter' | 'trending' | 'reminder_check';
 
 export interface JobData {
   type: JobType;

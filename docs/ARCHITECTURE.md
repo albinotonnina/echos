@@ -45,15 +45,28 @@ User Input (any interface)
 ## Package Dependencies
 
 ```
-@echos/shared          ← no dependencies (types, config, security, logging)
+@echos/shared          ← no dependencies (types, config, security, logging, NotificationService)
 @echos/core            ← shared (storage, agent, plugin system)
-@echos/telegram        ← shared, core (grammY bot)
+@echos/telegram        ← shared, core (grammY bot, notification service)
 @echos/web             ← shared, core (Fastify server)
 @echos/tui             ← shared, core (terminal UI)
 @echos/scheduler       ← shared, core, plugin-article, plugin-youtube (BullMQ workers)
 @echos/plugin-youtube  ← shared, core (YouTube transcript extraction)
 @echos/plugin-article  ← shared, core (web article extraction)
 ```
+
+## Scheduler & Notifications
+
+The scheduler package (`@echos/scheduler`) runs background jobs via BullMQ + Redis. It is opt-in via `ENABLE_SCHEDULER=true` and requires a running Redis instance.
+
+Notification delivery is decoupled via `NotificationService` (defined in `@echos/shared`). The Telegram package provides the concrete implementation; the scheduler receives it via dependency injection and never imports `@echos/telegram` directly. When Telegram is disabled, a log-only fallback is used.
+
+Workers:
+- **Digest**: Creates a throwaway AI agent to summarize recent notes and reminders, broadcasts the result
+- **Reminder check**: Queries SQLite for overdue reminders and sends notifications
+- **Content processing**: Processes article/YouTube URLs queued by the agent
+
+See [SCHEDULER.md](SCHEDULER.md) for configuration and usage details.
 
 ## Plugin Architecture
 

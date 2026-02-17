@@ -1,0 +1,67 @@
+# Dependencies (will be installed in Docker)
+node_modules/
+**/node_modules/
+
+# Build output (will be built in Docker)
+dist/
+**/dist/
+*.tsbuildinfo
+
+# Runtime data (not needed for build)
+data/
+knowledge/
+logs/
+*.log
+
+# Environment files (handled separately)
+.env
+.env.local
+.env.*.local
+.env.*
+
+# Git (huge directory, not needed)
+.git/
+.gitignore
+.gitattributes
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+.claude/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+coverage/
+*.test.ts
+**/*.test.ts
+vitest.config.ts
+
+# Documentation (not needed in runtime)
+README.md
+docs/
+
+# Docker files
+docker/
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# CI/CD
+.github/
+
+# Scripts (deployment, etc - not needed in image)
+scripts/
+
+# Linting/formatting
+.prettierrc
+eslint.config.js
+.eslintrc*
+
+# Lock files we're copying explicitly
+# (commented out because we DO need pnpm-lock.yaml)
+# pnpm-lock.yaml

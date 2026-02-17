@@ -71,3 +71,8 @@ export interface InterfaceAdapter {
   start(): Promise<void>;
   stop(): Promise<void>;
 }
+
+export interface NotificationService {
+  sendMessage(userId: number, text: string): Promise<void>;
+  broadcast(text: string): Promise<void>;
+}
