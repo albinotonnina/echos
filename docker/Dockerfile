@@ -28,7 +28,7 @@ FROM base AS production
 
 # Install Python 3 and youtube-transcript-api early (better caching)
 RUN apk add --no-cache python3 py3-pip && \
-    pip3 install --no-cache-dir --break-system-packages youtube-transcript-api
+    pip3 install --no-cache-dir --break-system-packages youtube-transcript-api yt-dlp
 
 # Install production Node dependencies first (cached unless package.json changes)
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./

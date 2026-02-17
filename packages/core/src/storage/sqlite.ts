@@ -7,9 +7,10 @@ import { dirname } from 'node:path';
 export interface SqliteStorage {
   db: Database.Database;
   // Notes index
-  upsertNote(meta: NoteMetadata, content: string, filePath: string): void;
+  upsertNote(meta: NoteMetadata, content: string, filePath: string, contentHash?: string): void;
   deleteNote(id: string): void;
   getNote(id: string): NoteRow | undefined;
+  getNoteByFilePath(filePath: string): NoteRow | undefined;
   listNotes(opts?: ListNotesOptions): NoteRow[];
   searchFts(query: string, opts?: FtsOptions): NoteRow[];
   // Reminders
@@ -40,6 +41,7 @@ export interface NoteRow {
   gist: string | null;
   created: string;
   updated: string;
+  contentHash: string | null;
 }
 
 export interface ListNotesOptions {
@@ -71,7 +73,8 @@ const SCHEMA = `
     author TEXT,
     gist TEXT,
     created TEXT NOT NULL,
-    updated TEXT NOT NULL
+    updated TEXT NOT NULL,
+    content_hash TEXT DEFAULT NULL
   );
 
   CREATE INDEX IF NOT EXISTS idx_notes_type ON notes(type);
@@ -168,29 +171,40 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
   db.pragma('foreign_keys = ON');
   db.exec(SCHEMA);
 
+  // Migration: add content_hash column for existing databases
+  try {
+    db.exec(`ALTER TABLE notes ADD COLUMN content_hash TEXT DEFAULT NULL`);
+  } catch {
+    // Column already exists — that's fine
+  }
+
   logger.info({ dbPath }, 'SQLite database initialized');
 
   // Prepared statements
   const stmts = {
     upsertNote: db.prepare(`
-      INSERT INTO notes (id, type, title, content, file_path, tags, links, category, source_url, author, gist, created, updated)
-      VALUES (@id, @type, @title, @content, @filePath, @tags, @links, @category, @sourceUrl, @author, @gist, @created, @updated)
+      INSERT INTO notes (id, type, title, content, file_path, tags, links, category, source_url, author, gist, created, updated, content_hash)
+      VALUES (@id, @type, @title, @content, @filePath, @tags, @links, @category, @sourceUrl, @author, @gist, @created, @updated, @contentHash)
       ON CONFLICT(id) DO UPDATE SET
         title=@title, content=@content, file_path=@filePath, tags=@tags, links=@links,
-        category=@category, source_url=@sourceUrl, author=@author, gist=@gist, updated=@updated
+        category=@category, source_url=@sourceUrl, author=@author, gist=@gist, updated=@updated,
+        content_hash=@contentHash
     `),
     deleteNote: db.prepare('DELETE FROM notes WHERE id = ?'),
     getNote: db.prepare(
-      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated FROM notes WHERE id = ?',
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash FROM notes WHERE id = ?',
+    ),
+    getNoteByFilePath: db.prepare(
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash FROM notes WHERE file_path = ?',
     ),
     listNotes: db.prepare(
-      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated FROM notes ORDER BY created DESC LIMIT ? OFFSET ?',
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash FROM notes ORDER BY created DESC LIMIT ? OFFSET ?',
     ),
     listNotesByType: db.prepare(
-      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated FROM notes WHERE type = ? ORDER BY created DESC LIMIT ? OFFSET ?',
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash FROM notes WHERE type = ? ORDER BY created DESC LIMIT ? OFFSET ?',
     ),
     searchFts: db.prepare(`
-      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, bm25(notes_fts) as rank
+      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, notes.content_hash AS contentHash, bm25(notes_fts) as rank
       FROM notes_fts
       JOIN notes ON notes.rowid = notes_fts.rowid
       WHERE notes_fts MATCH ?
@@ -198,7 +212,7 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       LIMIT ?
     `),
     searchFtsWithType: db.prepare(`
-      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, bm25(notes_fts) as rank
+      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, notes.content_hash AS contentHash, bm25(notes_fts) as rank
       FROM notes_fts
       JOIN notes ON notes.rowid = notes_fts.rowid
       WHERE notes_fts MATCH ? AND notes.type = ?
@@ -232,7 +246,7 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
   return {
     db,
 
-    upsertNote(meta: NoteMetadata, content: string, filePath: string): void {
+    upsertNote(meta: NoteMetadata, content: string, filePath: string, contentHash?: string): void {
       stmts.upsertNote.run({
         id: meta.id,
         type: meta.type,
@@ -247,6 +261,7 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
         gist: meta.gist ?? null,
         created: meta.created,
         updated: meta.updated,
+        contentHash: contentHash ?? null,
       });
     },
 
@@ -256,6 +271,10 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
 
     getNote(id: string): NoteRow | undefined {
       return stmts.getNote.get(id) as NoteRow | undefined;
+    },
+
+    getNoteByFilePath(filePath: string): NoteRow | undefined {
+      return stmts.getNoteByFilePath.get(filePath) as NoteRow | undefined;
     },
 
     listNotes(opts: ListNotesOptions = {}): NoteRow[] {

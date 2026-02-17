@@ -353,9 +353,14 @@ async function getVideoMetadata(
   logger: Logger,
   proxyConfig?: ProxyConfig
 ): Promise<{ title: string; channel?: string; duration?: number; publishedDate?: string }> {
+  // When proxy is configured, use yt-dlp (Python) for metadata — ytdl-core doesn't work with proxies from cloud IPs
+  if (proxyConfig) {
+    return getVideoMetadataViaPython(videoId, logger, proxyConfig);
+  }
+
+  // Fallback to ytdl-core when no proxy configured (works fine locally)
   try {
     const url = `https://www.youtube.com/watch?v=${videoId}`;
-    const agent = createProxyAgent(proxyConfig);
 
     const options = {
       requestOptions: {
@@ -364,7 +369,6 @@ async function getVideoMetadata(
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept-Language': 'en-US,en;q=0.9',
         },
-        ...(agent ? { agent } : {}),
       },
     };
 
@@ -382,6 +386,96 @@ async function getVideoMetadata(
       title: `YouTube Video ${videoId}`,
     };
   }
+}
+
+/**
+ * Fetch video metadata via yt-dlp (Python) with proxy support
+ */
+function getVideoMetadataViaPython(
+  videoId: string,
+  logger: Logger,
+  proxyConfig: NonNullable<ProxyConfig>
+): Promise<{ title: string; channel?: string; duration?: number; publishedDate?: string }> {
+  const proxy = `http://${proxyConfig.username}:${proxyConfig.password}@p.webshare.io:80`;
+
+  return new Promise((resolve) => {
+    const pythonCode = `import json
+import yt_dlp
+import sys
+
+video_id = "${videoId}"
+proxy = "${proxy}"
+
+try:
+    ydl_opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'proxy': proxy,
+        'socket_timeout': 30,
+        'extract_flat': False,
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(f'https://www.youtube.com/watch?v={video_id}', download=False)
+        result = {
+            'success': True,
+            'title': info.get('title', 'Untitled'),
+            'channel': info.get('uploader', info.get('channel', None)),
+            'duration': info.get('duration', None),
+            'publishedDate': info.get('upload_date', None)
+        }
+        print(json.dumps(result))
+except Exception as e:
+    print(json.dumps({'success': False, 'error': str(e)}))
+`;
+
+    const python = spawn('python3', ['-c', pythonCode]);
+    let stdout = '';
+    let stderr = '';
+
+    python.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    python.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    python.on('close', (code) => {
+      if (code !== 0 || !stdout.trim()) {
+        logger.warn({ videoId, stderr, code }, 'yt-dlp metadata fetch failed');
+        resolve({ title: `YouTube Video ${videoId}` });
+        return;
+      }
+
+      try {
+        const result = JSON.parse(stdout.trim());
+
+        if (!result.success) {
+          logger.warn({ videoId, error: result.error }, 'yt-dlp metadata extraction failed');
+          resolve({ title: `YouTube Video ${videoId}` });
+          return;
+        }
+
+        logger.info({ videoId, title: result.title, channel: result.channel }, 'Metadata fetched via yt-dlp');
+
+        resolve({
+          title: result.title || 'Untitled',
+          channel: result.channel || undefined,
+          duration: result.duration || undefined,
+          publishedDate: result.publishedDate || undefined,
+        });
+      } catch (parseError) {
+        logger.warn({ videoId, parseError }, 'Failed to parse yt-dlp output');
+        resolve({ title: `YouTube Video ${videoId}` });
+      }
+    });
+
+    python.on('error', (error) => {
+      logger.warn({ videoId, error: error.message }, 'Failed to spawn Python for yt-dlp');
+      resolve({ title: `YouTube Video ${videoId}` });
+    });
+  });
 }
 
 /**

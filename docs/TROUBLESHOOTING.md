@@ -374,6 +374,56 @@ Error: ENOENT: no such file or directory
    pnpm test:watch
    ```
 
+## Storage Sync Issues
+
+### Manually added/edited markdown file not appearing in search
+
+**Problem**: You added a `.md` file directly to the `knowledge/` directory (or edited one in an external editor), but the agent can't find it via search.
+
+**How sync works**:
+- On startup, EchOS reconciles all markdown files with SQLite and LanceDB automatically
+- While running, a file watcher picks up any `add`, `change`, or `unlink` events in real time (debounced 500 ms)
+
+**If a file isn't being found**:
+
+1. **Check the file has a valid `id` in frontmatter** — files without an `id` field are silently skipped:
+   ```yaml
+   ---
+   id: some-unique-id
+   type: note
+   title: My Note
+   created: 2026-02-17T12:00:00.000Z
+   updated: 2026-02-17T12:00:00.000Z
+   tags: []
+   links: []
+   category: uncategorized
+   ---
+   ```
+
+2. **If you added the file while the app was stopped** — just restart. The startup reconciler will pick it up:
+   ```bash
+   pnpm start
+   ```
+
+3. **If you added the file while the app is running** — the file watcher should index it within ~1 second. If it doesn't appear after a few seconds, check the logs:
+   ```bash
+   pnpm start | pnpm exec pino-pretty
+   # Look for "File watcher: upserted" or "Reconciler:" log lines
+   ```
+
+4. **Enable debug logging** to see all reconciler/watcher events:
+   ```bash
+   LOG_LEVEL=debug pnpm start
+   ```
+
+### Search results show stale content after editing a note externally
+
+**Problem**: You edited a markdown file in VS Code or Obsidian, but the agent still returns the old content.
+
+The content hash prevents unnecessary re-indexing, so re-indexing only happens when the body text of the note changes (not just frontmatter). If the watcher picked up the change but content looks stale, wait a moment for the debounce window (500 ms) then retry.
+
+If the issue persists after restarting the app, check that the file has a valid `id` in its frontmatter — files without an ID are skipped by both the reconciler and the watcher.
+
 ## Memory Issues
 
 ### Memory stored but not recalled after /reset

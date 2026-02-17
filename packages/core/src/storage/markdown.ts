@@ -11,6 +11,8 @@ export interface MarkdownStorage {
   update(filePath: string, metadata: Partial<NoteMetadata>, content?: string): Note;
   remove(filePath: string): void;
   list(type?: ContentType): Note[];
+  registerFile(id: string, filePath: string): void;
+  unregisterFile(filePath: string): void;
 }
 
 function buildFilePath(baseDir: string, meta: NoteMetadata): string {
@@ -61,8 +63,9 @@ function frontmatterToMetadata(data: Record<string, unknown>): NoteMetadata {
 export function createMarkdownStorage(baseDir: string, logger: Logger): MarkdownStorage {
   mkdirSync(baseDir, { recursive: true });
 
-  // In-memory index: id -> filePath
+  // In-memory index: id -> filePath (and reverse: filePath -> id)
   const idIndex = new Map<string, string>();
+  const pathIndex = new Map<string, string>();
 
   // Scan existing files to build index
   function scanDirectory(dir: string): void {
@@ -78,6 +81,7 @@ export function createMarkdownStorage(baseDir: string, logger: Logger): Markdown
           const { data } = matter(raw);
           if (data['id']) {
             idIndex.set(data['id'] as string, fullPath);
+            pathIndex.set(fullPath, data['id'] as string);
           }
         } catch {
           // Skip malformed files
@@ -99,6 +103,7 @@ export function createMarkdownStorage(baseDir: string, logger: Logger): Markdown
       writeFileSync(filePath, fileContent, 'utf-8');
 
       idIndex.set(metadata.id, filePath);
+      pathIndex.set(filePath, metadata.id);
       logger.debug({ id: metadata.id, filePath }, 'Note saved');
       return filePath;
     },
@@ -150,6 +155,7 @@ export function createMarkdownStorage(baseDir: string, logger: Logger): Markdown
       if (note) {
         idIndex.delete(note.metadata.id);
       }
+      pathIndex.delete(filePath);
       if (existsSync(filePath)) {
         unlinkSync(filePath);
         logger.debug({ filePath }, 'Note removed');
@@ -167,6 +173,17 @@ export function createMarkdownStorage(baseDir: string, logger: Logger): Markdown
       return notes.sort(
         (a, b) => new Date(b.metadata.created).getTime() - new Date(a.metadata.created).getTime(),
       );
+    },
+
+    registerFile(id: string, filePath: string): void {
+      idIndex.set(id, filePath);
+      pathIndex.set(filePath, id);
+    },
+
+    unregisterFile(filePath: string): void {
+      const id = pathIndex.get(filePath);
+      if (id) idIndex.delete(id);
+      pathIndex.delete(filePath);
     },
   };
 }

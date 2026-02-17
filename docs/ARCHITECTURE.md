@@ -83,11 +83,30 @@ Plugins can optionally use the AI categorization service from `@echos/core` to a
 
 ## Storage Architecture
 
-**SQLite** (better-sqlite3): Structured metadata index, FTS5 full-text search, memory store, reminders. The memory table stores long-term personal facts with a confidence score (0–1) and kind (`fact`, `preference`, `person`, `project`, `expertise`).
+**SQLite** (better-sqlite3): Structured metadata index, FTS5 full-text search, memory store, reminders. The memory table stores long-term personal facts with a confidence score (0–1) and kind (`fact`, `preference`, `person`, `project`, `expertise`). Notes also store a `content_hash` (SHA-256) used to detect changes and skip unnecessary re-embedding.
 
 **LanceDB** (embedded): Vector embeddings for semantic search. No server process needed.
 
 **Markdown files**: Source of truth. YAML frontmatter with structured metadata. Directory layout: `knowledge/{type}/{category}/{date}-{slug}.md`.
+
+### Storage Sync
+
+EchOS keeps the three storage layers in sync automatically, even when markdown files are added or edited outside the application:
+
+**Startup reconciliation** (`reconcileStorage` in `packages/core/src/storage/reconciler.ts`):
+Runs once at boot. Scans all `.md` files in the knowledge directory and compares them against SQLite using the `content_hash` column:
+- **New file** → full upsert to SQLite + generate embedding in LanceDB
+- **Content changed** → update SQLite + re-embed (OpenAI called only when content hash differs)
+- **File moved** (same hash, different path) → update file path in SQLite only, no re-embed
+- **No change** → skipped entirely
+- **SQLite record with no file on disk** → deleted from SQLite and LanceDB
+
+**Live file watcher** (`createFileWatcher` in `packages/core/src/storage/watcher.ts`):
+Uses `chokidar` to watch `knowledge/**/*.md` while the app is running. Events are debounced (500 ms) and `awaitWriteFinish` is enabled to handle atomic saves from editors (VS Code, Obsidian, etc.):
+- `add` / `change` → parse, compare content hash, upsert if changed (re-embed only on content change)
+- `unlink` → look up note by file path in SQLite, delete from SQLite + LanceDB
+
+Both paths use the same content hash check, so the OpenAI embeddings API is only called when note body text actually changes — metadata-only edits (frontmatter, tags, title) do not trigger re-embedding.
 
 ## Search
 

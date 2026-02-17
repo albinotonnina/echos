@@ -3,6 +3,9 @@ export {
   createMarkdownStorage,
   createVectorStorage,
   createSearchService,
+  reconcileStorage,
+  computeContentHash,
+  createFileWatcher,
   type SqliteStorage,
   type MarkdownStorage,
   type VectorStorage,
@@ -12,6 +15,10 @@ export {
   type NoteRow,
   type ListNotesOptions,
   type FtsOptions,
+  type ReconcileOptions,
+  type ReconcileStats,
+  type WatcherOptions,
+  type FileWatcher,
 } from './storage/index.js';
 
 export { createEchosAgent, SYSTEM_PROMPT, buildSystemPrompt, type AgentDeps } from './agent/index.js';

@@ -12,8 +12,11 @@ import {
   createMarkdownStorage,
   createVectorStorage,
   createSearchService,
+  reconcileStorage,
+  createFileWatcher,
   PluginRegistry,
   type AgentDeps,
+  type FileWatcher,
 } from '@echos/core';
 import { createTelegramAdapter, type TelegramAdapter } from '@echos/telegram';
 import { createWebAdapter } from '@echos/web';
@@ -51,6 +54,12 @@ async function main(): Promise<void> {
     return new Array(1536).fill(0);
   };
 
+  // Reconcile markdown files with SQLite and LanceDB on startup
+  await reconcileStorage({ baseDir: config.knowledgeDir, sqlite, vectorDb, markdown, generateEmbedding, logger });
+
+  // Watch for live changes to markdown files
+  const fileWatcher: FileWatcher = createFileWatcher({ baseDir: config.knowledgeDir, sqlite, vectorDb, markdown, generateEmbedding, logger });
+
   // Initialize plugins
   const pluginRegistry = new PluginRegistry(logger);
   pluginRegistry.register(articlePlugin);
@@ -66,6 +75,8 @@ async function main(): Promise<void> {
     config: {
       openaiApiKey: config.openaiApiKey,
       anthropicApiKey: config.anthropicApiKey,
+      webshareProxyUsername: config.webshareProxyUsername,
+      webshareProxyPassword: config.webshareProxyPassword,
     },
   });
 
@@ -182,6 +193,8 @@ async function main(): Promise<void> {
     if (queueService) {
       await queueService.close();
     }
+
+    await fileWatcher.stop();
 
     for (const iface of interfaces) {
       await iface.stop();
