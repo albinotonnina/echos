@@ -28,7 +28,7 @@ echo "📏 Image size: $(du -h /tmp/echos.tar.gz | cut -f1)"
 
 # Create directory structure on Oracle Cloud
 echo "📁 Creating directory structure on Oracle Cloud..."
-if ! ssh oracle-cloud 'mkdir -p echos/docker echos/data/{knowledge,db,sessions,logs}'; then
+if ! ssh oracle-cloud 'mkdir -p echos/docker echos/data/{knowledge,db,sessions,logs} && sudo chown -R 1000:1000 echos/data/'; then
   echo "❌ Failed to create directories!"
   rm /tmp/echos.tar.gz
   exit 1
@@ -59,8 +59,9 @@ echo "🔄 Loading and deploying on Oracle Cloud..."
 ssh oracle-cloud << 'EOF'
 cd echos
 
-# Create data directories if they don't exist
+# Create data directories if they don't exist, owned by node user (uid 1000)
 mkdir -p data/knowledge data/db data/sessions data/logs
+sudo chown -R 1000:1000 data/
 
 # Load Docker image
 echo "Loading Docker image..."

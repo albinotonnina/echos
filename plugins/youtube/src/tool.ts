@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { NoteMetadata } from '@echos/shared';
 import type { PluginContext } from '@echos/core';
 import { categorizeContent, type ProcessingMode } from '@echos/core';
-import { processYoutube } from './processor.js';
+import { processYoutube, type ProxyConfig } from './processor.js';
 
 const schema = Type.Object({
   url: Type.String({ description: 'YouTube video URL' }),
@@ -30,6 +30,10 @@ export function createSaveYoutubeTool(
   context: PluginContext,
 ): AgentTool<typeof schema> {
   const openaiApiKey = context.config['openaiApiKey'] as string | undefined;
+  const proxyUsername = context.config['webshareProxyUsername'] as string | undefined;
+  const proxyPassword = context.config['webshareProxyPassword'] as string | undefined;
+  const proxyConfig: ProxyConfig =
+    proxyUsername && proxyPassword ? { username: proxyUsername, password: proxyPassword } : undefined;
 
   return {
     name: 'save_youtube',
@@ -43,7 +47,7 @@ export function createSaveYoutubeTool(
         details: { phase: 'fetching' },
       });
 
-      const processed = await processYoutube(params.url, context.logger, openaiApiKey);
+      const processed = await processYoutube(params.url, context.logger, openaiApiKey, proxyConfig);
 
       const now = new Date().toISOString();
       const id = uuidv4();

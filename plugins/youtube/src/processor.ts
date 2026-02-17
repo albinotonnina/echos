@@ -7,8 +7,17 @@ import { join } from 'path';
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import type { Logger } from 'pino';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { validateUrl, sanitizeHtml, ProcessingError, ExternalServiceError } from '@echos/shared';
 import type { ProcessedContent } from '@echos/shared';
+
+export type ProxyConfig = { username: string; password: string } | undefined;
+
+function createProxyAgent(proxyConfig: ProxyConfig): HttpsProxyAgent<string> | undefined {
+  if (!proxyConfig) return undefined;
+  const proxyUrl = `http://${proxyConfig.username}:${proxyConfig.password}@p.webshare.io:80`;
+  return new HttpsProxyAgent(proxyUrl);
+}
 
 const WHISPER_MAX_SIZE_BYTES = 25 * 1024 * 1024; // 25MB (OpenAI limit)
 const DOWNLOAD_TIMEOUT_MS = 300000; // 5 minutes for audio download
@@ -80,19 +89,26 @@ export function extractVideoId(url: string): string {
 /**
  * Fetch transcript using Python youtube-transcript-api (more reliable than JS libraries)
  */
-async function fetchYoutubeTranscript(videoId: string, logger: Logger): Promise<string> {
-  logger.debug({ videoId }, 'Fetching YouTube transcript via Python');
+async function fetchYoutubeTranscript(videoId: string, logger: Logger, proxyConfig?: ProxyConfig): Promise<string> {
+  logger.debug({ videoId, hasProxy: !!proxyConfig }, 'Fetching YouTube transcript via Python');
 
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new ProcessingError('Transcript fetch timeout', true));
     }, TRANSCRIPT_TIMEOUT_MS);
 
+    const proxyImport = proxyConfig
+      ? `from youtube_transcript_api.proxies import WebshareProxyConfig\n`
+      : '';
+    const apiInit = proxyConfig
+      ? `YouTubeTranscriptApi(proxy_config=WebshareProxyConfig(proxy_username="${proxyConfig.username}", proxy_password="${proxyConfig.password}"))`
+      : `YouTubeTranscriptApi()`;
+
     const pythonCode = `import json
-from youtube_transcript_api import YouTubeTranscriptApi
+${proxyImport}from youtube_transcript_api import YouTubeTranscriptApi
 
 try:
-    api = YouTubeTranscriptApi()
+    api = ${apiInit}
     transcript_list = api.list('${videoId}')
     
     # Try to find transcript in order: manual en, generated en, any english, any available
@@ -199,11 +215,11 @@ except Exception as e:
 /**
  * Download audio from YouTube video
  */
-async function downloadAudio(videoId: string, logger: Logger): Promise<string> {
+async function downloadAudio(videoId: string, logger: Logger, proxyConfig?: ProxyConfig): Promise<string> {
   const url = `https://www.youtube.com/watch?v=${videoId}`;
   const tempFilePath = join(tmpdir(), `youtube_${videoId}_${Date.now()}.mp3`);
 
-  logger.debug({ videoId, tempFilePath }, 'Downloading YouTube audio');
+  logger.debug({ videoId, tempFilePath, hasProxy: !!proxyConfig }, 'Downloading YouTube audio');
 
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -213,6 +229,7 @@ async function downloadAudio(videoId: string, logger: Logger): Promise<string> {
     let downloadedBytes = 0;
 
     try {
+      const agent = createProxyAgent(proxyConfig);
       const options = {
         quality: 'lowestaudio',
         filter: 'audioonly',
@@ -222,6 +239,7 @@ async function downloadAudio(videoId: string, logger: Logger): Promise<string> {
               'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept-Language': 'en-US,en;q=0.9',
           },
+          ...(agent ? { agent } : {}),
         },
       } as const;
 
@@ -332,10 +350,12 @@ async function transcribeWithWhisper(
  */
 async function getVideoMetadata(
   videoId: string,
-  logger: Logger
+  logger: Logger,
+  proxyConfig?: ProxyConfig
 ): Promise<{ title: string; channel?: string; duration?: number; publishedDate?: string }> {
   try {
     const url = `https://www.youtube.com/watch?v=${videoId}`;
+    const agent = createProxyAgent(proxyConfig);
 
     const options = {
       requestOptions: {
@@ -344,6 +364,7 @@ async function getVideoMetadata(
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept-Language': 'en-US,en;q=0.9',
         },
+        ...(agent ? { agent } : {}),
       },
     };
 
@@ -369,23 +390,24 @@ async function getVideoMetadata(
 export async function processYoutube(
   url: string,
   logger: Logger,
-  openaiApiKey?: string
+  openaiApiKey?: string,
+  proxyConfig?: ProxyConfig
 ): Promise<ProcessedContent> {
-  logger.debug({ url }, 'Processing YouTube video');
+  logger.debug({ url, hasProxy: !!proxyConfig }, 'Processing YouTube video');
 
   const validatedUrl = validateUrl(url);
   const videoId = extractVideoId(validatedUrl);
 
   logger.debug({ videoId }, 'Video ID extracted');
 
-  const metadata = await getVideoMetadata(videoId, logger);
+  const metadata = await getVideoMetadata(videoId, logger, proxyConfig);
 
   let transcript: string;
   let transcriptSource: 'youtube' | 'whisper';
   let audioFilePath: string | null = null;
 
   try {
-    transcript = await fetchYoutubeTranscript(videoId, logger);
+    transcript = await fetchYoutubeTranscript(videoId, logger, proxyConfig);
     transcriptSource = 'youtube';
 
     logger.info({ videoId, source: 'youtube' }, 'Transcript obtained from YouTube');
@@ -405,7 +427,7 @@ export async function processYoutube(
     }
 
     try {
-      audioFilePath = await downloadAudio(videoId, logger);
+      audioFilePath = await downloadAudio(videoId, logger, proxyConfig);
       transcript = await transcribeWithWhisper(audioFilePath, videoId, openaiApiKey, logger);
       transcriptSource = 'whisper';
 

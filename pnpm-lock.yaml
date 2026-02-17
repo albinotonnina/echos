@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@echos/core':
+        specifier: workspace:*
+        version: link:packages/core
       '@echos/plugin-article':
         specifier: workspace:*
         version: link:plugins/article
@@ -20,6 +23,21 @@ importers:
       '@echos/scheduler':
         specifier: workspace:*
         version: link:packages/scheduler
+      '@echos/shared':
+        specifier: workspace:*
+        version: link:packages/shared
+      '@echos/telegram':
+        specifier: workspace:*
+        version: link:packages/telegram
+      '@echos/tui':
+        specifier: workspace:*
+        version: link:packages/tui
+      '@echos/web':
+        specifier: workspace:*
+        version: link:packages/web
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
@@ -39,9 +57,6 @@ importers:
       prettier:
         specifier: ^3.8.1
         version: 3.8.1
-      tsx:
-        specifier: ^4.21.0
-        version: 4.21.0
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -246,6 +261,9 @@ importers:
       '@mozilla/readability':
         specifier: ^0.6.0
         version: 0.6.0
+      '@sinclair/typebox':
+        specifier: ^0.34.48
+        version: 0.34.48
       isomorphic-dompurify:
         specifier: 3.0.0-rc.2
         version: 3.0.0-rc.2
@@ -326,6 +344,12 @@ importers:
       '@mariozechner/pi-ai':
         specifier: ^0.52.12
         version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+      '@sinclair/typebox':
+        specifier: ^0.34.48
+        version: 0.34.48
+      https-proxy-agent:
+        specifier: ^7.0.6
+        version: 7.0.6
       openai:
         specifier: ^4.77.3
         version: 4.104.0(ws@8.19.0)(zod@3.25.76)

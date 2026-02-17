@@ -12,11 +12,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@echos/shared": "workspace:*",
+    "@distube/ytdl-core": "^4.14.4",
     "@echos/core": "workspace:*",
+    "@echos/shared": "workspace:*",
     "@mariozechner/pi-agent-core": "^0.52.12",
     "@mariozechner/pi-ai": "^0.52.12",
-    "@distube/ytdl-core": "^4.14.4",
+    "@sinclair/typebox": "^0.34.48",
+    "https-proxy-agent": "^7.0.6",
     "openai": "^4.77.3",
     "pino": "^9.14.0",
     "uuid": "^13.0.0"

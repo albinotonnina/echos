@@ -12,11 +12,12 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@echos/shared": "workspace:*",
     "@echos/core": "workspace:*",
+    "@echos/shared": "workspace:*",
     "@mariozechner/pi-agent-core": "^0.52.12",
     "@mariozechner/pi-ai": "^0.52.12",
     "@mozilla/readability": "^0.6.0",
+    "@sinclair/typebox": "^0.34.48",
     "isomorphic-dompurify": "3.0.0-rc.2",
     "jsdom": "^28.1.0",
     "pino": "^9.14.0",

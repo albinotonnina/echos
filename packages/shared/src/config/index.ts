@@ -51,6 +51,10 @@ export const configSchema = z.object({
     .transform((s) => s === 'true')
     .default('false'),
 
+  // Webshare Proxy (optional)
+  webshareProxyUsername: z.string().optional(),
+  webshareProxyPassword: z.string().optional(),
+
   // Schedules
   digestSchedule: optionalCron,
   newsletterSchedule: optionalCron,
@@ -81,6 +85,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     enableTui: env['ENABLE_TUI'],
     webPort: env['WEB_PORT'],
     enableScheduler: env['ENABLE_SCHEDULER'],
+    webshareProxyUsername: env['WEBSHARE_PROXY_USERNAME'],
+    webshareProxyPassword: env['WEBSHARE_PROXY_PASSWORD'],
     digestSchedule: env['DIGEST_SCHEDULE'],
     newsletterSchedule: env['NEWSLETTER_SCHEDULE'],
     trendingSchedule: env['TRENDING_SCHEDULE'],
