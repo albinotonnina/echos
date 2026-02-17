@@ -7,6 +7,7 @@
 **Problem**: Workspace packages aren't built or aren't being resolved by tsx.
 
 **Symptoms**:
+
 ```
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@echos/shared'
 ```
@@ -14,11 +15,13 @@ Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@echos/shared'
 **Solutions**:
 
 1. **Build all packages first**:
+
    ```bash
    pnpm build
    ```
 
 2. **If build fails, clean and rebuild**:
+
    ```bash
    pnpm clean
    pnpm install
@@ -26,6 +29,7 @@ Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@echos/shared'
    ```
 
 3. **Verify path mappings**: The root `tsconfig.json` includes these mappings for tsx:
+
    ```json
    "paths": {
      "@echos/shared": ["./packages/shared/src/index.ts"],
@@ -39,6 +43,7 @@ Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@echos/shared'
 **Problem**: LanceDB native bindings missing for your platform.
 
 **Symptoms**:
+
 ```
 Error: Cannot find module '@lancedb/lancedb-darwin-x64'
 Error: Cannot find module '@lancedb/lancedb-darwin-arm64'
@@ -46,7 +51,7 @@ Error: Cannot find module '@lancedb/lancedb-darwin-arm64'
 
 **Solutions**:
 
-1. **Intel Macs (darwin-x64)**: 
+1. **Intel Macs (darwin-x64)**:
    - The project is configured to use LanceDB `0.22.3` (last version with Intel Mac support)
    - This is set in `packages/core/package.json`
    - If you see this error, run: `pnpm install --force`
@@ -60,6 +65,7 @@ Error: Cannot find module '@lancedb/lancedb-darwin-arm64'
    - Run: `pnpm install --force` if needed
 
 4. **Check what's installed**:
+
    ```bash
    ls node_modules/.pnpm/@lancedb*/
    ```
@@ -69,6 +75,7 @@ Error: Cannot find module '@lancedb/lancedb-darwin-arm64'
 **Problem**: Missing required environment variables.
 
 **Symptoms**:
+
 ```
 Error: Invalid configuration:
   telegramBotToken: Required
@@ -79,11 +86,13 @@ Error: Invalid configuration:
 **Solution**:
 
 1. Copy the example file:
+
    ```bash
    cp .env.example .env
    ```
 
 2. Edit `.env` and fill in required values:
+
    ```bash
    TELEGRAM_BOT_TOKEN=your_token_from_botfather
    ALLOWED_USER_IDS=123456789,987654321
@@ -95,6 +104,7 @@ Error: Invalid configuration:
    - Add your ID to `ALLOWED_USER_IDS`
 
 4. Verify the file loads (Node 20.6+):
+
    ```bash
    # The start script uses --env-file flag
    pnpm start
@@ -107,6 +117,7 @@ Error: Invalid configuration:
 **Problem**: Multiple bot instances trying to poll Telegram simultaneously.
 
 **Symptoms**:
+
 ```
 GrammyError: Call to 'getUpdates' failed! (409: Conflict: 
 terminated by other getUpdates request; make sure that only 
@@ -116,6 +127,7 @@ one bot instance is running)
 **Solution**:
 
 Only one instance can poll Telegram updates at a time. The conflict can come from:
+
 - Local processes on your machine
 - Remote deployments (Oracle Cloud, VPS, etc.)
 - Docker containers
@@ -209,6 +221,7 @@ curl "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo"
 ```
 
 Configure in `.env`:
+
 ```bash
 TELEGRAM_WEBHOOK_URL=https://your-domain.com/telegram/webhook
 TELEGRAM_WEBHOOK_SECRET=your_random_secret_here
@@ -221,13 +234,28 @@ TELEGRAM_WEBHOOK_SECRET=your_random_secret_here
 **Problem**: Cannot connect to Redis.
 
 **Symptoms**:
+
 ```
 Error: connect ECONNREFUSED 127.0.0.1:6379
 ```
 
 **Solutions**:
 
-1. **Start Redis**:
+1. **Use the Redis management script** (recommended):
+
+   ```bash
+   # Check status
+   pnpm redis:status
+   
+   # Start Redis (auto-detects platform)
+   pnpm redis:start
+   
+   # Verify connection
+   pnpm redis:health
+   ```
+
+2. **Manual platform-specific start** (if script fails):
+
    ```bash
    # macOS
    brew services start redis
@@ -236,25 +264,30 @@ Error: connect ECONNREFUSED 127.0.0.1:6379
    sudo systemctl start redis
    
    # Docker
-   docker run -d -p 6379:6379 redis:7-alpine
+   docker run -d -p 6379:6379 --name echos-redis redis:7-alpine
    ```
 
-2. **Check Redis URL** in `.env`:
+3. **Check Redis URL** in `.env`:
+
    ```bash
    REDIS_URL=redis://localhost:6379
    ```
 
-3. **Verify Redis is running**:
+4. **Verify Redis is running**:
+
    ```bash
    redis-cli ping
    # Should return: PONG
    ```
+
+**Note**: Redis is only required when `ENABLE_SCHEDULER=true`. For basic knowledge management, you can disable the scheduler.
 
 ### Database/Storage Errors
 
 **Problem**: SQLite or LanceDB initialization failures.
 
 **Symptoms**:
+
 ```
 Error: unable to open database file
 Error: ENOENT: no such file or directory
@@ -263,17 +296,20 @@ Error: ENOENT: no such file or directory
 **Solutions**:
 
 1. **Create data directories**:
+
    ```bash
    mkdir -p data/db data/knowledge data/sessions
    ```
 
 2. **Check permissions**:
+
    ```bash
    ls -la data/
    # Ensure directories are writable
    ```
 
 3. **Check paths in `.env`**:
+
    ```bash
    KNOWLEDGE_DIR=./data/knowledge
    DB_PATH=./data/db
@@ -281,6 +317,7 @@ Error: ENOENT: no such file or directory
    ```
 
 4. **Clean state (CAUTION: deletes all data)**:
+
    ```bash
    rm -rf data/
    mkdir -p data/db data/knowledge data/sessions
@@ -296,16 +333,19 @@ Error: ENOENT: no such file or directory
 **Solutions**:
 
 1. **Check all packages**:
+
    ```bash
    pnpm typecheck
    ```
 
 2. **Rebuild after package changes**:
+
    ```bash
    pnpm build
    ```
 
 3. **Use watch mode during development**:
+
    ```bash
    pnpm dev
    ```
@@ -317,16 +357,19 @@ Error: ENOENT: no such file or directory
 **Solutions**:
 
 1. **Run tests**:
+
    ```bash
    pnpm test
    ```
 
 2. **Run specific test file**:
+
    ```bash
    pnpm vitest packages/shared/src/security/url-validator.test.ts
    ```
 
 3. **Watch mode**:
+
    ```bash
    pnpm test:watch
    ```
@@ -336,6 +379,7 @@ Error: ENOENT: no such file or directory
 If you're still stuck:
 
 1. **Check the logs**: EchOS uses Pino for structured logging
+
    ```bash
    pnpm start | pnpm exec pino-pretty
    ```

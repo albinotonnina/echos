@@ -5,6 +5,7 @@ Agent-driven personal knowledge management system. Capture, process, search, and
 ## Features
 
 ### Core
+
 - LLM agent with tool calling — no rigid command routing
 - Plugin architecture for content processors (YouTube, articles, etc.)
 - Hybrid search: full-text (FTS5) + semantic (vector embeddings) + reranking
@@ -12,6 +13,7 @@ Agent-driven personal knowledge management system. Capture, process, search, and
 - Multi-interface: Telegram bot (default), Web API (default), Terminal UI (optional)
 
 ### Knowledge Management
+
 - Save and summarize web articles (plugin), YouTube videos (plugin), notes, journal entries
 - **AI-powered categorization**: Automatic category, tags, and summaries using Claude AI
   - Lightweight mode: Fast categorization with category + tags
@@ -20,6 +22,7 @@ Agent-driven personal knowledge management system. Capture, process, search, and
 - Bidirectional note linking
 
 ### Memory & Style (Planned)
+
 - Personal memory: facts, preferences, projects, expertise
 - Writing style learning from your produced content
 - Content creation in your voice
@@ -56,6 +59,35 @@ pnpm build
 pnpm start
 ```
 
+### Redis Setup (Optional)
+
+Redis is **only required** if you want to enable background jobs and the scheduler (`ENABLE_SCHEDULER=true` in `.env`). For basic knowledge management features, you can skip this step.
+
+```bash
+# Check if Redis is running
+pnpm redis:status
+
+# Start Redis (auto-detects platform: brew/systemd/Docker)
+pnpm redis:start
+
+# Verify connection
+pnpm redis:health
+
+# Start EchOS with scheduler enabled
+pnpm start:with-scheduler
+```
+
+**Redis Commands:**
+
+- `pnpm redis:status` - Check Redis status and connection
+- `pnpm redis:start` - Start Redis (prefers native, falls back to Docker)
+- `pnpm redis:stop` - Stop Redis
+- `pnpm redis:health` - Verify Redis connectivity
+
+See [docs/SCHEDULER.md](docs/SCHEDULER.md) for details on background jobs, digests, and reminders.
+
+```
+
 ## Accessing the Interfaces
 
 ### Telegram Bot (Default: Enabled)
@@ -68,14 +100,16 @@ pnpm start
 
 1. Ensure `ENABLE_WEB=true` in `.env`
 2. Start with `pnpm start`
-3. Access at **http://localhost:3000**
+3. Access at **<http://localhost:3000>**
 
 **API Endpoints:**
+
 - `GET /health` - Health check
 - `POST /api/chat` - Send message (JSON: `{"userId": 123, "message": "your text"}`)
 - `POST /api/chat/reset` - Reset session (JSON: `{"userId": 123}`)
 
 **Example:**
+
 ```bash
 curl -X POST http://localhost:3000/api/chat \
   -H "Content-Type: application/json" \
@@ -90,6 +124,7 @@ curl -X POST http://localhost:3000/api/chat \
 4. Type `exit` or `quit` to close
 
 **Quick start (TUI only):**
+
 ```bash
 # Run only the terminal interface (no Telegram/Web)
 pnpm start:tui-only
@@ -105,6 +140,9 @@ pnpm start:web-only
 
 # Run only Terminal UI
 pnpm start:tui-only
+
+# Run with scheduler enabled (requires Redis)
+pnpm start:with-scheduler
 
 # Run all enabled interfaces (default)
 pnpm start
@@ -157,7 +195,7 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md#telegram-bot-conflicts) fo
 
 - Node.js 20+
 - pnpm 9+
-- Redis (for background jobs)
+- Redis (optional, required only if `ENABLE_SCHEDULER=true`)
 
 See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) if you encounter setup issues.
 
@@ -184,59 +222,6 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) if you encounter setup is
 | AI | Claude (reasoning) + OpenAI (embeddings, Whisper) |
 | Web | Fastify + pi-web-ui |
 | Logging | Pino |
-
-## Project Status
-
-### Phase 1: Project Skeleton ✅
-- [x] pnpm monorepo with workspace packages
-- [x] TypeScript strict configuration
-- [x] Shared package: config, logging, errors, types, security
-
-### Phase 2: Storage Layer ✅
-- [x] SQLite metadata + FTS5 search
-- [x] LanceDB vector embeddings
-- [x] Markdown storage service with frontmatter
-- [x] Hybrid search (keyword + semantic + RRF reranking)
-
-### Phase 3: Agent Core ✅
-- [x] pi-agent-core + pi-ai integration
-- [x] 6 core CRUD tools (create, search, get, list, update, delete)
-- [x] CLI test script
-
-### Phase 4: Content Processors → Plugins ✅
-- [x] Plugin system (EchosPlugin interface, PluginRegistry, PluginContext)
-- [x] Article plugin (Readability + DOMPurify) → `plugins/article/`
-- [x] YouTube plugin (transcript extraction) → `plugins/youtube/`
-- [x] Reminder tools (add + complete)
-- [x] Bidirectional note linking
-
-### Phase 5: Interfaces ✅
-- [x] Telegram bot (grammY + streaming responses)
-- [x] Web API (Fastify + chat endpoint)
-- [x] Terminal UI (readline-based)
-- [x] Unified entry point
-
-### Phase 6: Background Jobs ✅
-- [x] BullMQ queue + worker setup
-- [x] Content processing worker
-- [x] Scheduled job registration (digest, newsletter, trending)
-
-### Phase 7: Memory & Style ✅
-- [x] Memory tools (remember_about_me, recall_knowledge)
-- [x] Style analyzer (sentence/paragraph/vocabulary analysis)
-
-### Phase 9: AI Categorization ✅
-- [x] Categorization service with lightweight and full processing modes
-- [x] categorize_note tool for existing content
-- [x] Auto-categorization support in article and YouTube plugins
-- [x] Structured extraction using Claude API (category, tags, gist, summary, key points)
-
-### Phase 8: Deployment & Polish ✅
-- [x] Docker multi-stage build
-- [x] docker-compose (app + Redis only)
-- [x] Deploy script for Oracle Cloud
-- [x] Backup script
-- [x] Architecture, Deployment, Security docs
 
 ## License
 
