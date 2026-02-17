@@ -14,7 +14,7 @@ export {
   type FtsOptions,
 } from './storage/index.js';
 
-export { createEchosAgent, SYSTEM_PROMPT, type AgentDeps } from './agent/index.js';
+export { createEchosAgent, SYSTEM_PROMPT, buildSystemPrompt, type AgentDeps } from './agent/index.js';
 export {
   categorizeContent,
   categorizeLightweight,

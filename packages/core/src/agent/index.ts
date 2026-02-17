@@ -2,7 +2,7 @@ import { Agent } from '@mariozechner/pi-agent-core';
 import type { AgentTool } from '@mariozechner/pi-agent-core';
 import { getModel } from '@mariozechner/pi-ai';
 import type { Logger } from 'pino';
-import { SYSTEM_PROMPT } from './system-prompt.js';
+import { buildSystemPrompt } from './system-prompt.js';
 import { createContextWindow } from './context-manager.js';
 import {
   createNoteTool,
@@ -79,14 +79,20 @@ export function createEchosAgent(deps: AgentDeps): Agent {
 
   const tools = [...coreTools, ...(deps.pluginTools ?? [])];
 
+  const MEMORY_INJECT_LIMIT = 15;
+  const topMemories = deps.sqlite.listTopMemories(MEMORY_INJECT_LIMIT + 1);
+  const hasMore = topMemories.length > MEMORY_INJECT_LIMIT;
+  const memories = topMemories.slice(0, MEMORY_INJECT_LIMIT);
+  const systemPrompt = buildSystemPrompt(memories, hasMore);
+
   deps.logger.info(
-    { model: model.id, coreTools: coreTools.length, pluginTools: (deps.pluginTools ?? []).length, totalTools: tools.length },
+    { model: model.id, coreTools: coreTools.length, pluginTools: (deps.pluginTools ?? []).length, totalTools: tools.length, memoriesLoaded: memories.length, memoriesTotal: hasMore ? `>${MEMORY_INJECT_LIMIT}` : memories.length },
     'Creating EchOS agent',
   );
 
   return new Agent({
     initialState: {
-      systemPrompt: SYSTEM_PROMPT,
+      systemPrompt,
       model,
       tools,
       thinkingLevel: 'off',
@@ -95,4 +101,4 @@ export function createEchosAgent(deps: AgentDeps): Agent {
   });
 }
 
-export { SYSTEM_PROMPT } from './system-prompt.js';
+export { SYSTEM_PROMPT, buildSystemPrompt } from './system-prompt.js';

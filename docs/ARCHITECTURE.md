@@ -83,7 +83,7 @@ Plugins can optionally use the AI categorization service from `@echos/core` to a
 
 ## Storage Architecture
 
-**SQLite** (better-sqlite3): Structured metadata index, FTS5 full-text search, memory store, reminders.
+**SQLite** (better-sqlite3): Structured metadata index, FTS5 full-text search, memory store, reminders. The memory table stores long-term personal facts with a confidence score (0–1) and kind (`fact`, `preference`, `person`, `project`, `expertise`).
 
 **LanceDB** (embedded): Vector embeddings for semantic search. No server process needed.
 
@@ -95,6 +95,15 @@ Hybrid search combines three strategies via Reciprocal Rank Fusion (RRF):
 1. **Keyword** (FTS5): BM25-ranked full-text search across title, content, tags
 2. **Semantic** (LanceDB): Cosine similarity on OpenAI embeddings
 3. **Hybrid**: RRF fusion of keyword + semantic results
+
+## Memory System
+
+Long-term memory (`remember_about_me` / `recall_knowledge` tools) uses a hybrid strategy to balance cost and recall:
+
+- **At agent creation** (including after `/reset`): the top 15 memories ranked by `confidence DESC, updated DESC` are injected directly into the system prompt as "Known Facts About the User". This ensures core personal facts are always available without an explicit tool call.
+- **On-demand retrieval**: if more than 15 memories exist, `recall_knowledge` searches the full memory table using word-tokenised LIKE queries. The system prompt notes additional memories are available so the agent knows to use the tool.
+
+This means `/reset` only clears the conversation history — all stored memories persist in SQLite and are reloaded into the next session automatically.
 
 ## Security
 

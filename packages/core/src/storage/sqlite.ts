@@ -19,6 +19,8 @@ export interface SqliteStorage {
   // Memory
   upsertMemory(entry: MemoryEntry): void;
   getMemory(id: string): MemoryEntry | undefined;
+  listAllMemories(): MemoryEntry[];
+  listTopMemories(limit: number): MemoryEntry[];
   searchMemory(query: string): MemoryEntry[];
   // Lifecycle
   close(): void;
@@ -145,6 +147,19 @@ function rowToReminder(row: Record<string, unknown>): ReminderEntry {
   return entry;
 }
 
+function rowToMemory(row: Record<string, unknown>): MemoryEntry {
+  return {
+    id: row['id'] as string,
+    kind: row['kind'] as MemoryEntry['kind'],
+    subject: row['subject'] as string,
+    content: row['content'] as string,
+    confidence: row['confidence'] as number,
+    source: row['source'] as string,
+    created: row['created'] as string,
+    updated: row['updated'] as string,
+  };
+}
+
 export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStorage {
   mkdirSync(dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -207,6 +222,8 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
         subject=@subject, content=@content, confidence=@confidence, source=@source, updated=@updated
     `),
     getMemory: db.prepare('SELECT * FROM memory WHERE id = ?'),
+    listAllMemories: db.prepare('SELECT * FROM memory ORDER BY confidence DESC, updated DESC'),
+    listTopMemories: db.prepare('SELECT * FROM memory ORDER BY confidence DESC, updated DESC LIMIT ?'),
     searchMemory: db.prepare(
       "SELECT * FROM memory WHERE subject LIKE ? OR content LIKE ? ORDER BY confidence DESC",
     ),
@@ -302,31 +319,45 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
     getMemory(id: string): MemoryEntry | undefined {
       const row = stmts.getMemory.get(id) as Record<string, unknown> | undefined;
       if (!row) return undefined;
-      return {
-        id: row['id'] as string,
-        kind: row['kind'] as MemoryEntry['kind'],
-        subject: row['subject'] as string,
-        content: row['content'] as string,
-        confidence: row['confidence'] as number,
-        source: row['source'] as string,
-        created: row['created'] as string,
-        updated: row['updated'] as string,
-      };
+      return rowToMemory(row);
+    },
+
+    listAllMemories(): MemoryEntry[] {
+      const rows = stmts.listAllMemories.all() as Record<string, unknown>[];
+      return rows.map(rowToMemory);
+    },
+
+    listTopMemories(limit: number): MemoryEntry[] {
+      const rows = stmts.listTopMemories.all(limit) as Record<string, unknown>[];
+      return rows.map(rowToMemory);
     },
 
     searchMemory(query: string): MemoryEntry[] {
+      const seen = new Set<string>();
+      const results: MemoryEntry[] = [];
+
+      const addRows = (rows: Record<string, unknown>[]) => {
+        for (const row of rows) {
+          const id = row['id'] as string;
+          if (!seen.has(id)) {
+            seen.add(id);
+            results.push(rowToMemory(row));
+          }
+        }
+      };
+
+      // Exact phrase match
       const pattern = `%${query}%`;
-      const rows = stmts.searchMemory.all(pattern, pattern) as Record<string, unknown>[];
-      return rows.map((row) => ({
-        id: row['id'] as string,
-        kind: row['kind'] as MemoryEntry['kind'],
-        subject: row['subject'] as string,
-        content: row['content'] as string,
-        confidence: row['confidence'] as number,
-        source: row['source'] as string,
-        created: row['created'] as string,
-        updated: row['updated'] as string,
-      }));
+      addRows(stmts.searchMemory.all(pattern, pattern) as Record<string, unknown>[]);
+
+      // Individual word matches for multi-word queries
+      const words = query.split(/\s+/).filter((w) => w.length > 2);
+      for (const word of words) {
+        const wordPattern = `%${word}%`;
+        addRows(stmts.searchMemory.all(wordPattern, wordPattern) as Record<string, unknown>[]);
+      }
+
+      return results.sort((a, b) => b.confidence - a.confidence);
     },
 
     close(): void {

@@ -1,3 +1,5 @@
+import type { MemoryEntry } from '@echos/shared';
+
 export const SYSTEM_PROMPT = `You are EchOS, a personal knowledge management assistant. You help the user capture, organize, search, and retrieve their knowledge.
 
 ## Current Date and Time
@@ -31,6 +33,8 @@ Each user message includes the current date and time in UTC format at the beginn
 - Use delete_note to remove notes (confirm with the user first).
 - Use add_reminder and complete_reminder for task management.
 - Use link_notes to create connections between related notes.
+- Use remember_about_me to store personal facts, preferences, or details about the user for long-term memory.
+- Use recall_knowledge when the user asks about personal information or preferences that may have been stored — search with relevant keywords (e.g., topic="birthday" or topic="coffee preference").
 
 ## Journal Entries
 - Journal entries use type "journal". Always create them with create_note using type="journal".
@@ -48,3 +52,20 @@ Each user message includes the current date and time in UTC format at the beginn
 - Keep responses focused and scannable.
 - Use bullet points for lists of results.
 `;
+
+export function buildSystemPrompt(memories: MemoryEntry[], hasMore = false): string {
+  if (memories.length === 0) return SYSTEM_PROMPT;
+
+  const memoryLines = memories
+    .map((m) => `- [${m.kind}] ${m.subject}: ${m.content}`)
+    .join('\n');
+
+  const moreNote = hasMore
+    ? '\nAdditional memories exist — use recall_knowledge to search for anything not listed above.\n'
+    : '';
+
+  return `${SYSTEM_PROMPT}
+## Known Facts About the User
+The following top facts have been loaded from long-term memory (ranked by confidence):
+${memoryLines}${moreNote}`;
+}

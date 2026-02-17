@@ -374,6 +374,24 @@ Error: ENOENT: no such file or directory
    pnpm test:watch
    ```
 
+## Memory Issues
+
+### Memory stored but not recalled after /reset
+
+**Problem**: You told the agent to remember something, then after `/reset` it doesn't know the fact.
+
+**How memory works**:
+- `remember_about_me` stores facts permanently in SQLite (survives `/reset`)
+- On every new session, the top 15 memories by confidence are injected into the system prompt automatically
+- Additional memories beyond the top 15 are searchable via `recall_knowledge`
+
+**If a memory isn't being recalled**:
+1. It may be beyond position 15 — ask explicitly: *"recall what you know about X"* to trigger `recall_knowledge`
+2. The search uses keyword matching — use related terms: *"recall what you know about my birthday"* or *"recall birth year"*
+3. Increase confidence when storing important facts: the agent can be told *"remember this with high confidence"*
+
+**To see all stored memories**: ask *"list everything you remember about me"* — the agent will use `recall_knowledge` to retrieve all entries.
+
 ## Getting Help
 
 If you're still stuck:
