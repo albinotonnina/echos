@@ -11,7 +11,6 @@ export interface ReminderWorkerDeps {
 }
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
-const NOTIFICATION_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 
 function formatReminder(r: ReminderEntry): string {
   const priorityIcon = r.priority === 'high' ? '!' : r.priority === 'medium' ? '-' : '.';
@@ -21,19 +20,10 @@ function formatReminder(r: ReminderEntry): string {
 }
 
 export function createReminderCheckProcessor(deps: ReminderWorkerDeps) {
-  // Track recently notified reminders to avoid repeated notifications.
-  // Persists across job runs within the same process lifetime.
-  const notifiedAt = new Map<string, number>();
-
   return async (_job: Job<JobData>): Promise<void> => {
     const { sqlite, notificationService, logger } = deps;
 
     const now = Date.now();
-
-    // Evict stale cooldown entries
-    for (const [id, ts] of notifiedAt) {
-      if (now - ts > NOTIFICATION_COOLDOWN_MS) notifiedAt.delete(id);
-    }
 
     const pending = sqlite.listReminders(false);
 
@@ -46,7 +36,6 @@ export function createReminderCheckProcessor(deps: ReminderWorkerDeps) {
           return false;
         }
         if (dueTime > now) return false;
-        if (notifiedAt.has(r.id)) return false;
         return true;
       })
       .sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 2) - (PRIORITY_ORDER[b.priority] ?? 2));
@@ -61,10 +50,16 @@ export function createReminderCheckProcessor(deps: ReminderWorkerDeps) {
 
     await notificationService.broadcast(message);
 
+    // Mark all notified reminders as completed so they won't appear in future checks
+    const nowIso = new Date(now).toISOString();
     for (const r of due) {
-      notifiedAt.set(r.id, now);
+      sqlite.upsertReminder({
+        ...r,
+        completed: true,
+        updated: nowIso,
+      });
     }
 
-    logger.info({ count: due.length }, 'Due reminder notifications sent');
+    logger.info({ count: due.length }, 'Due reminder notifications sent and marked as completed');
   };
 }
