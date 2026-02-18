@@ -1,4 +1,4 @@
-name: Deploy to Oracle Cloud
+name: Deploy to VPS
 
 on:
   workflow_dispatch:   # manual trigger only — automatic deploys happen via release.yml on git tags
@@ -18,7 +18,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # ── 3. Build Docker image for Oracle Cloud (x86_64 / amd64) ─────────────
+      # ── 3. Build Docker image for VPS (x86_64 / amd64) ─────────────
       #      GitHub Actions runners are also x86_64 — native build, no emulation
       - name: Build Docker image
         uses: docker/build-push-action@v6
@@ -84,7 +84,7 @@ jobs:
           rm /tmp/echos.env
 
       # ── 10. Load image and restart ────────────────────────────────────────────
-      - name: Deploy on Oracle Cloud
+      - name: Deploy on VPS
         run: |
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \

@@ -18,6 +18,16 @@
 > [!NOTE]
 > EchOS is a personal project — built for one user, deployed on your own infrastructure. It is intentionally not multi-tenant.
 
+<div align="center">
+
+<!-- TODO: Replace with actual screenshots before launch -->
+<!-- Take a screenshot of a Telegram conversation showing EchOS in action -->
+<img src="assets/telegram-demo.png" alt="EchOS Telegram conversation" width="400">
+
+*Save articles, search your knowledge, get reminders — all through natural conversation.*
+
+</div>
+
 ---
 
 ## What is EchOS?
@@ -121,7 +131,7 @@ docker compose --profile nginx up -d
 ```
 
 > [!TIP]
-> See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for systemd service setup, nginx SSL, and Oracle Cloud instructions.
+> See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for systemd service setup, nginx SSL, and VPS deployment instructions.
 
 ---
 
@@ -239,7 +249,7 @@ Storage stays in sync automatically — a startup reconciler and live file watch
 | Doc | Contents |
 |---|---|
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Data flow, storage sync, search, memory system |
-| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | VPS, Docker, nginx, systemd, Oracle Cloud |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | VPS, Docker, nginx, systemd |
 | [PLUGINS.md](docs/PLUGINS.md) | Building custom content processors |
 | [INTERFACES.md](docs/INTERFACES.md) | Telegram, Web API, TUI reference |
 | [SCHEDULER.md](docs/SCHEDULER.md) | Background jobs, digests, reminders |

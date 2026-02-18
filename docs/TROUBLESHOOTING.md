@@ -214,7 +214,7 @@ one bot instance is running)
 Only one instance can poll Telegram updates at a time. The conflict can come from:
 
 - Local processes on your machine
-- Remote deployments (Oracle Cloud, VPS, etc.)
+- Remote deployments (VPS, cloud instances, etc.)
 - Docker containers
 - Another developer's machine using the same bot token
 
@@ -250,7 +250,7 @@ docker ps | grep echos
 
 #### Step 5: Check remote deployments
 
-**If you deployed to Oracle Cloud or another server**, check there:
+**If you deployed to a remote server**, check there:
 
 ```bash
 # SSH to your server

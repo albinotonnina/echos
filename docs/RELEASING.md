@@ -21,7 +21,7 @@ GitHub Actions (release.yml)
          ├─► Create GitHub Release
          │        └─► Auto-generated changelog from commits since last tag
          │
-         └─► Deploy to your Oracle Cloud instance
+         └─► Deploy to your VPS (if deploy secrets are configured)
                   └─► SSH in → docker compose pull → docker compose up -d
 ```
 
@@ -64,7 +64,7 @@ After ~10-15 minutes:
 
 - **GitHub Release** created at `https://github.com/albinotonnina/echos/releases` with an auto-generated changelog
 - **Docker image** available at `ghcr.io/albinotonnina/echos:0.2.0` and `:latest`
-- **Oracle Cloud** running the new version (`ssh oracle-cloud 'cd echos/docker && docker compose ps'`)
+- **Your VPS** running the new version (`ssh your-server 'cd echos/docker && docker compose ps'`)
 
 ### If something goes wrong mid-release
 
@@ -158,11 +158,11 @@ git push origin v0.2.0
 
 ## Manual deploy (without a release)
 
-If you need to push a fix to Oracle Cloud urgently without cutting a release:
+If you need to push a fix to your VPS urgently without cutting a release:
 
 ```bash
 # Option A: use the manual deploy workflow
-# GitHub → Actions → "Deploy to Oracle Cloud" → Run workflow
+# GitHub → Actions → "Deploy to VPS" → Run workflow
 
 # Option B: use the local deploy script (builds image locally)
 pnpm run deploy
