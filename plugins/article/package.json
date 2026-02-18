@@ -20,7 +20,7 @@
     "@sinclair/typebox": "^0.34.48",
     "isomorphic-dompurify": "3.0.0-rc.3",
     "jsdom": "^28.1.0",
-    "pino": "^9.14.0",
+    "pino": "^10.3.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

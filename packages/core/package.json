@@ -20,7 +20,7 @@
     "better-sqlite3": "^12.6.2",
     "chokidar": "^5.0.0",
     "gray-matter": "^4.0.3",
-    "pino": "^9.14.0",
+    "pino": "^10.3.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

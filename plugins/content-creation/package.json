@@ -17,7 +17,7 @@
     "@mariozechner/pi-agent-core": "^0.53.0",
     "@mariozechner/pi-ai": "^0.53.0",
     "@sinclair/typebox": "^0.34.30",
-    "pino": "^9.14.0",
+    "pino": "^10.3.1",
     "uuid": "^13.0.0",
     "zod": "^4.3.6"
   },

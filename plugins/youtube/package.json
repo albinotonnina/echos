@@ -20,7 +20,7 @@
     "@sinclair/typebox": "^0.34.48",
     "https-proxy-agent": "^7.0.6",
     "openai": "^4.77.3",
-    "pino": "^9.14.0",
+    "pino": "^10.3.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
