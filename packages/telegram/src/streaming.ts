@@ -1,6 +1,5 @@
 import type { Context } from 'grammy';
 import type { Agent, AgentEvent, AgentMessage } from '@mariozechner/pi-agent-core';
-import telegramifyMarkdown from 'telegramify-markdown';
 
 const EDIT_DEBOUNCE_MS = 1000;
 const MAX_MESSAGE_LENGTH = 4096;
@@ -37,15 +36,70 @@ function getToolEmoji(toolName: string): string {
 }
 
 /**
- * Convert standard markdown (as produced by Claude) to Telegram MarkdownV2.
- * Falls back to plain text if conversion fails (e.g. mid-stream unclosed syntax).
+ * Convert Claude's standard markdown to Telegram HTML.
+ *
+ * Telegram HTML supports: <b>, <i>, <u>, <s>, <code>, <pre>, <a href="…">
+ * Only &, <, > need escaping in text content — far simpler than MarkdownV2.
+ *
+ * Strategy:
+ *   1. Extract fenced code blocks and inline code first (protect their content).
+ *   2. Escape HTML special chars in the remaining text.
+ *   3. Convert markdown syntax (headers, bold, italic) to HTML tags.
+ *   4. Restore code blocks.
  */
-function toTelegramMarkdown(text: string): string {
-  try {
-    return telegramifyMarkdown(text, 'escape');
-  } catch {
-    return text;
-  }
+function markdownToHtml(text: string): string {
+  // Sentinel chars unlikely to appear in normal text
+  const BLOCK = '\x02B';
+  const INLINE = '\x02I';
+  const SEP = '\x03';
+
+  // 1. Protect fenced code blocks
+  const codeBlocks: string[] = [];
+  let out = text.replace(/```[^\n]*\n([\s\S]*?)```/g, (_, content: string) => {
+    const safe = content
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    codeBlocks.push(`<pre>${safe.trim()}</pre>`);
+    return `${BLOCK}${codeBlocks.length - 1}${SEP}`;
+  });
+
+  // 2. Protect inline code
+  const inlineCodes: string[] = [];
+  out = out.replace(/`([^`\n]+)`/g, (_, content: string) => {
+    const safe = content
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    inlineCodes.push(`<code>${safe}</code>`);
+    return `${INLINE}${inlineCodes.length - 1}${SEP}`;
+  });
+
+  // 3. Escape HTML special chars in the remaining text
+  out = out.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // 4. Convert markdown syntax to HTML tags
+  out = out
+    // Headers → bold (Telegram HTML has no heading tags)
+    .replace(/^#{1,6} (.+)$/gm, (_, t: string) => `<b>${t}</b>`)
+    // Bold — must come before italic
+    .replace(/\*\*(.+?)\*\*/gs, '<b>$1</b>')
+    .replace(/__(.+?)__/gs, '<b>$1</b>')
+    // Italic
+    .replace(/\*([^*\n]+)\*/g, '<i>$1</i>')
+    .replace(/_([^_\n]+)_/g, '<i>$1</i>')
+    // Strikethrough
+    .replace(/~~(.+?)~~/gs, '<s>$1</s>')
+    // Links — keep label, drop URL (Telegram validates hrefs strictly)
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Horizontal rules — remove
+    .replace(/^---+$/gm, '');
+
+  // 5. Restore protected sections
+  out = out.replace(new RegExp(`${BLOCK}(\\d+)${SEP}`, 'g'), (_, i) => codeBlocks[+i] ?? '');
+  out = out.replace(new RegExp(`${INLINE}(\\d+)${SEP}`, 'g'), (_, i) => inlineCodes[+i] ?? '');
+
+  return out;
 }
 
 /**
@@ -84,29 +138,22 @@ export async function streamAgentResponse(
     const raw = overrideText ?? (textBuffer || statusLine);
     if (!raw) return;
 
-    // Only convert AI content through telegramify; status lines are plain text
+    // Only convert AI content to HTML; status lines are plain text
     const isAiContent = overrideText !== undefined || textBuffer.length > 0;
-    const converted = isAiContent ? toTelegramMarkdown(raw) : raw;
 
-    const truncated =
-      converted.length > MAX_MESSAGE_LENGTH
-        ? converted.slice(0, MAX_MESSAGE_LENGTH - 3) + '...'
-        : converted;
+    if (isAiContent) {
+      const html = markdownToHtml(raw);
+      const truncated =
+        html.length > MAX_MESSAGE_LENGTH ? html.slice(0, MAX_MESSAGE_LENGTH - 3) + '...' : html;
 
-    try {
-      if (isAiContent) {
+      try {
         await ctx.api.editMessageText(ctx.chat!.id, messageId, truncated, {
-          parse_mode: 'MarkdownV2',
+          parse_mode: 'HTML',
         });
-      } else {
-        await ctx.api.editMessageText(ctx.chat!.id, messageId, truncated);
-      }
-      lastEditTime = Date.now();
-    } catch (err) {
-      if (err instanceof Error && err.message.toLowerCase().includes('not modified')) return;
-
-      // Fallback: plain text so the user still sees something
-      if (isAiContent) {
+        lastEditTime = Date.now();
+      } catch (err) {
+        if (err instanceof Error && err.message.toLowerCase().includes('not modified')) return;
+        // Ultimate fallback: send the raw text with no parse_mode
         try {
           const rawTruncated =
             raw.length > MAX_MESSAGE_LENGTH ? raw.slice(0, MAX_MESSAGE_LENGTH - 3) + '...' : raw;
@@ -115,6 +162,13 @@ export async function streamAgentResponse(
         } catch {
           // Ignore
         }
+      }
+    } else {
+      try {
+        await ctx.api.editMessageText(ctx.chat!.id, messageId, raw);
+        lastEditTime = Date.now();
+      } catch (err) {
+        if (err instanceof Error && err.message.toLowerCase().includes('not modified')) return;
       }
     }
   };
