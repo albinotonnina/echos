@@ -79,7 +79,8 @@
       "Bash(ANTHROPIC_API_KEY=sk-ant-test-key ALLOWED_USER_IDS=123456789 ENABLE_TELEGRAM=false ENABLE_WEB=true pnpm exec tsx:*)",
       "Bash(git -C /Users/albino.tonnina/CodePersonal/echos diff --stat HEAD)",
       "Bash(git -C /Users/albino.tonnina/CodePersonal/echos status --short)",
-      "Bash(ANTHROPIC_API_KEY=sk-ant-test ALLOWED_USER_IDS=123 ENABLE_TELEGRAM=false ENABLE_WEB=true ENABLE_SCHEDULER=true REDIS_URL=redis://localhost:6379 pnpm exec tsx:*)"
+      "Bash(ANTHROPIC_API_KEY=sk-ant-test ALLOWED_USER_IDS=123 ENABLE_TELEGRAM=false ENABLE_WEB=true ENABLE_SCHEDULER=true REDIS_URL=redis://localhost:6379 pnpm exec tsx:*)",
+      "Bash(bash scripts/update.sh)"
     ]
   }
 }
