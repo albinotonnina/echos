@@ -536,7 +536,7 @@ SESSION_DIR=./data/sessions
 DB_PATH=./data/db/knowledge.db
 
 # LLM settings
-DEFAULT_MODEL=claude-sonnet-4-20250514
+DEFAULT_MODEL=claude-3-5-haiku-20241022
 EMBEDDING_MODEL=text-embedding-3-small
 
 # Features

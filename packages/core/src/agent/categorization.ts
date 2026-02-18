@@ -64,7 +64,7 @@ Respond with a JSON object in this exact format:
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-3-5-haiku-20241022',
         max_tokens: 500,
         messages: [
           {
@@ -149,7 +149,7 @@ Respond with a JSON object in this exact format:
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-3-5-haiku-20241022',
         max_tokens: 2000,
         messages: [
           {

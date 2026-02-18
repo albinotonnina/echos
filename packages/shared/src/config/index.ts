@@ -25,7 +25,7 @@ export const configSchema = z.object({
   sessionDir: z.string().default('./data/sessions'),
 
   // LLM
-  defaultModel: z.string().default('claude-sonnet-4-5-20250929'),
+  defaultModel: z.string().default('claude-3-5-haiku-20241022'),
   embeddingModel: z.string().default('text-embedding-3-small'),
 
   // Interfaces

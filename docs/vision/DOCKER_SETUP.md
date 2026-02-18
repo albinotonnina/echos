@@ -27,7 +27,7 @@ services:
       - DB_PATH=/app/db/knowledge.db
       
       # Agent settings
-      - DEFAULT_MODEL=claude-sonnet-4-20250514
+      - DEFAULT_MODEL=claude-3-5-haiku-20241022
       - EMBEDDING_MODEL=text-embedding-3-small
       - NODE_ENV=production
       
@@ -229,7 +229,7 @@ DB_PATH=/app/db/knowledge.db
 # Agent Settings
 # ============================================================================
 # Default model for agent
-DEFAULT_MODEL=claude-sonnet-4-20250514
+DEFAULT_MODEL=claude-3-5-haiku-20241022
 
 # Model for generating embeddings
 EMBEDDING_MODEL=text-embedding-3-small

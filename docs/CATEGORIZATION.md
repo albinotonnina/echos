@@ -11,7 +11,7 @@ The categorization system offers two processing modes:
 | **Lightweight** | ~1-2 seconds | Category + Tags | Quick organization, batch processing |
 | **Full** | ~3-5 seconds | Category + Tags + Gist + Summary + Key Points | Important content, detailed analysis |
 
-Both modes use Claude AI (Sonnet 4.5) to analyze content and extract structured metadata.
+Both modes use Claude AI (Haiku 4.5) to analyze content and extract structured metadata.
 
 ## Usage
 
@@ -365,7 +365,7 @@ Network latency and API load can affect these times.
 
 ### Cost Estimation
 
-Based on Anthropic Claude Sonnet 4.5 pricing ($3/MTok input, $15/MTok output):
+Based on Anthropic Claude Haiku 4.5 pricing ($0.80/MTok input, $4/MTok output):
 
 | Mode | Cost per Item |
 |------|---------------|

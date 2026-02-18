@@ -116,7 +116,7 @@ docker-compose logs -f agent
 ANTHROPIC_API_KEY=sk-ant-xxx
 TELEGRAM_BOT_TOKEN=xxx
 KNOWLEDGE_DIR=./data/knowledge
-DEFAULT_MODEL=claude-sonnet-4-20250514
+DEFAULT_MODEL=claude-3-5-haiku-20241022
 ```
 
 ### Critical Design Decisions
