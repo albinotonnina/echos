@@ -508,32 +508,32 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
     clack.log.info(pc.dim('Cron schedules — leave blank to disable. Reference: https://crontab.guru'));
 
     const digestRaw = await clack.text({
-      message: `Daily digest cron ${pc.dim('(e.g. 0 8 * * * for 8am daily)')}`,
+      message: `Daily digest cron ${pc.dim('(e.g. 0 8 * * * for 8am daily — leave blank to skip)')}`,
       initialValue: existing['DIGEST_SCHEDULE'] ?? '',
     });
     if (clack.isCancel(digestRaw)) cancel();
-    digestSchedule = (digestRaw as string).trim();
+    digestSchedule = ((digestRaw as string | undefined) ?? '').trim();
 
     const reminderRaw = await clack.text({
-      message: `Reminder check cron ${pc.dim('(e.g. */15 * * * * for every 15min)')}`,
+      message: `Reminder check cron ${pc.dim('(e.g. */15 * * * * — leave blank to skip)')}`,
       initialValue: existing['REMINDER_CHECK_SCHEDULE'] ?? '',
     });
     if (clack.isCancel(reminderRaw)) cancel();
-    reminderCheckSchedule = (reminderRaw as string).trim();
+    reminderCheckSchedule = ((reminderRaw as string | undefined) ?? '').trim();
 
     const newsletterRaw = await clack.text({
-      message: `Newsletter cron ${pc.dim('(optional)')}`,
+      message: `Newsletter cron ${pc.dim('(leave blank to skip)')}`,
       initialValue: existing['NEWSLETTER_SCHEDULE'] ?? '',
     });
     if (clack.isCancel(newsletterRaw)) cancel();
-    newsletterSchedule = (newsletterRaw as string).trim();
+    newsletterSchedule = ((newsletterRaw as string | undefined) ?? '').trim();
 
     const trendingRaw = await clack.text({
-      message: `Trending topics cron ${pc.dim('(optional)')}`,
+      message: `Trending topics cron ${pc.dim('(leave blank to skip)')}`,
       initialValue: existing['TRENDING_SCHEDULE'] ?? '',
     });
     if (clack.isCancel(trendingRaw)) cancel();
-    trendingSchedule = (trendingRaw as string).trim();
+    trendingSchedule = ((trendingRaw as string | undefined) ?? '').trim();
   }
 
   // ── Step 6: Storage ──────────────────────────────────────────────────────
