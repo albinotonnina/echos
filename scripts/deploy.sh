@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# EchOS deploy script for Oracle Cloud
+# EchOS deploy script for remote VPS
 # Usage: ./scripts/deploy.sh [user@host]
 
 REMOTE="${1:-}"

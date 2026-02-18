@@ -102,7 +102,7 @@ git tag v0.3.0 && git push origin v0.3.0
 This triggers:
 1. Multi-arch Docker build → pushed to `ghcr.io/albinotonnina/echos`
 2. GitHub Release created with auto-generated changelog
-3. Personal Oracle Cloud instance updated
+3. Production VPS instance updated (if deploy secrets are configured)
 
 ## License
 

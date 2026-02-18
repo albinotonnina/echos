@@ -1,62 +1,85 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Fast Oracle Cloud Deployment - EchOS"
-echo "========================================"
+# EchOS Fast Docker Deployment
+# Builds locally, uploads image to remote server, and deploys.
+#
+# Usage: ./scripts/deploy-fast.sh [ssh-host]
+#   ssh-host: SSH host alias or user@host (default: reads ECHOS_DEPLOY_HOST env var)
+#
+# Example:
+#   ./scripts/deploy-fast.sh my-vps
+#   ECHOS_DEPLOY_HOST=user@203.0.113.10 ./scripts/deploy-fast.sh
 
-# Check if .env file exists
-if [ ! -f ".env" ]; then
-  echo "❌ Error: .env file not found. Please create it first."
+REMOTE_HOST="${1:-${ECHOS_DEPLOY_HOST:-}}"
+
+if [ -z "$REMOTE_HOST" ]; then
+  echo "Usage: $0 <ssh-host>"
+  echo "  Or set ECHOS_DEPLOY_HOST env var"
+  echo ""
+  echo "Examples:"
+  echo "  $0 my-vps"
+  echo "  $0 user@203.0.113.10"
   exit 1
 fi
 
-# Build locally first (much faster than on Oracle Cloud)
-echo "📦 Building Docker image locally..."
-if ! docker build -t ghcr.io/albinotonnina/echos:latest -f docker/Dockerfile .; then
-  echo "❌ Docker build failed!"
+echo "Fast Docker Deployment - EchOS"
+echo "========================================"
+echo "Target: $REMOTE_HOST"
+
+# Check if .env file exists
+if [ ! -f ".env" ]; then
+  echo "Error: .env file not found. Please create it first."
+  exit 1
+fi
+
+# Build locally first (much faster than building on the remote server)
+echo "Building Docker image locally..."
+if ! docker build -t echos:latest -f docker/Dockerfile .; then
+  echo "Docker build failed!"
   exit 1
 fi
 
 # Save image to tar
-echo "💾 Saving image to tar..."
-if ! docker save ghcr.io/albinotonnina/echos:latest | gzip > /tmp/echos.tar.gz; then
-  echo "❌ Failed to save Docker image!"
+echo "Saving image to tar..."
+if ! docker save echos:latest | gzip > /tmp/echos.tar.gz; then
+  echo "Failed to save Docker image!"
   exit 1
 fi
 
-echo "📏 Image size: $(du -h /tmp/echos.tar.gz | cut -f1)"
+echo "Image size: $(du -h /tmp/echos.tar.gz | cut -f1)"
 
-# Create directory structure on Oracle Cloud
-echo "📁 Creating directory structure on Oracle Cloud..."
-if ! ssh oracle-cloud 'mkdir -p echos/docker echos/data/{knowledge,db,sessions,logs} && sudo chown -R 1000:1000 echos/data/'; then
-  echo "❌ Failed to create directories!"
+# Create directory structure on remote server
+echo "Creating directory structure on remote server..."
+if ! ssh "$REMOTE_HOST" 'mkdir -p echos/docker echos/data/{knowledge,db,sessions,logs} && sudo chown -R 1000:1000 echos/data/'; then
+  echo "Failed to create directories!"
   rm /tmp/echos.tar.gz
   exit 1
 fi
 
-# Copy image, docker-compose, and .env to Oracle Cloud
-echo "📤 Uploading to Oracle Cloud..."
-if ! scp /tmp/echos.tar.gz oracle-cloud:/tmp/; then
-  echo "❌ Failed to upload image!"
+# Copy image, docker-compose, and .env to remote server
+echo "Uploading to remote server..."
+if ! scp /tmp/echos.tar.gz "$REMOTE_HOST":/tmp/; then
+  echo "Failed to upload image!"
   rm /tmp/echos.tar.gz
   exit 1
 fi
 
-if ! scp docker/docker-compose.yml oracle-cloud:echos/docker/; then
-  echo "❌ Failed to upload docker-compose.yml!"
+if ! scp docker/docker-compose.yml "$REMOTE_HOST":echos/docker/; then
+  echo "Failed to upload docker-compose.yml!"
   rm /tmp/echos.tar.gz
   exit 1
 fi
 
-if ! scp .env oracle-cloud:echos/; then
-  echo "❌ Failed to upload .env!"
+if ! scp .env "$REMOTE_HOST":echos/; then
+  echo "Failed to upload .env!"
   rm /tmp/echos.tar.gz
   exit 1
 fi
 
-# Load and deploy on Oracle Cloud
-echo "🔄 Loading and deploying on Oracle Cloud..."
-ssh oracle-cloud << 'EOF'
+# Load and deploy on remote server
+echo "Loading and deploying on remote server..."
+ssh "$REMOTE_HOST" << 'EOF'
 cd echos
 
 # Create data directories if they don't exist, owned by node user (uid 1000)
@@ -85,7 +108,7 @@ echo "Waiting for services to start..."
 sleep 5
 
 # Show status
-echo "✅ Deployment complete!"
+echo "Deployment complete!"
 docker compose ps
 echo ""
 echo "Recent logs:"
@@ -96,6 +119,6 @@ EOF
 rm -f /tmp/echos.tar.gz
 
 echo ""
-echo "✅ Deployment successful!"
-echo "View logs with: ssh oracle-cloud 'cd echos/docker && docker compose logs -f echos'"
-echo "Check status with: ssh oracle-cloud 'cd echos/docker && docker compose ps'"
+echo "Deployment successful!"
+echo "View logs with: ssh $REMOTE_HOST 'cd echos/docker && docker compose logs -f echos'"
+echo "Check status with: ssh $REMOTE_HOST 'cd echos/docker && docker compose ps'"

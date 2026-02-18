@@ -97,7 +97,7 @@ oci vault secret create-base64 \
 
 ```bash
 # SSH to your Oracle Cloud instance
-ssh oracle-cloud
+ssh your-server
 
 # Install OCI CLI
 bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)"
@@ -177,7 +177,7 @@ Create a script on your server to fetch secrets at startup:
 
 ```bash
 # SSH to your Oracle Cloud instance
-ssh oracle-cloud
+ssh your-server
 
 # Create the secret fetcher script
 mkdir -p ~/echos/scripts
@@ -278,7 +278,7 @@ Modify `scripts/deploy-fast.sh` to:
 # add this SSH command:
 
 # Fetch secrets from Oracle Cloud Vault
-ssh oracle-cloud << 'EOF'
+ssh your-server << 'EOF'
 cd ~/echos
 ./scripts/fetch-secrets.sh
 EOF
@@ -290,7 +290,7 @@ EOF
 
 ```bash
 # SSH to your server
-ssh oracle-cloud
+ssh your-server
 
 # Fetch secrets manually
 ~/echos/scripts/fetch-secrets.sh
@@ -338,7 +338,7 @@ oci vault secret create-base64 \
 After updating, restart your container:
 
 ```bash
-ssh oracle-cloud '~/echos/scripts/fetch-secrets.sh && cd ~/echos/docker && docker compose restart echos'
+ssh your-server '~/echos/scripts/fetch-secrets.sh && cd ~/echos/docker && docker compose restart echos'
 ```
 
 ---
@@ -389,7 +389,7 @@ Set environment variables directly on the Oracle Cloud server:
 
 ```bash
 # SSH to server
-ssh oracle-cloud
+ssh your-server
 
 # Add to ~/.bashrc or create /etc/environment
 echo 'export ANTHROPIC_API_KEY="your-key"' >> ~/.bashrc
