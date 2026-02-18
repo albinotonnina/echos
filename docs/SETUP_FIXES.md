@@ -68,7 +68,7 @@ Previously, missing config produced a cascade of confusing Zod validation errors
 ### install.sh (VPS one-liner)
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/USER/echos/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/albinotonnina/echos/main/install.sh | bash
 ```
 
 Detects platform, checks/installs prerequisites (Node 20+, pnpm, git), clones repo, installs deps, launches wizard. Falls back gracefully when no TTY is available (piped curl).

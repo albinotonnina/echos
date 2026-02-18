@@ -15,7 +15,7 @@ set -euo pipefail
 
 ECHOS_INSTALL_DIR="${ECHOS_INSTALL_DIR:-$HOME/echos}"
 ECHOS_BRANCH="${ECHOS_BRANCH:-main}"
-ECHOS_REPO="${ECHOS_REPO:-https://github.com/USER/echos.git}"
+ECHOS_REPO="${ECHOS_REPO:-https://github.com/albinotonnina/echos.git}"
 NON_INTERACTIVE="${ECHOS_NON_INTERACTIVE:-0}"
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────

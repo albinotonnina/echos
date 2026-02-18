@@ -9,11 +9,11 @@
 **Solution**:
 ```bash
 # Option A: Run install.sh first, then the wizard manually
-curl -sSL https://raw.githubusercontent.com/USER/echos/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/albinotonnina/echos/main/install.sh | bash
 # Follow the printed instructions to run: cd ~/echos && pnpm setup
 
 # Option B: Download first, then run (preserves TTY)
-curl -sSL https://raw.githubusercontent.com/USER/echos/main/install.sh -o /tmp/install-echos.sh
+curl -sSL https://raw.githubusercontent.com/albinotonnina/echos/main/install.sh -o /tmp/install-echos.sh
 bash /tmp/install-echos.sh
 ```
 

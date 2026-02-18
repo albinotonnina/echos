@@ -126,7 +126,7 @@ pnpm start
 ### One-liner install
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/USER/echos/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/albinotonnina/echos/main/install.sh | bash
 ```
 
 Installs prerequisites, clones repo, and launches the setup wizard.

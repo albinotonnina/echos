@@ -44,7 +44,7 @@ Content processors (YouTube, article, etc.) are **plugins** in `plugins/`, not c
 ### Local (macOS / Linux) — interactive wizard
 
 ```bash
-git clone <repo-url> echos && cd echos
+git clone https://github.com/albinotonnina/echos.git echos && cd echos
 pnpm install
 pnpm setup        # guided wizard: API keys, Telegram, interfaces, storage
 pnpm build
@@ -62,7 +62,7 @@ Clones the repo, installs dependencies, and launches the interactive wizard auto
 ### Docker (production)
 
 ```bash
-git clone <repo-url> echos && cd echos
+git clone https://github.com/albinotonnina/echos.git echos && cd echos
 pnpm setup --non-interactive  # or manually edit .env.example → .env
 cd docker && docker compose up -d
 ```
