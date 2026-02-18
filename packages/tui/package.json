@@ -15,7 +15,7 @@
     "@echos/core": "workspace:*",
     "@echos/shared": "workspace:*",
     "@mariozechner/pi-agent-core": "^0.52.12",
-    "pino": "^9.14.0"
+    "pino": "^10.3.1"
   },
   "devDependencies": {
     "@types/node": "^25.2.3",
