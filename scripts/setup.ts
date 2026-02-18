@@ -361,26 +361,7 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
     }
   }
 
-  // ── Step 2: Allowed User IDs ─────────────────────────────────────────────
-
-  clack.log.step('Security — Allowed Users');
-  clack.log.info(pc.dim('Get your Telegram user ID by messaging @userinfobot on Telegram'));
-
-  const allowedUserIds = await clack.text({
-    message: 'Allowed user IDs',
-    placeholder: '123456789,987654321',
-    initialValue: existing['ALLOWED_USER_IDS'] ?? '',
-    validate: (v) => {
-      if (!v.trim()) return 'At least one user ID is required';
-      const ids = v.split(',').map((s) => s.trim());
-      for (const id of ids) {
-        if (!/^\d+$/.test(id)) return `Invalid user ID: "${id}" — must be a positive integer`;
-      }
-    },
-  });
-  if (clack.isCancel(allowedUserIds)) cancel();
-
-  // ── Step 3: Telegram ─────────────────────────────────────────────────────
+  // ── Step 2: Telegram ─────────────────────────────────────────────────────
 
   clack.log.step('Telegram Interface');
 
@@ -416,6 +397,27 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
       }
     }
   }
+
+  // ── Step 3: Allowed User IDs ─────────────────────────────────────────────
+
+  clack.log.step('Security — Allowed Users');
+  if (enableTelegram) {
+    clack.log.info(pc.dim('Get your Telegram user ID by messaging @userinfobot on Telegram'));
+  }
+
+  const allowedUserIds = await clack.text({
+    message: 'Allowed user IDs',
+    placeholder: '123456789,987654321',
+    initialValue: existing['ALLOWED_USER_IDS'] ?? '',
+    validate: (v) => {
+      if (!v.trim()) return 'At least one user ID is required';
+      const ids = v.split(',').map((s) => s.trim());
+      for (const id of ids) {
+        if (!/^\d+$/.test(id)) return `Invalid user ID: "${id}" — must be a positive integer`;
+      }
+    },
+  });
+  if (clack.isCancel(allowedUserIds)) cancel();
 
   // ── Step 4: Other Interfaces ─────────────────────────────────────────────
 
