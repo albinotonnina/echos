@@ -11,7 +11,7 @@ services:
       retries: 5
 
   echos:
-    image: echos:latest
+    image: ghcr.io/albinotonnina/echos:${ECHOS_VERSION:-latest}
     restart: unless-stopped
     depends_on:
       redis:

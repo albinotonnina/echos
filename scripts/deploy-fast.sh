@@ -12,14 +12,14 @@ fi
 
 # Build locally first (much faster than on Oracle Cloud)
 echo "📦 Building Docker image locally..."
-if ! docker build -t echos:latest -f docker/Dockerfile .; then
+if ! docker build -t ghcr.io/albinotonnina/echos:latest -f docker/Dockerfile .; then
   echo "❌ Docker build failed!"
   exit 1
 fi
 
 # Save image to tar
 echo "💾 Saving image to tar..."
-if ! docker save echos:latest | gzip > /tmp/echos.tar.gz; then
+if ! docker save ghcr.io/albinotonnina/echos:latest | gzip > /tmp/echos.tar.gz; then
   echo "❌ Failed to save Docker image!"
   exit 1
 fi

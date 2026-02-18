@@ -1,0 +1,74 @@
+name: Bug Report
+description: Something isn't working correctly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill in as much detail as possible.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+      placeholder: When I do X, Y happens instead of Z.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Send message "..."
+        2. See error in logs
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Run with `LOG_LEVEL=debug pnpm start | pnpm exec pino-pretty` and paste relevant output.
+      render: shell
+
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Interface
+      options:
+        - Telegram
+        - Web UI
+        - TUI
+        - All
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options:
+        - Local (macOS)
+        - Local (Linux)
+        - Docker
+        - VPS
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: EchOS version
+      placeholder: v0.2.0
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      placeholder: "22.0.0"
+    validations:
+      required: true

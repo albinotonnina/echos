@@ -1,0 +1,31 @@
+version: 2
+updates:
+  # pnpm workspace — weekly, grouped by ecosystem
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    groups:
+      # Batch all non-breaking updates into one PR per week
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # LanceDB version is pinned for Intel Mac compatibility — do not auto-update
+      - dependency-name: "@lancedb/lancedb"
+    labels:
+      - dependencies
+
+  # GitHub Actions — weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    labels:
+      - dependencies
+      - ci
