@@ -11,7 +11,7 @@ import { loadConfig, createLogger, type InterfaceAdapter, type NotificationServi
 
 // First-run detection: exit early with a helpful message instead of Zod errors
 if (!existsSync('.env')) {
-  console.error('\n  No .env file found. Run: pnpm setup\n');
+  console.error('\n  No .env file found. Run: pnpm wizard\n');
   process.exit(1);
 }
 import {

@@ -46,7 +46,7 @@ Content processors (YouTube, article, etc.) are **plugins** in `plugins/`, not c
 ```bash
 git clone https://github.com/albinotonnina/echos.git echos && cd echos
 pnpm install
-pnpm setup        # guided wizard: API keys, Telegram, interfaces, storage
+pnpm wizard        # guided wizard: API keys, Telegram, interfaces, storage
 pnpm build
 pnpm start
 ```
@@ -63,7 +63,7 @@ Clones the repo, installs dependencies, and launches the interactive wizard auto
 
 ```bash
 git clone https://github.com/albinotonnina/echos.git echos && cd echos
-pnpm setup --non-interactive  # or manually edit .env.example → .env
+pnpm wizard --non-interactive  # or manually edit .env.example → .env
 cd docker && docker compose up -d
 ```
 

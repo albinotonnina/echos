@@ -10,7 +10,7 @@
 ```bash
 # Option A: Run install.sh first, then the wizard manually
 curl -sSL https://raw.githubusercontent.com/albinotonnina/echos/main/install.sh | bash
-# Follow the printed instructions to run: cd ~/echos && pnpm setup
+# Follow the printed instructions to run: cd ~/echos && pnpm wizard
 
 # Option B: Download first, then run (preserves TTY)
 curl -sSL https://raw.githubusercontent.com/albinotonnina/echos/main/install.sh -o /tmp/install-echos.sh
@@ -23,7 +23,7 @@ bash /tmp/install-echos.sh
 
 **Solutions**:
 1. Check network connectivity — the wizard makes outbound HTTPS requests to api.anthropic.com, api.openai.com, api.telegram.org
-2. Use `--skip-validation` to bypass live checks: `pnpm setup --skip-validation`
+2. Use `--skip-validation` to bypass live checks: `pnpm wizard --skip-validation`
 3. Corporate proxies or firewalls may block API calls — configure `HTTPS_PROXY` env var before running wizard
 
 ### Wizard exits immediately in `--non-interactive` mode
@@ -35,7 +35,7 @@ bash /tmp/install-echos.sh
 - `ALLOWED_USER_IDS`
 
 ```bash
-ANTHROPIC_API_KEY=sk-ant-... ALLOWED_USER_IDS=123456789 pnpm setup --non-interactive
+ANTHROPIC_API_KEY=sk-ant-... ALLOWED_USER_IDS=123456789 pnpm wizard --non-interactive
 ```
 
 ### .env file has wrong permissions
@@ -50,18 +50,18 @@ ls -la .env  # should show: -rw------- 1 you ...
 
 The wizard sets `0600` automatically, but if you created `.env` manually, set it yourself.
 
-### "No .env file found. Run: pnpm setup" on startup
+### "No .env file found. Run: pnpm wizard" on startup
 
 **Problem**: `pnpm start` exits immediately with this message.
 
 **Solution**: Run the setup wizard:
 ```bash
-pnpm setup
+pnpm wizard
 ```
 
 Or for CI environments:
 ```bash
-ANTHROPIC_API_KEY=... ALLOWED_USER_IDS=... pnpm setup --non-interactive --skip-validation
+ANTHROPIC_API_KEY=... ALLOWED_USER_IDS=... pnpm wizard --non-interactive --skip-validation
 ```
 
 ---

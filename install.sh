@@ -119,7 +119,7 @@ launch_wizard() {
   if [ "$NON_INTERACTIVE" = "1" ]; then
     echo ""
     echo -e "  ${BOLD}Non-interactive mode:${RESET} Set env vars then run:"
-    echo -e "    ${CYAN}cd $ECHOS_INSTALL_DIR && pnpm setup --non-interactive${RESET}"
+    echo -e "    ${CYAN}cd $ECHOS_INSTALL_DIR && pnpm wizard --non-interactive${RESET}"
     return
   fi
 
@@ -128,14 +128,14 @@ launch_wizard() {
     info "Launching setup wizard..."
     echo ""
     # cd is intentional here to ensure wizard runs from project root
-    cd "$ECHOS_INSTALL_DIR" && exec pnpm setup
+    cd "$ECHOS_INSTALL_DIR" && exec pnpm wizard
   else
     # Piped without TTY (e.g. curl | bash without a terminal)
     echo ""
     echo -e "  ${YELLOW}No TTY detected${RESET} (running in a pipe)"
     echo ""
     echo -e "  To complete setup, run:"
-    echo -e "    ${CYAN}cd $ECHOS_INSTALL_DIR && pnpm setup${RESET}"
+    echo -e "    ${CYAN}cd $ECHOS_INSTALL_DIR && pnpm wizard${RESET}"
     echo ""
   fi
 }

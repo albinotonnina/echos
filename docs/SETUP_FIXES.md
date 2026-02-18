@@ -4,16 +4,16 @@ This document tracks configuration changes and fixes made to ensure the project 
 
 ## February 18, 2026 — Distribution & First-Run Setup Wizard
 
-### Setup Wizard (`pnpm setup`)
+### Setup Wizard (`pnpm wizard`)
 
 A new interactive setup wizard (`scripts/setup.ts`) replaces the manual `.env` editing workflow.
 
 **Usage:**
 ```bash
-pnpm setup                        # full interactive wizard
-pnpm setup:check                  # prerequisite check only
-pnpm setup --non-interactive      # CI/Ansible mode (reads env vars, writes .env)
-pnpm setup --skip-validation      # skip live API key checks
+pnpm wizard                        # full interactive wizard
+pnpm wizard:check                  # prerequisite check only
+pnpm wizard --non-interactive      # CI/Ansible mode (reads env vars, writes .env)
+pnpm wizard --skip-validation      # skip live API key checks
 ```
 
 **What it does:**
@@ -40,7 +40,7 @@ ANTHROPIC_API_KEY=sk-ant-... \
 ALLOWED_USER_IDS=123456789 \
 ENABLE_TELEGRAM=false \
 ENABLE_WEB=true \
-pnpm setup --non-interactive --skip-validation
+pnpm wizard --non-interactive --skip-validation
 ```
 
 ### Config schema fix — `telegramBotToken` now optional
@@ -53,7 +53,7 @@ pnpm setup --non-interactive --skip-validation
 
 `src/index.ts` now exits with a helpful message if `.env` is missing:
 ```
-No .env file found. Run: pnpm setup
+No .env file found. Run: pnpm wizard
 ```
 
 Previously, missing config produced a cascade of confusing Zod validation errors.
