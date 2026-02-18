@@ -95,6 +95,9 @@ jobs:
             mkdir -p data/knowledge data/db data/sessions data/logs
             sudo chown -R 1000:1000 data/
 
+            echo "Pruning unused Docker data..."
+            docker system prune -f
+
             echo "Loading Docker image..."
             docker load < /tmp/echos.tar.gz
 
