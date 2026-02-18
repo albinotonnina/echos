@@ -131,10 +131,13 @@ docker compose --profile nginx up -d
 |---|---|
 | Node.js 20+ | Required |
 | pnpm 9+ | Required |
-| Anthropic API key | Required (Claude agent) |
+| Anthropic API key | Required (Claude agent - pay-as-you-go API, not subscription) |
 | OpenAI API key | Optional (embeddings + Whisper) |
 | Redis | Optional (scheduler only) |
 | Python 3 + `youtube-transcript-api` | Optional (YouTube plugin) |
+
+> [!IMPORTANT]
+> **Anthropic API Access**: EchOS requires an Anthropic API key (pay-as-you-go plan), NOT a Claude Pro/Max subscription. Subscription plans don't provide programmatic API access. See [docs/ANTHROPIC_SUBSCRIPTION_INVESTIGATION.md](docs/ANTHROPIC_SUBSCRIPTION_INVESTIGATION.md) for details.
 
 ---
 
@@ -242,6 +245,7 @@ Storage stays in sync automatically — a startup reconciler and live file watch
 | [SCHEDULER.md](docs/SCHEDULER.md) | Background jobs, digests, reminders |
 | [SECURITY.md](docs/SECURITY.md) | Security model and threat mitigations |
 | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and fixes |
+| [ANTHROPIC_SUBSCRIPTION_INVESTIGATION.md](docs/ANTHROPIC_SUBSCRIPTION_INVESTIGATION.md) | API vs subscription plan comparison |
 
 ---
 

@@ -26,6 +26,25 @@ bash /tmp/install-echos.sh
 2. Use `--skip-validation` to bypass live checks: `pnpm wizard --skip-validation`
 3. Corporate proxies or firewalls may block API calls — configure `HTTPS_PROXY` env var before running wizard
 
+### "I have Claude Pro/Max subscription - can I use it for EchOS?"
+
+**Problem**: Confusion about Anthropic subscription plans vs API access.
+
+**Answer**: ❌ **No, subscription plans cannot be used for EchOS.**
+
+- Claude Pro/Max subscriptions ($20-$200/month) are for using Claude through Anthropic's web, desktop, and mobile apps only
+- They **do NOT provide API access** for programmatic integration
+- EchOS requires a separate Anthropic API account with pay-as-you-go billing
+- API costs are typically much lower than subscriptions for automated use cases (often ~$5/month for typical personal use)
+
+**What you need**:
+1. Sign up for Anthropic API access at https://console.anthropic.com/
+2. Add credits or set up billing
+3. Generate an API key under Settings → API Keys
+4. Use that key in EchOS `.env` file
+
+**See**: [docs/ANTHROPIC_SUBSCRIPTION_INVESTIGATION.md](./ANTHROPIC_SUBSCRIPTION_INVESTIGATION.md) for a complete comparison of subscription vs API plans.
+
 ### Wizard exits immediately in `--non-interactive` mode
 
 **Problem**: Missing required env vars.
