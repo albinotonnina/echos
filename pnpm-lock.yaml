@@ -135,7 +135,7 @@ importers:
         version: link:../shared
       '@mariozechner/pi-agent-core':
         specifier: ^0.52.12
-        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+        version: 0.52.12
       bullmq:
         specifier: ^5.69.2
         version: 5.69.2
@@ -165,8 +165,8 @@ importers:
         specifier: ^9.14.0
         version: 9.14.0
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@types/node':
         specifier: ^25.2.3
@@ -213,7 +213,7 @@ importers:
         version: link:../shared
       '@mariozechner/pi-agent-core':
         specifier: ^0.52.12
-        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+        version: 0.52.12
       pino:
         specifier: ^9.14.0
         version: 9.14.0
@@ -241,7 +241,7 @@ importers:
         version: 9.0.0
       '@mariozechner/pi-agent-core':
         specifier: ^0.52.12
-        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+        version: 0.52.12
       fastify:
         specifier: ^5.7.4
         version: 5.7.4
@@ -266,10 +266,10 @@ importers:
         version: link:../../packages/shared
       '@mariozechner/pi-agent-core':
         specifier: ^0.52.12
-        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+        version: 0.52.12(ws@8.19.0)(zod@4.3.6)
       '@mariozechner/pi-ai':
         specifier: ^0.52.12
-        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+        version: 0.52.12(ws@8.19.0)(zod@4.3.6)
       '@mozilla/readability':
         specifier: ^0.6.0
         version: 0.6.0
@@ -277,8 +277,8 @@ importers:
         specifier: ^0.34.48
         version: 0.34.48
       isomorphic-dompurify:
-        specifier: 3.0.0-rc.2
-        version: 3.0.0-rc.2
+        specifier: 3.0.0-rc.3
+        version: 3.0.0-rc.3
       jsdom:
         specifier: ^28.1.0
         version: 28.1.0
@@ -312,10 +312,10 @@ importers:
         version: link:../../packages/shared
       '@mariozechner/pi-agent-core':
         specifier: ^0.52.12
-        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+        version: 0.52.12(ws@8.19.0)(zod@4.3.6)
       '@mariozechner/pi-ai':
         specifier: ^0.52.12
-        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+        version: 0.52.12(ws@8.19.0)(zod@4.3.6)
       '@sinclair/typebox':
         specifier: ^0.34.30
         version: 0.34.48
@@ -326,8 +326,8 @@ importers:
         specifier: ^13.0.0
         version: 13.0.0
       zod:
-        specifier: ^3.24.1
-        version: 3.25.76
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@types/node':
         specifier: ^25.2.3
@@ -352,10 +352,10 @@ importers:
         version: link:../../packages/shared
       '@mariozechner/pi-agent-core':
         specifier: ^0.52.12
-        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+        version: 0.52.12(ws@8.19.0)(zod@4.3.6)
       '@mariozechner/pi-ai':
         specifier: ^0.52.12
-        version: 0.52.12(ws@8.19.0)(zod@3.25.76)
+        version: 0.52.12(ws@8.19.0)(zod@4.3.6)
       '@sinclair/typebox':
         specifier: ^0.34.48
         version: 0.34.48
@@ -364,7 +364,7 @@ importers:
         version: 7.0.6
       openai:
         specifier: ^4.77.3
-        version: 4.104.0(ws@8.19.0)(zod@3.25.76)
+        version: 4.104.0(ws@8.19.0)(zod@4.3.6)
       pino:
         specifier: ^9.14.0
         version: 9.14.0
@@ -2220,8 +2220,8 @@ packages:
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
 
-  isomorphic-dompurify@3.0.0-rc.2:
-    resolution: {integrity: sha512-krCa8psVRnfeJxZnCk+USqMKvcDOkQCGbAeFXQwaJiIcRFOGp9GDa2h06QzVIdVbM+onpro2Vg4uLe2RHI1McA==}
+  isomorphic-dompurify@3.0.0-rc.3:
+    resolution: {integrity: sha512-nr12cr6seFCPzydWpm3m1AbFZIHo8eItiU5CVIuuvuPfnmH2zJPmC/LyWhXb3OlyMAGTlSQ2yoCy8Y6UYcvGVg==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
 
   istanbul-lib-coverage@3.2.2:
@@ -3126,15 +3126,28 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
+
 snapshots:
 
   '@acemir/cssom@0.9.31': {}
+
+  '@anthropic-ai/sdk@0.73.0':
+    dependencies:
+      json-schema-to-ts: 3.1.1
 
   '@anthropic-ai/sdk@0.73.0(zod@3.25.76)':
     dependencies:
       json-schema-to-ts: 3.1.1
     optionalDependencies:
       zod: 3.25.76
+
+  '@anthropic-ai/sdk@0.73.0(zod@4.3.6)':
+    dependencies:
+      json-schema-to-ts: 3.1.1
+    optionalDependencies:
+      zod: 4.3.6
 
   '@asamuzakjp/css-color@4.1.2':
     dependencies:
@@ -3884,9 +3897,57 @@ snapshots:
 
   '@lukeed/ms@2.0.2': {}
 
+  '@mariozechner/pi-agent-core@0.52.12':
+    dependencies:
+      '@mariozechner/pi-ai': 0.52.12
+    transitivePeerDependencies:
+      - '@modelcontextprotocol/sdk'
+      - aws-crt
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+      - ws
+      - zod
+
   '@mariozechner/pi-agent-core@0.52.12(ws@8.19.0)(zod@3.25.76)':
     dependencies:
       '@mariozechner/pi-ai': 0.52.12(ws@8.19.0)(zod@3.25.76)
+    transitivePeerDependencies:
+      - '@modelcontextprotocol/sdk'
+      - aws-crt
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+      - ws
+      - zod
+
+  '@mariozechner/pi-agent-core@0.52.12(ws@8.19.0)(zod@4.3.6)':
+    dependencies:
+      '@mariozechner/pi-ai': 0.52.12(ws@8.19.0)(zod@4.3.6)
+    transitivePeerDependencies:
+      - '@modelcontextprotocol/sdk'
+      - aws-crt
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+      - ws
+      - zod
+
+  '@mariozechner/pi-ai@0.52.12':
+    dependencies:
+      '@anthropic-ai/sdk': 0.73.0
+      '@aws-sdk/client-bedrock-runtime': 3.990.0
+      '@google/genai': 1.41.0
+      '@mistralai/mistralai': 1.10.0
+      '@sinclair/typebox': 0.34.48
+      ajv: 8.18.0
+      ajv-formats: 3.0.1(ajv@8.18.0)
+      chalk: 5.6.2
+      openai: 6.10.0
+      partial-json: 0.1.7
+      proxy-agent: 6.5.0
+      undici: 7.22.0
+      zod-to-json-schema: 3.25.1
     transitivePeerDependencies:
       - '@modelcontextprotocol/sdk'
       - aws-crt
@@ -3911,6 +3972,30 @@ snapshots:
       proxy-agent: 6.5.0
       undici: 7.22.0
       zod-to-json-schema: 3.25.1(zod@3.25.76)
+    transitivePeerDependencies:
+      - '@modelcontextprotocol/sdk'
+      - aws-crt
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+      - ws
+      - zod
+
+  '@mariozechner/pi-ai@0.52.12(ws@8.19.0)(zod@4.3.6)':
+    dependencies:
+      '@anthropic-ai/sdk': 0.73.0(zod@4.3.6)
+      '@aws-sdk/client-bedrock-runtime': 3.990.0
+      '@google/genai': 1.41.0
+      '@mistralai/mistralai': 1.10.0
+      '@sinclair/typebox': 0.34.48
+      ajv: 8.18.0
+      ajv-formats: 3.0.1(ajv@8.18.0)
+      chalk: 5.6.2
+      openai: 6.10.0(ws@8.19.0)(zod@4.3.6)
+      partial-json: 0.1.7
+      proxy-agent: 6.5.0
+      undici: 7.22.0
+      zod-to-json-schema: 3.25.1(zod@4.3.6)
     transitivePeerDependencies:
       - '@modelcontextprotocol/sdk'
       - aws-crt
@@ -5347,7 +5432,7 @@ snapshots:
 
   isexe@2.0.0: {}
 
-  isomorphic-dompurify@3.0.0-rc.2:
+  isomorphic-dompurify@3.0.0-rc.3:
     dependencies:
       dompurify: 3.3.1
       jsdom: 28.1.0
@@ -5607,10 +5692,32 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  openai@4.104.0(ws@8.19.0)(zod@4.3.6):
+    dependencies:
+      '@types/node': 18.19.130
+      '@types/node-fetch': 2.6.13
+      abort-controller: 3.0.0
+      agentkeepalive: 4.6.0
+      form-data-encoder: 1.7.2
+      formdata-node: 4.4.1
+      node-fetch: 2.7.0
+    optionalDependencies:
+      ws: 8.19.0
+      zod: 4.3.6
+    transitivePeerDependencies:
+      - encoding
+
+  openai@6.10.0: {}
+
   openai@6.10.0(ws@8.19.0)(zod@3.25.76):
     optionalDependencies:
       ws: 8.19.0
       zod: 3.25.76
+
+  openai@6.10.0(ws@8.19.0)(zod@4.3.6):
+    optionalDependencies:
+      ws: 8.19.0
+      zod: 4.3.6
 
   optionator@0.9.4:
     dependencies:
@@ -6242,8 +6349,16 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
+  zod-to-json-schema@3.25.1: {}
+
   zod-to-json-schema@3.25.1(zod@3.25.76):
     dependencies:
       zod: 3.25.76
 
+  zod-to-json-schema@3.25.1(zod@4.3.6):
+    dependencies:
+      zod: 4.3.6
+
   zod@3.25.76: {}
+
+  zod@4.3.6: {}
