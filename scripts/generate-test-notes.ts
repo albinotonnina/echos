@@ -8,7 +8,7 @@
  * Usage: pnpm generate-test-notes
  */
 
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, utimesSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
@@ -887,6 +887,12 @@ function createMarkdownFile(
   lines.push('---', `# ${note.title}`, '', note.content, '');
 
   writeFileSync(filePath, lines.join('\n'), 'utf-8');
+  
+  // Set the file's modification and access times to match the note date
+  // This ensures the app sees the correct dates when reading file metadata
+  const timestamp = date.getTime() / 1000; // Convert ms to seconds
+  utimesSync(filePath, timestamp, timestamp);
+  
   return filePath;
 }
 
