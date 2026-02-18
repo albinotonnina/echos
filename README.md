@@ -1,52 +1,99 @@
-# EchOS
+<div align="center">
 
-Agent-driven personal knowledge management system. Capture, process, search, and create content through natural language interaction across Telegram, Web, and Terminal interfaces.
+# 🔮 EchOS
+
+**Your personal AI knowledge system — self-hosted, agent-driven, and always private.**
+
+*Talk to it on Telegram. Use it in your terminal. Access it from anywhere. Your data never leaves your server.*
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript)](https://www.typescriptlang.org)
+[![Claude](https://img.shields.io/badge/powered%20by-Claude%20AI-orange)](https://anthropic.com)
+
+</div>
+
+---
+
+> [!NOTE]
+> EchOS is a personal project — built for one user, deployed on your own infrastructure. It is intentionally not multi-tenant.
+
+---
+
+## What is EchOS?
+
+EchOS is a **self-hosted AI agent** that manages your knowledge base through natural conversation. Instead of learning a rigid command set, you just talk to it:
+
+- *"Save this article for me"* → fetches, summarizes, categorizes, and indexes it
+- *"What do I know about LLMs?"* → hybrid full-text + semantic search across everything
+- *"Remind me to review that paper next Monday"* → persistent reminder with delivery via Telegram
+- *"Summarize what I've been reading this week"* → AI-generated digest from your actual notes
+
+No dashboards to maintain. No schemas to design. No commands to memorize.
+
+---
+
+## Why EchOS?
+
+| The problem | EchOS's answer |
+|---|---|
+| Notion/Obsidian don't understand you | Natural language via Claude AI agent |
+| Cloud tools store your data | Fully self-hosted — your server, your data |
+| Chatbots forget everything | Persistent memory, hybrid search, markdown storage |
+| Saving things is friction | Send a Telegram message or a URL — done |
+| Your notes are siloed | Obsidian-compatible markdown, git-friendly |
+
+---
 
 ## Features
 
-### Core
+### 🧠 Agent-driven, not command-driven
+EchOS uses a real LLM agent with tool calling (Claude). There's no rigid routing — the agent reads your intent and picks the right tools. Ask the same question ten different ways, get the same result.
 
-- LLM agent with tool calling — no rigid command routing
-- Plugin architecture for content processors (YouTube, articles, etc.)
-- Hybrid search: full-text (FTS5) + semantic (vector embeddings) + reranking
-- Markdown-first storage with YAML frontmatter (Obsidian-compatible)
-- Multi-interface: Telegram bot (default), Web API (default), Terminal UI (optional)
+### 🔍 Hybrid search that actually works
+Three-strategy search fused with Reciprocal Rank Fusion:
+- **Full-text** — BM25-ranked FTS5 across titles, content, and tags
+- **Semantic** — cosine similarity on OpenAI vector embeddings
+- **Hybrid** — best of both, reranked
 
-### Knowledge Management
+### 📱 Reach it from anywhere
+- **Telegram bot** — message it from your phone like a chat, including voice messages (Whisper transcription)
+- **Web UI + REST API** — stream responses over SSE from any client
+- **Terminal UI** — live in your terminal, never leave the keyboard
 
-- Save and summarize web articles (plugin), YouTube videos (plugin), notes, journal entries
-- **AI-powered categorization**: Automatic category, tags, and summaries using Claude AI
-  - Lightweight mode: Fast categorization with category + tags
-  - Full mode: Comprehensive analysis with gist, summary, and key points
-- Semantic search across your entire knowledge base
-- Bidirectional note linking
+### 🗃️ Markdown-first, Obsidian-compatible
+Every note is a `.md` file with YAML frontmatter. Edit in Obsidian, VS Code, or any editor. EchOS watches for changes and syncs automatically.
 
-### Memory & Style (Planned)
+### 🔌 Plugin architecture
+Content processors are plugins, not core code. Ships with:
+- **YouTube plugin** — extract and summarize transcripts
+- **Article plugin** — fetch, clean, and summarize any web article
 
-- Personal memory: facts, preferences, projects, expertise
-- Writing style learning from your produced content
-- Content creation in your voice
+Adding your own plugin is [straightforward](docs/PLUGINS.md).
 
-## Architecture
+### ⏰ Scheduled background jobs (optional)
+Redis-backed scheduler via BullMQ:
+- **Daily AI digest** — summary of recent notes and upcoming reminders
+- **Reminder delivery** — overdue reminders pushed to Telegram
+- Configurable cron expressions for everything
 
-```
-User (Telegram / Web / TUI)
-    → Interface Adapter (auth, normalize, stream)
-    → Agent Core (pi-agent-core + pi-ai)
-    → Core Tools (create_note, search, ...) + Plugin Tools (save_article, save_youtube, ...)
-    → Storage (Markdown + SQLite/FTS5 + LanceDB vectors)
-```
+### 🔐 Security-first
+- User whitelist (Telegram user ID allowlist)
+- SSRF prevention on all URL fetching
+- Rate limiting per user (token bucket)
+- HTML sanitization, secret redaction in logs
+- All API keys stored in `chmod 0600` `.env` only
 
-Content processors (YouTube, article, etc.) are **plugins** in `plugins/`, not core code. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
+---
 
 ## Installation
 
-### Local (macOS / Linux) — interactive wizard
+### Local — interactive wizard
 
 ```bash
-git clone https://github.com/albinotonnina/echos.git echos && cd echos
+git clone https://github.com/albinotonnina/echos.git && cd echos
 pnpm install
-pnpm wizard        # guided wizard: API keys, Telegram, interfaces, storage
+pnpm wizard       # guided setup: API keys, interfaces, storage
 pnpm build
 pnpm start
 ```
@@ -57,186 +104,146 @@ pnpm start
 curl -sSL https://raw.githubusercontent.com/albinotonnina/echos/main/install.sh | bash
 ```
 
-Clones the repo, installs dependencies, and launches the interactive wizard automatically.
+Detects platform, installs prerequisites, clones repo, installs deps, and launches the wizard.
 
-### Docker (production)
+### Docker — production
 
 ```bash
-git clone https://github.com/albinotonnina/echos.git echos && cd echos
-pnpm wizard --non-interactive  # or manually edit .env.example → .env
+git clone https://github.com/albinotonnina/echos.git && cd echos
+pnpm wizard --non-interactive   # reads env vars, writes .env
 cd docker && docker compose up -d
 ```
 
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for nginx + Let's Encrypt and systemd setup.
-
-### Redis Setup (Optional)
-
-Redis is **only required** if you want to enable background jobs and the scheduler (`ENABLE_SCHEDULER=true` in `.env`). For basic knowledge management features, you can skip this step.
-
+With nginx + Let's Encrypt:
 ```bash
-# Check if Redis is running
-pnpm redis:status
-
-# Start Redis (auto-detects platform: brew/systemd/Docker)
-pnpm redis:start
-
-# Verify connection
-pnpm redis:health
-
-# Start EchOS with scheduler enabled
-pnpm start:with-scheduler
+sed "s/DOMAIN_NAME/yourdomain.com/g" docker/nginx.conf.template > docker/nginx.conf
+docker compose --profile nginx up -d
 ```
 
-**Redis Commands:**
+> [!TIP]
+> See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for systemd service setup, nginx SSL, and Oracle Cloud instructions.
 
-- `pnpm redis:status` - Check Redis status and connection
-- `pnpm redis:start` - Start Redis (prefers native, falls back to Docker)
-- `pnpm redis:stop` - Stop Redis
-- `pnpm redis:health` - Verify Redis connectivity
-
-See [docs/SCHEDULER.md](docs/SCHEDULER.md) for details on background jobs, digests, and reminders.
-
-```
-
-## Accessing the Interfaces
-
-### Telegram Bot (Default: Enabled)
-
-1. Configure `TELEGRAM_BOT_TOKEN` in `.env`
-2. Start with `pnpm start`
-3. Message your bot on Telegram
-
-### Web UI (Default: Enabled)
-
-1. Ensure `ENABLE_WEB=true` in `.env`
-2. Start with `pnpm start`
-3. Access at **<http://localhost:3000>**
-
-**API Endpoints:**
-
-- `GET /health` - Health check
-- `POST /api/chat` - Send message (JSON: `{"userId": 123, "message": "your text"}`)
-- `POST /api/chat/reset` - Reset session (JSON: `{"userId": 123}`)
-
-**Example:**
-
-```bash
-curl -X POST http://localhost:3000/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"userId": 123, "message": "What notes do I have?"}'
-```
-
-### Terminal UI (Default: Disabled)
-
-1. Set `ENABLE_TUI=true` in `.env`
-2. Start with `pnpm start`
-3. Type your questions in the terminal
-4. Type `exit` or `quit` to close
-
-**Quick start (TUI only):**
-
-```bash
-# Run only the terminal interface (no Telegram/Web)
-pnpm start:tui-only
-```
-
-**Note**: TUI runs in the same terminal process, so you'll see streaming responses inline.
-
-### Running Single Interfaces
-
-```bash
-# Run only Web API (port 3000)
-pnpm start:web-only
-
-# Run only Terminal UI
-pnpm start:tui-only
-
-# Run with scheduler enabled (requires Redis)
-pnpm start:with-scheduler
-
-# Run all enabled interfaces (default)
-pnpm start
-```
-
-See [docs/INTERFACES.md](docs/INTERFACES.md) for detailed usage and examples.
-
-### First-Time Setup Notes
-
-- **Node.js 20+** is required (24+ recommended for native `.env` support)
-- **Intel Macs**: The project uses LanceDB 0.22.3 for darwin-x64 compatibility (see `packages/core/package.json`)
-- **Build required**: All workspace packages must be built before first run (`pnpm build`)
-- **Path mappings**: The root `tsconfig.json` includes workspace path mappings for tsx to resolve `@echos/*` imports
-- **Environment file**: The start script uses `--env-file=.env` flag for automatic loading (Node 20.6+)
-
-### Telegram Bot Conflicts
-
-If you get error `409: Conflict: terminated by other getUpdates request`:
-
-**The issue**: Another instance is polling Telegram (only one allowed at a time).
-
-**Quick fix**:
-
-```bash
-# 1. Check bot status
-./scripts/check-telegram-bot.sh status
-
-# 2. Clear webhook and pending updates
-./scripts/check-telegram-bot.sh delete-webhook
-
-# 3. Stop local processes
-pkill -f "tsx.*index.ts"
-
-# 4. Check Docker
-docker ps | grep echos
-docker compose down  # if running
-
-# 5. Wait 60 seconds (for Telegram timeout)
-sleep 60
-
-# 6. Start
-pnpm start
-```
-
-**Still failing?** Check remote deployments (Oracle Cloud, VPS, etc.) - you may have a production instance running.
-
-See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md#telegram-bot-conflicts) for detailed steps.
+---
 
 ## Requirements
 
-- Node.js 20+
-- pnpm 9+
-- Redis (optional, required only if `ENABLE_SCHEDULER=true`)
-- Python 3 + `youtube-transcript-api` (required for YouTube plugin):
+| Requirement | Details |
+|---|---|
+| Node.js 20+ | Required |
+| pnpm 9+ | Required |
+| Anthropic API key | Required (Claude agent) |
+| OpenAI API key | Optional (embeddings + Whisper) |
+| Redis | Optional (scheduler only) |
+| Python 3 + `youtube-transcript-api` | Optional (YouTube plugin) |
 
-  ```bash
-  pip3 install youtube-transcript-api
-  ```
+---
 
-See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) if you encounter setup issues.
+## Interfaces
 
-## Documentation
+<details>
+<summary><strong>Telegram Bot</strong></summary>
 
-- [CATEGORIZATION.md](docs/CATEGORIZATION.md) - AI-powered categorization guide
-- [PLUGINS.md](docs/PLUGINS.md) - Creating custom plugins
-- [INTERFACES.md](docs/INTERFACES.md) - Using Telegram, Web, and TUI
-- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - System architecture
-- [DEPLOYMENT.md](docs/DEPLOYMENT.md) - Production deployment
-- [SECURITY.md](docs/SECURITY.md) - Security considerations
-- [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Common issues and fixes
+1. Create a bot via [@BotFather](https://t.me/BotFather) and copy the token
+2. Run `pnpm wizard` — enter token + your Telegram user ID
+3. `pnpm start` and message your bot
+
+Supports: text messages, voice messages (transcribed via Whisper), URLs, streaming responses.
+
+</details>
+
+<details>
+<summary><strong>Web UI / REST API</strong></summary>
+
+Starts on port 3000 by default.
+
+```bash
+# Chat
+curl -X POST http://localhost:3000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"userId": 123, "message": "What do I know about distributed systems?"}'
+
+# Reset session
+curl -X POST http://localhost:3000/api/chat/reset \
+  -H "Content-Type: application/json" \
+  -d '{"userId": 123}'
+```
+
+Responses stream over SSE. `GET /health` for healthcheck.
+
+</details>
+
+<details>
+<summary><strong>Terminal UI</strong></summary>
+
+```bash
+pnpm start:tui-only
+```
+
+Inline streaming responses in your terminal. Type `exit` to quit.
+
+</details>
+
+---
+
+## Updating
+
+```bash
+pnpm update-echos
+```
+
+Pulls latest, reinstalls deps if lockfile changed, rebuilds, and warns if the config schema changed.
+
+---
+
+## Architecture
+
+```
+User (Telegram / Web / TUI)
+    ↓
+Interface Adapter  — auth · normalize · stream
+    ↓
+Agent Core (Claude)  — reasoning · tool selection · session
+    ↓
+Tools: create_note · search · recall · remind · save_article · save_youtube · …
+    ↓
+Storage Layer
+  ├── Markdown files  (source of truth, Obsidian-compatible)
+  ├── SQLite + FTS5   (metadata, full-text search, memory, reminders)
+  └── LanceDB         (vector embeddings, semantic search)
+```
+
+Storage stays in sync automatically — a startup reconciler and live file watcher handle files added or edited outside the app. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
+
+---
 
 ## Tech Stack
 
-| Component | Technology |
-|-----------|-----------|
-| Runtime | Node.js 20+ / TypeScript (strict, ESM) |
-| Agent | pi-mono (pi-agent-core + pi-ai) |
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js 20+ · TypeScript strict · ESM |
+| Agent | Claude AI (pi-agent-core) |
 | Telegram | grammY |
-| Vector DB | LanceDB (embedded) |
-| Metadata | SQLite (better-sqlite3 + FTS5) |
-| Queue | BullMQ + Redis |
-| AI | Claude (reasoning) + OpenAI (embeddings, Whisper) |
-| Web | Fastify + pi-web-ui |
-| Logging | Pino |
+| Vector DB | LanceDB (embedded, no server) |
+| Metadata DB | SQLite · better-sqlite3 · FTS5 |
+| Queue | BullMQ · Redis |
+| Web | Fastify · SSE |
+| Logging | Pino (structured, secret-redacted) |
+
+---
+
+## Documentation
+
+| Doc | Contents |
+|---|---|
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Data flow, storage sync, search, memory system |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | VPS, Docker, nginx, systemd, Oracle Cloud |
+| [PLUGINS.md](docs/PLUGINS.md) | Building custom content processors |
+| [INTERFACES.md](docs/INTERFACES.md) | Telegram, Web API, TUI reference |
+| [SCHEDULER.md](docs/SCHEDULER.md) | Background jobs, digests, reminders |
+| [SECURITY.md](docs/SECURITY.md) | Security model and threat mitigations |
+| [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and fixes |
+
+---
 
 ## License
 
