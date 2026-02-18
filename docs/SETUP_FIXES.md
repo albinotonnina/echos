@@ -2,6 +2,79 @@
 
 This document tracks configuration changes and fixes made to ensure the project runs correctly.
 
+## February 18, 2026 — Distribution & First-Run Setup Wizard
+
+### Setup Wizard (`pnpm setup`)
+
+A new interactive setup wizard (`scripts/setup.ts`) replaces the manual `.env` editing workflow.
+
+**Usage:**
+```bash
+pnpm setup                        # full interactive wizard
+pnpm setup:check                  # prerequisite check only
+pnpm setup --non-interactive      # CI/Ansible mode (reads env vars, writes .env)
+pnpm setup --skip-validation      # skip live API key checks
+```
+
+**What it does:**
+1. Checks Node 20+, pnpm 9+, Python 3 + youtube-transcript-api (soft warn), disk space
+2. Detects existing `.env` — offers update / replace / skip
+3. Collects and validates Anthropic key (required), OpenAI key (optional), Telegram token
+4. Configures interfaces (Telegram, Web UI, TUI) and ports
+5. Configures Redis scheduler with cron schedules
+6. Shows masked summary before writing
+7. Writes `.env` (mode 0600), backs up old `.env` as `.env.backup.{timestamp}`
+8. Creates data directories
+9. Offers to run `pnpm build` if no dist found
+
+**Security properties:**
+- All keys entered via `password()` (masked `*`) — never visible in terminal
+- Keys are NOT accepted as CLI arguments (would appear in `ps aux`)
+- `.env` written with `chmod 0600` immediately
+- Env file parsed with simple line-by-line reader — no `eval()`, no shell interpolation
+- API validation uses `fetch()` with `AbortSignal.timeout(10000)` — keys never logged
+
+**Non-interactive mode (CI/Ansible):**
+```bash
+ANTHROPIC_API_KEY=sk-ant-... \
+ALLOWED_USER_IDS=123456789 \
+ENABLE_TELEGRAM=false \
+ENABLE_WEB=true \
+pnpm setup --non-interactive --skip-validation
+```
+
+### Config schema fix — `telegramBotToken` now optional
+
+`packages/shared/src/config/index.ts`: `telegramBotToken` changed from `z.string().min(1)` to `z.string().optional()`.
+
+**Why**: Web-only and TUI-only deployments were blocked by a required `TELEGRAM_BOT_TOKEN` even when `ENABLE_TELEGRAM=false`. The token is still validated at runtime in `src/index.ts` before the Telegram adapter is created.
+
+### First-run detection in `src/index.ts`
+
+`src/index.ts` now exits with a helpful message if `.env` is missing:
+```
+No .env file found. Run: pnpm setup
+```
+
+Previously, missing config produced a cascade of confusing Zod validation errors.
+
+### Docker improvements
+
+- `depends_on.redis.required: false` — EchOS starts without Redis when scheduler is disabled
+- Healthcheck added to `echos` service (HTTP GET `/health`)
+- `nginx` and `certbot` services added under `--profile nginx`
+- `docker/nginx.conf.template` created with SSE-compatible proxy config and Let's Encrypt instructions
+
+### install.sh (VPS one-liner)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/USER/echos/main/install.sh | bash
+```
+
+Detects platform, checks/installs prerequisites (Node 20+, pnpm, git), clones repo, installs deps, launches wizard. Falls back gracefully when no TTY is available (piped curl).
+
+---
+
 ## February 15, 2026 - Initial Setup Fixes
 
 ### Issues Fixed

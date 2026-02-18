@@ -1,5 +1,71 @@
 # Troubleshooting Guide
 
+## Setup Wizard Issues
+
+### Wizard shows "No TTY detected" when using curl pipe
+
+**Problem**: Running `curl ... | bash` without a terminal redirects stdin, so the interactive wizard cannot receive keyboard input.
+
+**Solution**:
+```bash
+# Option A: Run install.sh first, then the wizard manually
+curl -sSL https://raw.githubusercontent.com/USER/echos/main/install.sh | bash
+# Follow the printed instructions to run: cd ~/echos && pnpm setup
+
+# Option B: Download first, then run (preserves TTY)
+curl -sSL https://raw.githubusercontent.com/USER/echos/main/install.sh -o /tmp/install-echos.sh
+bash /tmp/install-echos.sh
+```
+
+### API key validation fails but key is correct
+
+**Problem**: The wizard rejects an API key during live validation even though the key works.
+
+**Solutions**:
+1. Check network connectivity — the wizard makes outbound HTTPS requests to api.anthropic.com, api.openai.com, api.telegram.org
+2. Use `--skip-validation` to bypass live checks: `pnpm setup --skip-validation`
+3. Corporate proxies or firewalls may block API calls — configure `HTTPS_PROXY` env var before running wizard
+
+### Wizard exits immediately in `--non-interactive` mode
+
+**Problem**: Missing required env vars.
+
+**Required variables for non-interactive mode**:
+- `ANTHROPIC_API_KEY`
+- `ALLOWED_USER_IDS`
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-... ALLOWED_USER_IDS=123456789 pnpm setup --non-interactive
+```
+
+### .env file has wrong permissions
+
+**Problem**: Other users on the system can read your API keys.
+
+**Fix**:
+```bash
+chmod 0600 .env
+ls -la .env  # should show: -rw------- 1 you ...
+```
+
+The wizard sets `0600` automatically, but if you created `.env` manually, set it yourself.
+
+### "No .env file found. Run: pnpm setup" on startup
+
+**Problem**: `pnpm start` exits immediately with this message.
+
+**Solution**: Run the setup wizard:
+```bash
+pnpm setup
+```
+
+Or for CI environments:
+```bash
+ANTHROPIC_API_KEY=... ALLOWED_USER_IDS=... pnpm setup --non-interactive --skip-validation
+```
+
+---
+
 ## Build and Installation Issues
 
 ### Cannot find package '@echos/shared' (or other @echos/* packages)

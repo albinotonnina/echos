@@ -6,7 +6,14 @@
  */
 
 import { join } from 'node:path';
+import { existsSync } from 'node:fs';
 import { loadConfig, createLogger, type InterfaceAdapter, type NotificationService } from '@echos/shared';
+
+// First-run detection: exit early with a helpful message instead of Zod errors
+if (!existsSync('.env')) {
+  console.error('\n  No .env file found. Run: pnpm setup\n');
+  process.exit(1);
+}
 import {
   createSqliteStorage,
   createMarkdownStorage,

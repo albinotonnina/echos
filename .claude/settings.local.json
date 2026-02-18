@@ -70,7 +70,15 @@
       "Bash(docker build:*)",
       "Bash(docker run:*)",
       "Bash(ssh oracle-cloud 'docker exec $\\(docker ps --filter name=echos -q | head -1\\) node --import tsx -e \"\"\nimport { createSqliteStorage } from \\\\\"\"./packages/core/dist/storage/sqlite.js\\\\\"\";\nconst s = createSqliteStorage\\(\\\\\"\"data/db/echos.db\\\\\"\", { info: \\(\\)=>{}, debug: \\(\\)=>{}, error: \\(\\)=>{} }\\);\nconst rows = s.listNotes\\({ type: \\\\\"\"note\\\\\"\", limit: 5 }\\);\nrows.forEach\\(r => console.log\\(r.title, \\\\\"\"|\\\\\"\", r.filePath\\)\\);\ns.close\\(\\);\n\"\" 2>&1 | head -20')",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(git --version:*)",
+      "Bash(ANTHROPIC_API_KEY=sk-ant-test-key ALLOWED_USER_IDS=123456789 ENABLE_TELEGRAM=false ENABLE_WEB=true pnpm exec tsx:*)",
+      "Bash(git -C /Users/albino.tonnina/CodePersonal/echos diff --stat HEAD)",
+      "Bash(git -C /Users/albino.tonnina/CodePersonal/echos status --short)"
     ]
   }
 }

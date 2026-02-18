@@ -39,25 +39,35 @@ User (Telegram / Web / TUI)
 
 Content processors (YouTube, article, etc.) are **plugins** in `plugins/`, not core code. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
-## Quick Start
+## Installation
+
+### Local (macOS / Linux) — interactive wizard
 
 ```bash
-# Clone
 git clone <repo-url> echos && cd echos
-
-# Install dependencies
 pnpm install
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your API keys and settings
-
-# Build all workspace packages
+pnpm setup        # guided wizard: API keys, Telegram, interfaces, storage
 pnpm build
-
-# Start the application (loads .env automatically)
 pnpm start
 ```
+
+### VPS — one-liner
+
+```bash
+curl -sSL https://raw.githubusercontent.com/albinotonnina/echos/main/install.sh | bash
+```
+
+Clones the repo, installs dependencies, and launches the interactive wizard automatically.
+
+### Docker (production)
+
+```bash
+git clone <repo-url> echos && cd echos
+pnpm setup --non-interactive  # or manually edit .env.example → .env
+cd docker && docker compose up -d
+```
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for nginx + Let's Encrypt and systemd setup.
 
 ### Redis Setup (Optional)
 
@@ -197,6 +207,7 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md#telegram-bot-conflicts) fo
 - pnpm 9+
 - Redis (optional, required only if `ENABLE_SCHEDULER=true`)
 - Python 3 + `youtube-transcript-api` (required for YouTube plugin):
+
   ```bash
   pip3 install youtube-transcript-api
   ```

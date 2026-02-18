@@ -9,7 +9,7 @@ const optionalCron = z.string().optional().default('');
 
 export const configSchema = z.object({
   // Required
-  telegramBotToken: z.string().min(1),
+  telegramBotToken: z.string().optional(), // Required only when enableTelegram=true (checked at runtime)
   allowedUserIds: commaSeparatedNumbers,
   anthropicApiKey: z.string().min(1),
 

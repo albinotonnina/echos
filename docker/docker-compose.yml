@@ -16,6 +16,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+        required: false   # allows EchOS to start without Redis when scheduler is disabled
     env_file:
       - ../.env
     environment:
@@ -27,6 +28,45 @@ services:
       - ../data/sessions:/app/data/sessions
     ports:
       - "${WEB_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # Nginx reverse proxy + SSL termination
+  # Activate with: docker compose --profile nginx up -d
+  # Instructions:
+  #   1. Set DOMAIN_NAME in .env
+  #   2. sed "s/DOMAIN_NAME/$DOMAIN_NAME/g" nginx.conf.template > nginx.conf
+  #   3. docker compose --profile nginx up -d
+  #   4. docker compose --profile nginx run --rm certbot certonly --webroot -w /var/www/certbot -d $DOMAIN_NAME
+  #   5. Uncomment the HTTPS server block in nginx.conf and reload: docker compose --profile nginx exec nginx nginx -s reload
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    profiles: [nginx]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot-www:/var/www/certbot:ro
+      - certbot-certs:/etc/letsencrypt:ro
+    depends_on:
+      echos:
+        condition: service_healthy
+
+  certbot:
+    image: certbot/certbot:latest
+    profiles: [nginx]
+    volumes:
+      - certbot-www:/var/www/certbot
+      - certbot-certs:/etc/letsencrypt
+    entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done"
 
 volumes:
   redis-data:
+  certbot-www:
+  certbot-certs:

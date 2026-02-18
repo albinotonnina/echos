@@ -1,0 +1,75 @@
+# EchOS nginx reverse proxy template
+#
+# Usage:
+#   sed "s/DOMAIN_NAME/example.com/g" nginx.conf.template > nginx.conf
+#
+# Then activate with: docker compose --profile nginx up -d
+# After certbot issues a certificate, uncomment the HTTPS server block
+# and reload: docker compose --profile nginx exec nginx nginx -s reload
+
+# ── HTTP server (port 80) ─────────────────────────────────────────────────────
+server {
+    listen 80;
+    listen [::]:80;
+    server_name DOMAIN_NAME;
+
+    # ACME challenge for certbot
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Redirect all other HTTP traffic to HTTPS once SSL is active.
+    # Uncomment the line below after obtaining a certificate:
+    # return 301 https://$host$request_uri;
+
+    # Temporary: proxy HTTP directly (remove after enabling HTTPS redirect)
+    location / {
+        proxy_pass http://echos:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # SSE support
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+}
+
+# ── HTTPS server (port 443) ───────────────────────────────────────────────────
+# Uncomment this entire block after running certbot successfully:
+#
+# server {
+#     listen 443 ssl;
+#     listen [::]:443 ssl;
+#     server_name DOMAIN_NAME;
+#
+#     ssl_certificate     /etc/letsencrypt/live/DOMAIN_NAME/fullchain.pem;
+#     ssl_certificate_key /etc/letsencrypt/live/DOMAIN_NAME/privkey.pem;
+#     ssl_protocols TLSv1.2 TLSv1.3;
+#     ssl_ciphers HIGH:!aNULL:!MD5;
+#     ssl_prefer_server_ciphers on;
+#     ssl_session_cache shared:SSL:10m;
+#     ssl_session_timeout 10m;
+#
+#     # Security headers
+#     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+#     add_header X-Content-Type-Options nosniff always;
+#     add_header X-Frame-Options DENY always;
+#
+#     location / {
+#         proxy_pass http://echos:3000;
+#         proxy_http_version 1.1;
+#         proxy_set_header Host $host;
+#         proxy_set_header X-Real-IP $remote_addr;
+#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#         proxy_set_header X-Forwarded-Proto $scheme;
+#
+#         # SSE support
+#         proxy_buffering off;
+#         proxy_read_timeout 300s;
+#         proxy_send_timeout 300s;
+#     }
+# }
