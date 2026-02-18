@@ -19,10 +19,10 @@ const schema = Type.Object({
     }),
   ),
   limit: Type.Optional(
-    Type.Number({ description: 'Max notes to return', default: 20, minimum: 1, maximum: 100 }),
+    Type.Number({ description: 'Max notes to return. Default 20 for browsing; use a higher value (e.g. 500) when you need to scan the full collection.', default: 20, minimum: 1 }),
   ),
   offset: Type.Optional(
-    Type.Number({ description: 'Pagination offset', default: 0, minimum: 0 }),
+    Type.Number({ description: 'Pagination offset for retrieving notes beyond the initial batch', default: 0, minimum: 0 }),
   ),
 });
 

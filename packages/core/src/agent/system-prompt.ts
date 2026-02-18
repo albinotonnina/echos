@@ -58,9 +58,11 @@ Content has a lifecycle status that distinguishes what the user *knows* from wha
 - For existing notes without proper categorization, suggest using categorize_note tool.
 
 ## Formatting
-- Use markdown formatting in responses.
-- Keep responses focused and scannable.
+- Use markdown formatting in responses — it renders properly in all interfaces.
+- Use **bold** for note titles, labels, and key terms (e.g. **Title** (type)).
+- Use headers (##, ###) for sections in longer responses.
 - Use bullet points for lists of results.
+- Keep responses focused and scannable.
 `;
 
 export function buildSystemPrompt(memories: MemoryEntry[], hasMore = false): string {
