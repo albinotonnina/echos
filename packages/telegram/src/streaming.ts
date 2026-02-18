@@ -5,31 +5,35 @@ import telegramifyMarkdown from 'telegramify-markdown';
 const EDIT_DEBOUNCE_MS = 1000;
 const MAX_MESSAGE_LENGTH = 4096;
 
-const TOOL_EMOJIS: Record<string, string> = {
-  search: '🔍',
-  list: '🔍',
-  get: '📖',
-  read: '📖',
-  create: '💾',
-  save: '💾',
-  add: '💾',
-  delete: '🗑️',
-  remove: '🗑️',
-  update: '✏️',
-  edit: '✏️',
-  youtube: '📺',
-  article: '🌐',
-  web: '🌐',
-  transcribe: '🎙️',
-  voice: '🎙️',
+// Exact tool name → emoji mapping
+const TOOL_EMOJI_MAP: Record<string, string> = {
+  create_note: '✏️',
+  update_note: '✏️',
+  delete_note: '🗑️',
+  get_note: '📖',
+  list_notes: '🔍',
+  search_knowledge: '🔍',
+  recall_knowledge: '🧠',
+  remember_about_me: '🧠',
+  categorize_note: '🏷️',
+  link_notes: '🔗',
+  mark_content: '🔖',
+  save_conversation: '💬',
+  add_reminder: '⏰',
+  complete_reminder: '✅',
+  save_youtube: '📺',
+  save_article: '🌐',
+  create_content: '✍️',
+  get_style_profile: '🎨',
+  analyze_my_style: '🎨',
+  mark_as_voice_example: '🎙️',
 };
 
+// Append a zero-width space so Telegram doesn't render the emoji at giant size
+const ZWS = '\u200B';
+
 function getToolEmoji(toolName: string): string {
-  const name = toolName.toLowerCase();
-  for (const [key, emoji] of Object.entries(TOOL_EMOJIS)) {
-    if (name.includes(key)) return emoji;
-  }
-  return '⚙️';
+  return (TOOL_EMOJI_MAP[toolName] ?? '⚙️') + ZWS;
 }
 
 /**
@@ -63,7 +67,7 @@ export async function streamAgentResponse(
 ): Promise<void> {
   let messageId: number | undefined;
   let textBuffer = '';        // AI response text only — never contains tool indicators
-  let statusLine = '💭'; // shown only while textBuffer is still empty
+  let statusLine = '💭' + ZWS; // shown only while textBuffer is still empty
   let lastEditTime = 0;
   let editTimeout: ReturnType<typeof setTimeout> | undefined;
   let lastAssistantMessage: AgentMessage | undefined;
