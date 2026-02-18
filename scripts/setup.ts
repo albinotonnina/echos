@@ -472,6 +472,12 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
   let trendingSchedule = '';
 
   if (enableScheduler) {
+    clack.log.info(
+      pc.dim('Redis install commands (if not already running):') +
+      '\n  ' + pc.cyan('macOS :') + '  brew install redis && brew services start redis' +
+      '\n  ' + pc.cyan('Ubuntu:') + '  sudo apt install redis-server && sudo systemctl enable --now redis' +
+      '\n  ' + pc.cyan('Docker:') + '  docker run -d -p 6379:6379 --name redis redis:7-alpine',
+    );
     const redisRaw = await clack.text({
       message: 'Redis URL',
       initialValue: existing['REDIS_URL'] ?? 'redis://localhost:6379',
