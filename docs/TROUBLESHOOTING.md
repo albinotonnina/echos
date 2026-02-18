@@ -381,12 +381,14 @@ Error: ENOENT: no such file or directory
 **Problem**: You added a `.md` file directly to the `knowledge/` directory (or edited one in an external editor), but the agent can't find it via search.
 
 **How sync works**:
+
 - On startup, EchOS reconciles all markdown files with SQLite and LanceDB automatically
 - While running, a file watcher picks up any `add`, `change`, or `unlink` events in real time (debounced 500 ms)
 
 **If a file isn't being found**:
 
 1. **Check the file has a valid `id` in frontmatter** — files without an `id` field are silently skipped:
+
    ```yaml
    ---
    id: some-unique-id
@@ -401,17 +403,20 @@ Error: ENOENT: no such file or directory
    ```
 
 2. **If you added the file while the app was stopped** — just restart. The startup reconciler will pick it up:
+
    ```bash
    pnpm start
    ```
 
 3. **If you added the file while the app is running** — the file watcher should index it within ~1 second. If it doesn't appear after a few seconds, check the logs:
+
    ```bash
    pnpm start | pnpm exec pino-pretty
    # Look for "File watcher: upserted" or "Reconciler:" log lines
    ```
 
 4. **Enable debug logging** to see all reconciler/watcher events:
+
    ```bash
    LOG_LEVEL=debug pnpm start
    ```
@@ -431,11 +436,13 @@ If the issue persists after restarting the app, check that the file has a valid 
 **Problem**: You told the agent to remember something, then after `/reset` it doesn't know the fact.
 
 **How memory works**:
+
 - `remember_about_me` stores facts permanently in SQLite (survives `/reset`)
 - On every new session, the top 15 memories by confidence are injected into the system prompt automatically
 - Additional memories beyond the top 15 are searchable via `recall_knowledge`
 
 **If a memory isn't being recalled**:
+
 1. It may be beyond position 15 — ask explicitly: *"recall what you know about X"* to trigger `recall_knowledge`
 2. The search uses keyword matching — use related terms: *"recall what you know about my birthday"* or *"recall birth year"*
 3. Increase confidence when storing important facts: the agent can be told *"remember this with high confidence"*
@@ -445,21 +452,71 @@ If the issue persists after restarting the app, check that the file has a valid 
 ## Content Status Issues
 
 **Article shows up in knowledge search even though I haven't read it**:
+
 - Articles saved via `save_article` start with `status: saved` (reading list), not `status: read` (knowledge)
 - If the agent is mixing them, remind it: *"distinguish between saved articles and things I've actually read"*
 - You can filter: *"show only what I've actually read about X"*
 
 **Reading list shows nothing**:
+
 - Ask: *"show my reading list"* — the agent calls `list_notes(status="saved")`
 - Articles saved before this feature was introduced may have `status: null` — they won't appear in filtered lists; use `update_note` or `mark_content` to set their status
 
 **Agent marks article as read when I didn't ask**:
+
 - This is intentional: when you begin actively discussing a saved article, the agent auto-marks it `read`
 - To prevent this, tell the agent you're just asking about the topic in general, not discussing that specific article
 
 **`save_conversation` creates too much noise**:
+
 - `save_conversation` is only called when you explicitly ask ("save this conversation" or "save what we discussed about X")
 - It is never called automatically
+
+## YouTube Transcript Issues
+
+### "Unable to save this video" / YouTube transcript fails
+
+**Problem**: The YouTube plugin relies on a Python subprocess (`youtube-transcript-api`) to extract transcripts. If the Python package is missing, all YouTube saves fail silently and the agent reports inability to save.
+
+**Symptoms**:
+
+- Bot responds with something like "I was unable to save this video"
+- Logs show: `Python process exited with code 1` or `ModuleNotFoundError: No module named 'youtube_transcript_api'`
+
+**Fix**:
+
+1. **Install the Python package** (required on local machine):
+
+   ```bash
+   pip3 install youtube-transcript-api
+   ```
+
+   On macOS with externally managed Python (PEP 668):
+
+   ```bash
+   pip3 install youtube-transcript-api --break-system-packages
+   ```
+
+2. **Verify installation**:
+
+   ```bash
+   python3 -c "from youtube_transcript_api import YouTubeTranscriptApi; print('OK')"
+   ```
+
+3. **Docker**: The Dockerfile already installs the package. No action needed for Docker deployments.
+
+**Proxy for cloud deployments**:
+
+YouTube may block requests from cloud IPs. Configure Webshare proxy in `.env`:
+
+```bash
+WEBSHARE_PROXY_USERNAME=your_username
+WEBSHARE_PROXY_PASSWORD=your_password
+```
+
+When set, the Python transcript fetcher automatically routes through `p.webshare.io:80`.
+
+---
 
 ## Getting Help
 

@@ -196,6 +196,10 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md#telegram-bot-conflicts) fo
 - Node.js 20+
 - pnpm 9+
 - Redis (optional, required only if `ENABLE_SCHEDULER=true`)
+- Python 3 + `youtube-transcript-api` (required for YouTube plugin):
+  ```bash
+  pip3 install youtube-transcript-api
+  ```
 
 See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) if you encounter setup issues.
 
