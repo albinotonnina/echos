@@ -83,7 +83,9 @@
       "Bash(bash scripts/update.sh)",
       "Bash(gh auth status:*)",
       "Bash(gh auth switch:*)",
-      "Bash(gh label create:*)"
+      "Bash(gh label create:*)",
+      "WebSearch",
+      "Bash(yt-dlp:*)"
     ]
   }
 }

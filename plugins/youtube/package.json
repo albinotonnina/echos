@@ -12,7 +12,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@distube/ytdl-core": "^4.14.4",
+    "@distube/ytdl-core": "^4.16.12",
     "@echos/core": "workspace:*",
     "@echos/shared": "workspace:*",
     "@mariozechner/pi-agent-core": "^0.53.0",
