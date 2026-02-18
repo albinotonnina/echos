@@ -21,6 +21,9 @@ export interface TelegramAdapter extends InterfaceAdapter {
 
 export function createTelegramAdapter(options: TelegramAdapterOptions): TelegramAdapter {
   const { config, agentDeps, logger } = options;
+  if (!config.telegramBotToken) {
+    throw new Error('TELEGRAM_BOT_TOKEN is required when enableTelegram=true');
+  }
   const bot = new Bot(config.telegramBotToken);
 
   const notificationService = createTelegramNotificationService({
