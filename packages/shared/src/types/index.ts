@@ -1,4 +1,8 @@
-export type ContentType = 'note' | 'journal' | 'article' | 'youtube' | 'reminder';
+export type ContentType = 'note' | 'journal' | 'article' | 'youtube' | 'reminder' | 'conversation';
+
+export type ContentStatus = 'saved' | 'read' | 'archived';
+
+export type InputSource = 'text' | 'voice' | 'url' | 'file';
 
 export interface NoteMetadata {
   id: string;
@@ -12,6 +16,8 @@ export interface NoteMetadata {
   sourceUrl?: string;
   author?: string;
   gist?: string;
+  status?: ContentStatus;
+  inputSource?: InputSource;
 }
 
 export interface Note {
@@ -31,6 +37,7 @@ export interface SearchOptions {
   type?: ContentType;
   tags?: string[];
   category?: string;
+  status?: ContentStatus;
   limit?: number;
   offset?: number;
   dateFrom?: string;

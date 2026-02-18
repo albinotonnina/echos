@@ -442,6 +442,25 @@ If the issue persists after restarting the app, check that the file has a valid 
 
 **To see all stored memories**: ask *"list everything you remember about me"* — the agent will use `recall_knowledge` to retrieve all entries.
 
+## Content Status Issues
+
+**Article shows up in knowledge search even though I haven't read it**:
+- Articles saved via `save_article` start with `status: saved` (reading list), not `status: read` (knowledge)
+- If the agent is mixing them, remind it: *"distinguish between saved articles and things I've actually read"*
+- You can filter: *"show only what I've actually read about X"*
+
+**Reading list shows nothing**:
+- Ask: *"show my reading list"* — the agent calls `list_notes(status="saved")`
+- Articles saved before this feature was introduced may have `status: null` — they won't appear in filtered lists; use `update_note` or `mark_content` to set their status
+
+**Agent marks article as read when I didn't ask**:
+- This is intentional: when you begin actively discussing a saved article, the agent auto-marks it `read`
+- To prevent this, tell the agent you're just asking about the topic in general, not discussing that specific article
+
+**`save_conversation` creates too much noise**:
+- `save_conversation` is only called when you explicitly ask ("save this conversation" or "save what we discussed about X")
+- It is never called automatically
+
 ## Getting Help
 
 If you're still stuck:

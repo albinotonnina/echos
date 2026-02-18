@@ -42,6 +42,8 @@ export function createContentProcessor(deps: ContentWorkerDeps) {
       links: [],
       category: category ?? (type === 'process_article' ? 'articles' : 'videos'),
       sourceUrl: url,
+      status: 'saved',
+      inputSource: 'url',
     };
     if (processed.metadata.author) metadata.author = processed.metadata.author;
 

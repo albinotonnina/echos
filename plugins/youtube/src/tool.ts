@@ -99,6 +99,8 @@ export function createSaveYoutubeTool(
         links: [],
         category,
         sourceUrl: params.url,
+        status: 'saved',
+        inputSource: 'url',
       };
       if (gist) metadata.gist = gist;
 

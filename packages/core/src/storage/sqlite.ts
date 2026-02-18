@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import type { Logger } from 'pino';
-import type { ContentType, NoteMetadata, ReminderEntry, MemoryEntry } from '@echos/shared';
+import type { ContentType, ContentStatus, NoteMetadata, ReminderEntry, MemoryEntry } from '@echos/shared';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
@@ -8,6 +8,7 @@ export interface SqliteStorage {
   db: Database.Database;
   // Notes index
   upsertNote(meta: NoteMetadata, content: string, filePath: string, contentHash?: string): void;
+  updateNoteStatus(id: string, status: ContentStatus): void;
   deleteNote(id: string): void;
   getNote(id: string): NoteRow | undefined;
   getNoteByFilePath(filePath: string): NoteRow | undefined;
@@ -42,12 +43,15 @@ export interface NoteRow {
   created: string;
   updated: string;
   contentHash: string | null;
+  status: ContentStatus | null;
+  inputSource: string | null;
 }
 
 export interface ListNotesOptions {
   type?: ContentType;
   category?: string;
   tags?: string[];
+  status?: ContentStatus;
   limit?: number;
   offset?: number;
   orderBy?: 'created' | 'updated' | 'title';
@@ -74,7 +78,9 @@ const SCHEMA = `
     gist TEXT,
     created TEXT NOT NULL,
     updated TEXT NOT NULL,
-    content_hash TEXT DEFAULT NULL
+    content_hash TEXT DEFAULT NULL,
+    status TEXT DEFAULT NULL,
+    input_source TEXT DEFAULT NULL
   );
 
   CREATE INDEX IF NOT EXISTS idx_notes_type ON notes(type);
@@ -178,33 +184,52 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
     // Column already exists — that's fine
   }
 
+  // Migration: add status and input_source columns for existing databases
+  try {
+    db.exec(`ALTER TABLE notes ADD COLUMN status TEXT DEFAULT NULL`);
+  } catch {
+    // Column already exists — that's fine
+  }
+  try {
+    db.exec(`ALTER TABLE notes ADD COLUMN input_source TEXT DEFAULT NULL`);
+  } catch {
+    // Column already exists — that's fine
+  }
+
   logger.info({ dbPath }, 'SQLite database initialized');
 
   // Prepared statements
   const stmts = {
     upsertNote: db.prepare(`
-      INSERT INTO notes (id, type, title, content, file_path, tags, links, category, source_url, author, gist, created, updated, content_hash)
-      VALUES (@id, @type, @title, @content, @filePath, @tags, @links, @category, @sourceUrl, @author, @gist, @created, @updated, @contentHash)
+      INSERT INTO notes (id, type, title, content, file_path, tags, links, category, source_url, author, gist, created, updated, content_hash, status, input_source)
+      VALUES (@id, @type, @title, @content, @filePath, @tags, @links, @category, @sourceUrl, @author, @gist, @created, @updated, @contentHash, @status, @inputSource)
       ON CONFLICT(id) DO UPDATE SET
         title=@title, content=@content, file_path=@filePath, tags=@tags, links=@links,
         category=@category, source_url=@sourceUrl, author=@author, gist=@gist, updated=@updated,
-        content_hash=@contentHash
+        content_hash=@contentHash, status=@status, input_source=@inputSource
     `),
+    updateNoteStatus: db.prepare(`UPDATE notes SET status=?, updated=? WHERE id=?`),
     deleteNote: db.prepare('DELETE FROM notes WHERE id = ?'),
     getNote: db.prepare(
-      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash FROM notes WHERE id = ?',
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource FROM notes WHERE id = ?',
     ),
     getNoteByFilePath: db.prepare(
-      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash FROM notes WHERE file_path = ?',
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource FROM notes WHERE file_path = ?',
     ),
     listNotes: db.prepare(
-      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash FROM notes ORDER BY created DESC LIMIT ? OFFSET ?',
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource FROM notes ORDER BY created DESC LIMIT ? OFFSET ?',
     ),
     listNotesByType: db.prepare(
-      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash FROM notes WHERE type = ? ORDER BY created DESC LIMIT ? OFFSET ?',
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource FROM notes WHERE type = ? ORDER BY created DESC LIMIT ? OFFSET ?',
+    ),
+    listNotesByStatus: db.prepare(
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource FROM notes WHERE status = ? ORDER BY created DESC LIMIT ? OFFSET ?',
+    ),
+    listNotesByTypeAndStatus: db.prepare(
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource FROM notes WHERE type = ? AND status = ? ORDER BY created DESC LIMIT ? OFFSET ?',
     ),
     searchFts: db.prepare(`
-      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, notes.content_hash AS contentHash, bm25(notes_fts) as rank
+      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, notes.content_hash AS contentHash, notes.status, notes.input_source AS inputSource, bm25(notes_fts) as rank
       FROM notes_fts
       JOIN notes ON notes.rowid = notes_fts.rowid
       WHERE notes_fts MATCH ?
@@ -212,7 +237,7 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       LIMIT ?
     `),
     searchFtsWithType: db.prepare(`
-      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, notes.content_hash AS contentHash, bm25(notes_fts) as rank
+      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, notes.content_hash AS contentHash, notes.status, notes.input_source AS inputSource, bm25(notes_fts) as rank
       FROM notes_fts
       JOIN notes ON notes.rowid = notes_fts.rowid
       WHERE notes_fts MATCH ? AND notes.type = ?
@@ -262,7 +287,13 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
         created: meta.created,
         updated: meta.updated,
         contentHash: contentHash ?? null,
+        status: meta.status ?? null,
+        inputSource: meta.inputSource ?? null,
       });
+    },
+
+    updateNoteStatus(id: string, status: ContentStatus): void {
+      stmts.updateNoteStatus.run(status, new Date().toISOString(), id);
     },
 
     deleteNote(id: string): void {
@@ -281,8 +312,14 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       const limit = opts.limit ?? 50;
       const offset = opts.offset ?? 0;
 
+      if (opts.type && opts.status) {
+        return stmts.listNotesByTypeAndStatus.all(opts.type, opts.status, limit, offset) as NoteRow[];
+      }
       if (opts.type) {
         return stmts.listNotesByType.all(opts.type, limit, offset) as NoteRow[];
+      }
+      if (opts.status) {
+        return stmts.listNotesByStatus.all(opts.status, limit, offset) as NoteRow[];
       }
       return stmts.listNotes.all(limit, offset) as NoteRow[];
     },

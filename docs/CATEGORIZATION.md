@@ -470,6 +470,56 @@ Processing note 3/15... Done (Category: health, Tags: [exercise, nutrition])
 Completed: 15 notes categorized
 ```
 
+## Content Taxonomy
+
+Beyond categorization (category + tags), EchOS tracks content through a lifecycle:
+
+### ContentType
+
+| Type | Description | Default Status |
+|------|-------------|----------------|
+| `note` | User-authored note | `read` |
+| `journal` | Diary/reflection entry | `read` |
+| `conversation` | Saved conversation summary | `read` |
+| `article` | Saved web article | `saved` |
+| `youtube` | Saved YouTube transcript | `saved` |
+| `reminder` | Task reminder | n/a |
+
+### ContentStatus
+
+| Status | Meaning | When set |
+|--------|---------|----------|
+| `saved` | Captured, not yet consumed | Default for article/youtube saves |
+| `read` | User has engaged with the content | Default for authored notes; set explicitly or auto-detected |
+| `archived` | Hidden from normal search | User request or explicit archiving |
+
+**Status transitions:**
+- Articles/YouTube start as `saved` — they're in the reading list, not the knowledge base
+- Authored notes (`note`, `journal`, `conversation`) start as `read`
+- The agent auto-marks content as `read` when the user begins discussing it
+- Use `mark_content(id, 'read')` to mark explicitly, or ask the agent "I've read that article"
+
+### InputSource
+
+Tracks how content was captured:
+- `text` — typed by user (default for create_note)
+- `voice` — from a transcribed voice message
+- `url` — from a pasted URL (save_article, save_youtube)
+- `file` — from a file
+
+### Filtering by Status
+
+```
+"Show my reading list"
+→ list_notes(status="saved")
+
+"What have I read about TypeScript?"
+→ search_knowledge("TypeScript") — agent prioritizes read over saved content
+
+"Archive that article"
+→ mark_content(id, "archived")
+```
+
 ## See Also
 
 - [PLUGINS.md](PLUGINS.md) - How to add categorization to custom plugins

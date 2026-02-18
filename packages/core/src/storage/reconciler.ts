@@ -6,7 +6,7 @@ import type { Logger } from 'pino';
 import type { SqliteStorage } from './sqlite.js';
 import type { VectorStorage } from './vectordb.js';
 import type { MarkdownStorage } from './markdown.js';
-import type { NoteMetadata } from '@echos/shared';
+import type { NoteMetadata, ContentStatus, InputSource } from '@echos/shared';
 
 export interface ReconcileOptions {
   baseDir: string;
@@ -141,6 +141,8 @@ function buildMetadata(data: Record<string, unknown>): NoteMetadata {
   if (data['source_url']) meta.sourceUrl = data['source_url'] as string;
   if (data['author']) meta.author = data['author'] as string;
   if (data['gist']) meta.gist = data['gist'] as string;
+  if (data['status']) meta.status = data['status'] as ContentStatus;
+  if (data['inputSource']) meta.inputSource = data['inputSource'] as InputSource;
   return meta;
 }
 

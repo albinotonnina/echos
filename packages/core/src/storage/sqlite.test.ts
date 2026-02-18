@@ -79,6 +79,55 @@ describe('SQLite Notes', () => {
     expect(row!.title).toBe('Updated');
     expect(row!.content).toBe('updated content');
   });
+
+  it('should store and retrieve status and inputSource', () => {
+    const meta = makeMeta({ status: 'saved', inputSource: 'url' });
+    storage.upsertNote(meta, 'content', '/test.md');
+
+    const row = storage.getNote('test-1');
+    expect(row!.status).toBe('saved');
+    expect(row!.inputSource).toBe('url');
+  });
+
+  it('should list notes by status', () => {
+    storage.upsertNote(makeMeta({ id: 'a', status: 'saved' }), 'A', '/a.md');
+    storage.upsertNote(makeMeta({ id: 'b', status: 'read' }), 'B', '/b.md');
+    storage.upsertNote(makeMeta({ id: 'c' }), 'C', '/c.md');
+
+    const saved = storage.listNotes({ status: 'saved' });
+    expect(saved).toHaveLength(1);
+    expect(saved[0]!.id).toBe('a');
+
+    const read = storage.listNotes({ status: 'read' });
+    expect(read).toHaveLength(1);
+    expect(read[0]!.id).toBe('b');
+  });
+
+  it('should list notes by type and status', () => {
+    storage.upsertNote(makeMeta({ id: 'a', type: 'article', status: 'saved' }), 'A', '/a.md');
+    storage.upsertNote(makeMeta({ id: 'b', type: 'article', status: 'read' }), 'B', '/b.md');
+    storage.upsertNote(makeMeta({ id: 'c', type: 'note', status: 'saved' }), 'C', '/c.md');
+
+    const savedArticles = storage.listNotes({ type: 'article', status: 'saved' });
+    expect(savedArticles).toHaveLength(1);
+    expect(savedArticles[0]!.id).toBe('a');
+  });
+
+  it('should update note status via updateNoteStatus', () => {
+    storage.upsertNote(makeMeta({ status: 'saved' }), 'content', '/test.md');
+    storage.updateNoteStatus('test-1', 'read');
+
+    const row = storage.getNote('test-1');
+    expect(row!.status).toBe('read');
+  });
+
+  it('should support conversation content type', () => {
+    storage.upsertNote(makeMeta({ id: 'conv-1', type: 'conversation', status: 'read' }), 'Summary...', '/conv.md');
+
+    const row = storage.getNote('conv-1');
+    expect(row!.type).toBe('conversation');
+    expect(row!.status).toBe('read');
+  });
 });
 
 describe('SQLite FTS5 Search', () => {

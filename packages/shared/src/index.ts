@@ -12,6 +12,8 @@ export {
 export { createLogger, createAuditLogger, auditLog, type AuditEvent } from './logging/index.js';
 export type {
   ContentType,
+  ContentStatus,
+  InputSource,
   NoteMetadata,
   Note,
   SearchResult,

@@ -93,6 +93,8 @@ export function createSaveArticleTool(
         links: [],
         category,
         sourceUrl: params.url,
+        status: 'saved',
+        inputSource: 'url',
       };
       if (processed.metadata.author) metadata.author = processed.metadata.author;
       if (gist) metadata.gist = gist;
@@ -115,11 +117,12 @@ export function createSaveArticleTool(
         }
       }
 
-      let responseText = `Saved article "${processed.title}" (id: ${id})\n`;
+      let responseText = `Saved article "${processed.title}" to your reading list (id: ${id})\n`;
       responseText += `Source: ${params.url}\n`;
       responseText += `Content: ${processed.content.length} characters\n`;
       responseText += `Category: ${category}\n`;
-      responseText += `Tags: [${tags.join(', ')}]`;
+      responseText += `Tags: [${tags.join(', ')}]\n`;
+      responseText += `Status: saved (mark as read when you've engaged with it)`;
       if (gist) {
         responseText += `\nGist: ${gist}`;
       }

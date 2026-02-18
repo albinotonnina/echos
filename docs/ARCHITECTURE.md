@@ -76,14 +76,14 @@ Content processors live in `plugins/` as separate workspace packages. Each plugi
 - Receives a `PluginContext` with storage, embeddings, logger, and config
 - Is registered via `PluginRegistry` in the application entry point
 
-Core tools (create_note, search, get, list, update, delete, reminders, memory, linking, categorize_note) remain in `@echos/core`.
+Core tools (create_note, search, get, list, update, delete, reminders, memory, linking, categorize_note, save_conversation, mark_content) remain in `@echos/core`.
 Domain-specific processors (YouTube, article, etc.) are plugins.
 
 Plugins can optionally use the AI categorization service from `@echos/core` to automatically extract category, tags, gist, summary, and key points from content. See [CATEGORIZATION.md](CATEGORIZATION.md) for details.
 
 ## Storage Architecture
 
-**SQLite** (better-sqlite3): Structured metadata index, FTS5 full-text search, memory store, reminders. The memory table stores long-term personal facts with a confidence score (0–1) and kind (`fact`, `preference`, `person`, `project`, `expertise`). Notes also store a `content_hash` (SHA-256) used to detect changes and skip unnecessary re-embedding.
+**SQLite** (better-sqlite3): Structured metadata index, FTS5 full-text search, memory store, reminders. The memory table stores long-term personal facts with a confidence score (0–1) and kind (`fact`, `preference`, `person`, `project`, `expertise`). Notes also store a `content_hash` (SHA-256) used to detect changes and skip unnecessary re-embedding. The `status` column tracks content lifecycle (`saved`, `read`, `archived`) and `input_source` records how content was captured (`text`, `voice`, `url`, `file`).
 
 **LanceDB** (embedded): Vector embeddings for semantic search. No server process needed.
 

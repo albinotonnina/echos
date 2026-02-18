@@ -1,6 +1,6 @@
 import { Type, StringEnum, type Static } from '@mariozechner/pi-ai';
 import type { AgentTool } from '@mariozechner/pi-agent-core';
-import type { ContentType } from '@echos/shared';
+import type { ContentType, ContentStatus } from '@echos/shared';
 import type { SqliteStorage, ListNotesOptions } from '../../storage/sqlite.js';
 
 export interface ListNotesToolDeps {
@@ -9,8 +9,13 @@ export interface ListNotesToolDeps {
 
 const schema = Type.Object({
   type: Type.Optional(
-    StringEnum(['note', 'journal', 'article', 'youtube', 'reminder'], {
+    StringEnum(['note', 'journal', 'article', 'youtube', 'reminder', 'conversation'], {
       description: 'Filter by content type',
+    }),
+  ),
+  status: Type.Optional(
+    StringEnum(['saved', 'read', 'archived'], {
+      description: 'Filter by content status. Use "saved" for reading list, "read" for consumed content, "archived" to include archived items.',
     }),
   ),
   limit: Type.Optional(
@@ -35,6 +40,7 @@ export function listNotesTool(deps: ListNotesToolDeps): AgentTool<typeof schema>
         offset: params.offset ?? 0,
       };
       if (params.type) opts.type = params.type as ContentType;
+      if (params.status) opts.status = params.status as ContentStatus;
 
       const rows = deps.sqlite.listNotes(opts);
 
@@ -46,10 +52,10 @@ export function listNotesTool(deps: ListNotesToolDeps): AgentTool<typeof schema>
       }
 
       const formatted = rows
-        .map(
-          (row, i) =>
-            `${i + 1 + (params.offset ?? 0)}. **${row.title}** (${row.type}, id: ${row.id})\n   Created: ${row.created} | Tags: [${row.tags}]`,
-        )
+        .map((row, i) => {
+          const statusLabel = row.status ? ` | Status: ${row.status}` : '';
+          return `${i + 1 + (params.offset ?? 0)}. **${row.title}** (${row.type}, id: ${row.id})\n   Created: ${row.created} | Tags: [${row.tags}]${statusLabel}`;
+        })
         .join('\n');
 
       return {

@@ -15,3 +15,5 @@ export {
   createCategorizeNoteTool,
   type CategorizeNoteToolDeps,
 } from './categorize-note.js';
+export { saveConversationTool, type SaveConversationToolDeps } from './save-conversation.js';
+export { markContentTool, type MarkContentToolDeps } from './mark-content.js';

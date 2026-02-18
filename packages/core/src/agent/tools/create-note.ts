@@ -1,7 +1,7 @@
 import { Type, type Static } from '@mariozechner/pi-ai';
 import type { AgentTool } from '@mariozechner/pi-agent-core';
 import { v4 as uuidv4 } from 'uuid';
-import type { NoteMetadata, ContentType } from '@echos/shared';
+import type { NoteMetadata, ContentType, InputSource } from '@echos/shared';
 import type { SqliteStorage } from '../../storage/sqlite.js';
 import type { MarkdownStorage } from '../../storage/markdown.js';
 import type { VectorStorage } from '../../storage/vectordb.js';
@@ -25,6 +25,12 @@ const schema = Type.Object({
   tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags for categorization' })),
   category: Type.Optional(
     Type.String({ description: 'Category (e.g., "programming", "health")' }),
+  ),
+  inputSource: Type.Optional(
+    Type.Union(
+      [Type.Literal('text'), Type.Literal('voice'), Type.Literal('url'), Type.Literal('file')],
+      { description: 'How the note was captured (text, voice, url, file)' },
+    ),
   ),
 });
 
@@ -51,6 +57,8 @@ export function createNoteTool(deps: CreateNoteToolDeps): AgentTool<typeof schem
         tags: params.tags ?? [],
         links: [],
         category: params.category ?? 'uncategorized',
+        status: 'read',
+        inputSource: (params.inputSource as InputSource | undefined) ?? 'text',
       };
 
       const filePath = deps.markdown.save(metadata, params.content);

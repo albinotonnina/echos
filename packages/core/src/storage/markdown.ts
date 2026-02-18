@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync, unlinkSync, existsSync, mkdirSync, readdir
 import { join, dirname } from 'node:path';
 import matter from 'gray-matter';
 import type { Logger } from 'pino';
-import type { NoteMetadata, Note, ContentType } from '@echos/shared';
+import type { NoteMetadata, Note, ContentType, ContentStatus, InputSource } from '@echos/shared';
 
 export interface MarkdownStorage {
   save(metadata: NoteMetadata, content: string): string;
@@ -40,6 +40,8 @@ function metadataToFrontmatter(meta: NoteMetadata): Record<string, unknown> {
   if (meta.sourceUrl) fm['source_url'] = meta.sourceUrl;
   if (meta.author) fm['author'] = meta.author;
   if (meta.gist) fm['gist'] = meta.gist;
+  if (meta.status) fm['status'] = meta.status;
+  if (meta.inputSource) fm['inputSource'] = meta.inputSource;
   return fm;
 }
 
@@ -57,6 +59,8 @@ function frontmatterToMetadata(data: Record<string, unknown>): NoteMetadata {
   if (data['source_url']) meta.sourceUrl = data['source_url'] as string;
   if (data['author']) meta.author = data['author'] as string;
   if (data['gist']) meta.gist = data['gist'] as string;
+  if (data['status']) meta.status = data['status'] as ContentStatus;
+  if (data['inputSource']) meta.inputSource = data['inputSource'] as InputSource;
   return meta;
 }
 
