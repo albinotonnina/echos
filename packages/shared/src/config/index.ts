@@ -31,16 +31,16 @@ export const configSchema = z.object({
   // Interfaces
   enableTelegram: z
     .string()
-    .transform((s) => s === 'true')
-    .default('true'),
+    .default('true')
+    .transform((s) => s === 'true'),
   enableWeb: z
     .string()
-    .transform((s) => s === 'true')
-    .default('false'),
+    .default('false')
+    .transform((s) => s === 'true'),
   enableTui: z
     .string()
-    .transform((s) => s === 'true')
-    .default('false'),
+    .default('false')
+    .transform((s) => s === 'true'),
 
   // Web
   webPort: z.coerce.number().int().positive().default(3000),
@@ -48,8 +48,8 @@ export const configSchema = z.object({
   // Scheduler
   enableScheduler: z
     .string()
-    .transform((s) => s === 'true')
-    .default('false'),
+    .default('false')
+    .transform((s) => s === 'true'),
 
   // Webshare Proxy (optional)
   webshareProxyUsername: z.string().optional(),
