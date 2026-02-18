@@ -14,7 +14,7 @@
   "dependencies": {
     "@echos/core": "workspace:*",
     "@echos/shared": "workspace:*",
-    "@mariozechner/pi-agent-core": "^0.52.12",
+    "@mariozechner/pi-agent-core": "^0.53.0",
     "pino": "^9.14.0"
   },
   "devDependencies": {

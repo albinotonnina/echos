@@ -14,8 +14,8 @@
   "dependencies": {
     "@echos/shared": "workspace:*",
     "@echos/core": "workspace:*",
-    "@mariozechner/pi-agent-core": "^0.52.12",
-    "@mariozechner/pi-ai": "^0.52.12",
+    "@mariozechner/pi-agent-core": "^0.53.0",
+    "@mariozechner/pi-ai": "^0.53.0",
     "@sinclair/typebox": "^0.34.30",
     "pino": "^9.14.0",
     "uuid": "^13.0.0",
