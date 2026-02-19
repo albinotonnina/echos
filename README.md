@@ -129,6 +129,30 @@ Redis-backed scheduler via BullMQ:
 - HTML sanitization, secret redaction in logs
 - All API keys stored in `chmod 0600` `.env` only
 
+### 🎭 Agent voice — shape how EchOS talks to you
+
+EchOS adapts its communication style to match how you like to work. Just tell it what you want, in plain language — no settings panel, no slash commands.
+
+```
+You:    Be concise and serious. No fluff.
+EchOS:  Got it — I'll keep responses tight and direct.
+
+You:    Actually, be a bit warmer. I want to feel supported.
+EchOS:  Sure — I'll stay concise but add more warmth.
+
+You:    Reset your voice to default.
+EchOS:  Back to my default tone.
+```
+
+The agent interprets your words and writes its own directive — so "be more chill" becomes a coherent instruction it will actually follow. The change:
+
+- **takes effect immediately** in the same conversation
+- **persists across sessions** — no need to repeat yourself
+- **applies to how EchOS communicates**, not to how it writes notes on your behalf (that uses your separate [style profile](#writing-content-in-your-voice))
+
+> [!NOTE]
+> **Agent voice** (how EchOS talks to you) is separate from your **style profile** (how EchOS writes content on your behalf). A formal writing style and a casual conversational agent are completely independent.
+
 ---
 
 ## Installation

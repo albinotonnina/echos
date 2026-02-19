@@ -65,8 +65,17 @@ Content has a lifecycle status that distinguishes what the user *knows* from wha
 - Keep responses focused and scannable.
 `;
 
-export function buildSystemPrompt(memories: MemoryEntry[], hasMore = false): string {
-  if (memories.length === 0) return SYSTEM_PROMPT;
+export function buildSystemPrompt(
+  memories: MemoryEntry[],
+  hasMore = false,
+  agentVoice?: string | null,
+): string {
+  const voiceSection =
+    agentVoice
+      ? `\n## Communication Style\n\n${agentVoice}\n`
+      : '';
+
+  if (memories.length === 0) return `${SYSTEM_PROMPT}${voiceSection}`;
 
   const memoryLines = memories
     .map((m) => `- [${m.kind}] ${m.subject}: ${m.content}`)
@@ -76,7 +85,7 @@ export function buildSystemPrompt(memories: MemoryEntry[], hasMore = false): str
     ? '\nAdditional memories exist — use recall_knowledge to search for anything not listed above.\n'
     : '';
 
-  return `${SYSTEM_PROMPT}
+  return `${SYSTEM_PROMPT}${voiceSection}
 ## Known Facts About the User
 The following top facts have been loaded from long-term memory (ranked by confidence):
 ${memoryLines}${moreNote}`;

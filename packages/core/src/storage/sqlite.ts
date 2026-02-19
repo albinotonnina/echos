@@ -24,6 +24,9 @@ export interface SqliteStorage {
   listAllMemories(): MemoryEntry[];
   listTopMemories(limit: number): MemoryEntry[];
   searchMemory(query: string): MemoryEntry[];
+  // User preferences
+  getAgentVoice(): string | null;
+  setAgentVoice(instruction: string): void;
   // Lifecycle
   close(): void;
 }
@@ -140,6 +143,12 @@ const SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_memory_kind ON memory(kind);
   CREATE INDEX IF NOT EXISTS idx_memory_subject ON memory(subject);
+
+  CREATE TABLE IF NOT EXISTS user_preferences (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated TEXT NOT NULL
+  );
 `;
 
 function rowToReminder(row: Record<string, unknown>): ReminderEntry {
@@ -178,6 +187,17 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(SCHEMA);
+
+  // Migration: add user_preferences table for existing databases
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS user_preferences (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated TEXT NOT NULL
+    )`);
+  } catch {
+    // Table already exists — that's fine
+  }
 
   // Migration: add content_hash column for existing databases
   try {
@@ -256,6 +276,12 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
     searchMemory: db.prepare(
       "SELECT * FROM memory WHERE subject LIKE ? OR content LIKE ? ORDER BY confidence DESC",
     ),
+    getPreference: db.prepare('SELECT value FROM user_preferences WHERE key = ?'),
+    setPreference: db.prepare(`
+      INSERT INTO user_preferences (key, value, updated)
+      VALUES (?, ?, ?)
+      ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated=excluded.updated
+    `),
   };
 
   return {
@@ -406,6 +432,15 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       }
 
       return results.sort((a, b) => b.confidence - a.confidence);
+    },
+
+    getAgentVoice(): string | null {
+      const row = stmts.getPreference.get('agent_voice') as { value: string } | undefined;
+      return row?.value ?? null;
+    },
+
+    setAgentVoice(instruction: string): void {
+      stmts.setPreference.run('agent_voice', instruction, new Date().toISOString());
     },
 
     close(): void {

@@ -18,6 +18,7 @@ import {
   rememberAboutMeTool,
   recallKnowledgeTool,
   createCategorizeNoteTool,
+  createSetAgentVoiceTool,
 } from './tools/index.js';
 import type { SqliteStorage } from '../storage/sqlite.js';
 import type { MarkdownStorage } from '../storage/markdown.js';
@@ -57,6 +58,15 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     generateEmbedding: deps.generateEmbedding,
   };
 
+  const MEMORY_INJECT_LIMIT = 15;
+  const topMemories = deps.sqlite.listTopMemories(MEMORY_INJECT_LIMIT + 1);
+  const hasMore = topMemories.length > MEMORY_INJECT_LIMIT;
+  const memories = topMemories.slice(0, MEMORY_INJECT_LIMIT);
+  const agentVoice = deps.sqlite.getAgentVoice();
+
+  // Mutable ref so the set_agent_voice tool can update the agent mid-session
+  let agentRef: Agent | null = null;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const coreTools: AgentTool<any>[] = [
     createNoteTool(storageDeps),
@@ -82,18 +92,23 @@ export function createEchosAgent(deps: AgentDeps): Agent {
       anthropicApiKey: deps.anthropicApiKey,
       logger: deps.logger,
     }),
+    createSetAgentVoiceTool({
+      sqlite: deps.sqlite,
+      onVoiceChange: (instruction) => {
+        if (agentRef) {
+          const newPrompt = buildSystemPrompt(memories, hasMore, instruction || null);
+          agentRef.setSystemPrompt(newPrompt);
+        }
+      },
+    }),
   ];
 
   const tools = [...coreTools, ...(deps.pluginTools ?? [])];
 
-  const MEMORY_INJECT_LIMIT = 15;
-  const topMemories = deps.sqlite.listTopMemories(MEMORY_INJECT_LIMIT + 1);
-  const hasMore = topMemories.length > MEMORY_INJECT_LIMIT;
-  const memories = topMemories.slice(0, MEMORY_INJECT_LIMIT);
-  const systemPrompt = buildSystemPrompt(memories, hasMore);
+  const systemPrompt = buildSystemPrompt(memories, hasMore, agentVoice);
 
   deps.logger.info(
-    { model: model.id, thinkingLevel: deps.thinkingLevel ?? 'off', coreTools: coreTools.length, pluginTools: (deps.pluginTools ?? []).length, totalTools: tools.length, memoriesLoaded: memories.length, memoriesTotal: hasMore ? `>${MEMORY_INJECT_LIMIT}` : memories.length },
+    { model: model.id, thinkingLevel: deps.thinkingLevel ?? 'off', coreTools: coreTools.length, pluginTools: (deps.pluginTools ?? []).length, totalTools: tools.length, memoriesLoaded: memories.length, memoriesTotal: hasMore ? `>${MEMORY_INJECT_LIMIT}` : memories.length, agentVoice: agentVoice ? 'custom' : 'default' },
     'Creating EchOS agent',
   );
 
@@ -107,6 +122,9 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     convertToLlm: echosConvertToLlm,
     transformContext: createContextWindow(80_000),
   });
+
+  // Wire the mutable ref so set_agent_voice can update the system prompt mid-session
+  agentRef = agent;
 
   if (deps.logLlmPayloads) {
     agent.streamFn = (m, context, options) =>

@@ -27,6 +27,7 @@ const TOOL_EMOJI_MAP: Record<string, string> = {
   get_style_profile: '🎨',
   analyze_my_style: '🎨',
   mark_as_voice_example: '🎙️',
+  set_agent_voice: '🎭',
 };
 
 // Append a zero-width space so Telegram doesn't render the emoji at giant size
