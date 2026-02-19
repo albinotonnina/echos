@@ -148,10 +148,9 @@ The agent interprets your words and writes its own directive — so "be more chi
 
 - **takes effect immediately** in the same conversation
 - **persists across sessions** — no need to repeat yourself
-- **applies to how EchOS communicates**, not to how it writes notes on your behalf (that uses your separate [style profile](#writing-content-in-your-voice))
 
 > [!NOTE]
-> **Agent voice** (how EchOS talks to you) is separate from your **style profile** (how EchOS writes content on your behalf). A formal writing style and a casual conversational agent are completely independent.
+> Agent voice controls how EchOS *talks to you*. Your style profile (built with `analyze_my_style`) controls how it *writes content on your behalf*. A formal writing style and a casual conversational agent are completely independent.
 
 ---
 
