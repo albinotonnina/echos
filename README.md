@@ -11,11 +11,11 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript)](https://www.typescriptlang.org)
 [![Claude](https://img.shields.io/badge/powered%20by-Claude%20AI-orange)](https://anthropic.com)
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/P5P71PDYLX)
-
 </div>
 
 ---
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/P5P71PDYLX)
 
 > [!NOTE]
 > EchOS is a personal project — built for one user, deployed on your own infrastructure. It is intentionally not multi-tenant.
