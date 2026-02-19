@@ -32,7 +32,8 @@
     "import:notion": "tsx --env-file=.env scripts/import-notion.ts",
     "generate-test-notes": "tsx --env-file=.env scripts/generate-test-notes.ts",
     "clean": "pnpm -r clean && rm -rf node_modules",
-    "deploy": "./scripts/deploy-fast.sh"
+    "deploy": "./scripts/deploy-fast.sh",
+    "release": "tsx scripts/release.ts"
   },
   "engines": {
     "node": ">=20.0.0",
