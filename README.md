@@ -20,9 +20,8 @@
 
 <div align="center">
 
-<!-- TODO: Replace with actual screenshots before launch -->
-<!-- Take a screenshot of a Telegram conversation showing EchOS in action -->
 <img src="assets/telegram-demo.png" alt="EchOS Telegram conversation" width="400">
+<img src="assets/telegram-demo-2.png" alt="EchOS Telegram conversation" width="400">
 
 *Save articles, search your knowledge, get reminders — all through natural conversation.*
 
@@ -58,20 +57,25 @@ No dashboards to maintain. No schemas to design. No commands to memorize.
 ## Features
 
 ### 🧠 Agent-driven, not command-driven
+
 EchOS uses a real LLM agent with tool calling (Claude). There's no rigid routing — the agent reads your intent and picks the right tools. Ask the same question ten different ways, get the same result.
 
 ### 🔍 Hybrid search that actually works
+
 Three-strategy search fused with Reciprocal Rank Fusion:
+
 - **Full-text** — BM25-ranked FTS5 across titles, content, and tags
 - **Semantic** — cosine similarity on OpenAI vector embeddings
 - **Hybrid** — best of both, reranked
 
 ### 📱 Reach it from anywhere
+
 - **Telegram bot** — message it from your phone like a chat, including voice messages (Whisper transcription)
 - **Web UI + REST API** — stream responses over SSE from any client
 - **Terminal UI** — live in your terminal, never leave the keyboard
 
 ### 🗃️ Markdown-first, Obsidian-compatible
+
 Every note is a plain `.md` file with YAML frontmatter — the same format Obsidian uses natively.
 
 - **Open in Obsidian today**: point Obsidian at `data/knowledge/` and browse your entire knowledge base
@@ -83,19 +87,24 @@ Every note is a plain `.md` file with YAML frontmatter — the same format Obsid
 See [docs/KNOWLEDGE_IMPORT.md](docs/KNOWLEDGE_IMPORT.md) for the full import guide, frontmatter reference, and step-by-step walkthroughs.
 
 ### 🔌 Plugin architecture
+
 Content processors are plugins, not core code. Ships with:
+
 - **YouTube plugin** — extract and summarize transcripts
 - **Article plugin** — fetch, clean, and summarize any web article
 
 Adding your own plugin is [straightforward](docs/PLUGINS.md).
 
 ### ⏰ Scheduled background jobs (optional)
+
 Redis-backed scheduler via BullMQ:
+
 - **Daily AI digest** — summary of recent notes and upcoming reminders
 - **Reminder delivery** — overdue reminders pushed to Telegram
 - Configurable cron expressions for everything
 
 ### 🔐 Security-first
+
 - User whitelist (Telegram user ID allowlist)
 - SSRF prevention on all URL fetching
 - Rate limiting per user (token bucket)
@@ -133,6 +142,7 @@ cd docker && docker compose up -d
 ```
 
 With nginx + Let's Encrypt:
+
 ```bash
 sed "s/DOMAIN_NAME/yourdomain.com/g" docker/nginx.conf.template > docker/nginx.conf
 docker compose --profile nginx up -d
