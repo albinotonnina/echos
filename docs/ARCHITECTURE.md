@@ -124,6 +124,22 @@ Long-term memory (`remember_about_me` / `recall_knowledge` tools) uses a hybrid 
 
 This means `/reset` only clears the conversation history — all stored memories persist in SQLite and are reloaded into the next session automatically.
 
+## Context Overflow Detection
+
+The agent uses a two-layer approach to context window management:
+
+**Layer 1 — Proactive pruning** (`createContextWindow` in `context-manager.ts`):
+Runs before every LLM call via `transformContext`. Estimates token usage and slides the message window back to the nearest user-turn boundary until the budget fits. This should prevent overflows under normal operation.
+
+**Layer 2 — Reactive detection** (`isAgentMessageOverflow` in `context-manager.ts`):
+If a provider rejects the request despite pruning (e.g. single oversized message, model switch, token estimation drift), the last assistant message is checked against `isContextOverflow` from `@mariozechner/pi-ai`, which matches provider-specific error patterns for Anthropic, OpenAI, Gemini, Groq, Mistral, OpenRouter, and others.
+
+On overflow detection:
+- **Telegram**: Replies with "Conversation history is too long. Use /reset to start a new session." instead of a raw provider error string.
+- **Web API**: Returns HTTP 413 with a structured error body (`{ error: "Conversation history is too long. Please reset your session." }`).
+
+The helper `isAgentMessageOverflow(message, contextWindow)` is exported from `@echos/core` for use in any interface adapter.
+
 ## Agent Session Caching
 
 Each agent instance is assigned a `sessionId` at creation time, forwarded to LLM providers that support session-aware prompt caching:

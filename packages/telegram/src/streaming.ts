@@ -1,5 +1,6 @@
 import type { Context } from 'grammy';
 import type { Agent, AgentEvent, AgentMessage } from '@mariozechner/pi-agent-core';
+import { isAgentMessageOverflow } from '@echos/core';
 
 const EDIT_DEBOUNCE_MS = 1000;
 const MAX_MESSAGE_LENGTH = 4096;
@@ -226,6 +227,8 @@ export async function streamAgentResponse(
 
   if (textBuffer) {
     await updateMessage();
+  } else if (agentError && isAgentMessageOverflow(lastAssistantMessage, agent.state.model.contextWindow)) {
+    await updateMessage('⚠️ Conversation history is too long. Use /reset to start a new session.');
   } else if (agentError) {
     await updateMessage(`⚠️ Error: ${agentError}`);
   } else if (lastAssistantMessage) {

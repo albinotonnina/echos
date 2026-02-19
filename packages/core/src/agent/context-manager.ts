@@ -1,6 +1,22 @@
 import type { AgentMessage } from '@mariozechner/pi-agent-core';
+import type { AssistantMessage } from '@mariozechner/pi-ai';
+import { isContextOverflow } from '@mariozechner/pi-ai';
 
 const DEFAULT_MAX_INPUT_TOKENS = 80_000;
+
+/**
+ * Returns true when an AgentMessage is a context overflow response from the LLM provider.
+ * Handles both error-based overflow (stopReason "error" + provider-specific message)
+ * and silent overflow (usage.input > contextWindow, e.g. z.ai).
+ */
+export function isAgentMessageOverflow(
+  message: AgentMessage | undefined,
+  contextWindow: number,
+): boolean {
+  if (!message) return false;
+  if (!('role' in message) || message.role !== 'assistant') return false;
+  return isContextOverflow(message as AssistantMessage, contextWindow);
+}
 
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);

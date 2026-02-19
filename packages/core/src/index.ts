@@ -22,6 +22,7 @@ export {
 } from './storage/index.js';
 
 export { createEchosAgent, SYSTEM_PROMPT, buildSystemPrompt, type AgentDeps } from './agent/index.js';
+export { isAgentMessageOverflow } from './agent/context-manager.js';
 export {
   categorizeContent,
   categorizeLightweight,

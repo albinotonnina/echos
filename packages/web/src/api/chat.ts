@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
-import type { Agent } from '@mariozechner/pi-agent-core';
+import type { Agent, AgentMessage } from '@mariozechner/pi-agent-core';
 import type { AgentDeps } from '@echos/core';
-import { createEchosAgent } from '@echos/core';
+import { createEchosAgent, isAgentMessageOverflow } from '@echos/core';
 import type { Logger } from 'pino';
 
 const sessions = new Map<number, Agent>();
@@ -35,6 +35,7 @@ export function registerChatRoutes(
 
     // Collect response
     let responseText = '';
+    let lastAssistantMessage: AgentMessage | undefined;
     const toolCalls: Array<{ name: string; result: string }> = [];
 
     const unsubscribe = agent.subscribe((event) => {
@@ -43,6 +44,9 @@ export function registerChatRoutes(
         if (ame.type === 'text_delta') {
           responseText += ame.delta;
         }
+      }
+      if (event.type === 'message_end' && 'message' in event) {
+        lastAssistantMessage = event.message;
       }
       if (event.type === 'tool_execution_end') {
         toolCalls.push({
@@ -65,9 +69,12 @@ export function registerChatRoutes(
     // Check for agent errors (pi-agent-core swallows errors internally)
     const agentError = agent.state.error;
     if (!responseText && agentError) {
-      return reply.status(500).send({
+      const isOverflow = isAgentMessageOverflow(lastAssistantMessage, agent.state.model.contextWindow);
+      return reply.status(isOverflow ? 413 : 500).send({
         response: '',
-        error: agentError,
+        error: isOverflow
+          ? 'Conversation history is too long. Please reset your session.'
+          : agentError,
         toolCalls,
       });
     }
