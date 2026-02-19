@@ -85,6 +85,41 @@ export function registerChatRoutes(
     });
   });
 
+  // Steer the running agent mid-turn (interrupt after current tool, skip remaining)
+  app.post<{
+    Body: { message: string; userId: number };
+  }>('/api/chat/steer', async (request, reply) => {
+    const { message, userId } = request.body;
+    if (!message || !userId) {
+      return reply.status(400).send({ error: 'Missing message or userId' });
+    }
+    const agent = sessions.get(userId);
+    if (!agent) {
+      return reply.status(404).send({ error: 'No active session' });
+    }
+    if (!agent.state.isStreaming) {
+      return reply.status(409).send({ error: 'Agent is not currently running' });
+    }
+    agent.steer(createUserMessage(message));
+    return reply.send({ ok: true });
+  });
+
+  // Queue a follow-up message to run after the current agent turn completes
+  app.post<{
+    Body: { message: string; userId: number };
+  }>('/api/chat/followup', async (request, reply) => {
+    const { message, userId } = request.body;
+    if (!message || !userId) {
+      return reply.status(400).send({ error: 'Missing message or userId' });
+    }
+    const agent = sessions.get(userId);
+    if (!agent) {
+      return reply.status(404).send({ error: 'No active session' });
+    }
+    agent.followUp(createUserMessage(message));
+    return reply.send({ ok: true });
+  });
+
   // Reset session
   app.post<{
     Body: { userId: number };

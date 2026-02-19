@@ -2,7 +2,7 @@ import { Bot } from 'grammy';
 import type { Logger } from 'pino';
 import type { Config, InterfaceAdapter, NotificationService } from '@echos/shared';
 import type { AgentDeps } from '@echos/core';
-import { computeSessionUsage } from '@echos/core';
+import { computeSessionUsage, createUserMessage } from '@echos/core';
 import { createAuthMiddleware, createRateLimitMiddleware, createErrorHandler } from './middleware/index.js';
 import { getOrCreateSession, getSession, clearAllSessions } from './session.js';
 import { streamAgentResponse } from './streaming.js';
@@ -89,12 +89,41 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
     );
   });
 
+  // /followup command — queue work to run after the current agent turn finishes
+  bot.command('followup', async (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    const text = ctx.match;
+    if (!text) {
+      await ctx.reply('Usage: /followup <message>');
+      return;
+    }
+
+    const agent = getSession(userId);
+    if (!agent) {
+      await ctx.reply('No active session. Send a message first.');
+      return;
+    }
+
+    agent.followUp(createUserMessage(text));
+    await ctx.reply('📋 Queued — will run after the current task finishes.');
+  });
+
   // Handle all text messages via agent
   bot.on('message:text', async (ctx) => {
     const userId = ctx.from?.id;
     if (!userId) return;
 
     const agent = getOrCreateSession(userId, agentDeps);
+
+    // If the agent is mid-run, steer it with the new message instead of queuing a new turn
+    if (agent.state.isStreaming) {
+      agent.steer(createUserMessage(ctx.message.text));
+      await ctx.reply('↩️ Redirecting...');
+      return;
+    }
+
     await streamAgentResponse(agent, ctx.message.text, ctx);
   });
 

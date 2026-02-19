@@ -50,6 +50,27 @@ The application will start all enabled interfaces simultaneously.
    - `"Create a note called 'Project Ideas'"`
    - `"Remind me to review the proposal tomorrow"`
 
+### Commands
+
+| Command | Description |
+|---|---|
+| `/start` | Welcome message |
+| `/reset` | Clear conversation history and start fresh |
+| `/usage` | Show token usage and cost for the current session |
+| `/followup <message>` | Queue a message to run after the current task finishes |
+
+### Steering (mid-run interruption)
+
+If the agent is currently processing a task and you send a new text message, EchOS steers the agent rather than queuing a second turn:
+
+1. The agent finishes its current tool call
+2. Remaining tool calls in the turn are skipped
+3. The new message is injected and the agent responds to it
+
+The agent replies "↩️ Redirecting..." immediately to acknowledge receipt. The final response (for the original turn, now steered) is updated in the original message thread.
+
+Use `/followup` instead when you want to *chain* work after the current task — e.g. "save this article" then `/followup summarise the key points`.
+
 ### Features
 
 - ✅ Streaming responses (live updates as AI thinks)
@@ -58,6 +79,7 @@ The application will start all enabled interfaces simultaneously.
 - ✅ Authentication via `ALLOWED_USER_IDS`
 - ✅ Voice message support (with Whisper transcription)
 - ✅ Photo/document support
+- ✅ Mid-run steering and follow-up queuing
 
 ### Security
 
@@ -117,6 +139,30 @@ Content-Type: application/json
     { "name": "list_notes", "result": "success" }
   ]
 }
+```
+
+#### Steer Running Agent
+
+Interrupt the agent mid-turn. Only valid while a `/api/chat` request is in flight for the same `userId`. Skips remaining tool calls and injects the new message.
+
+```bash
+POST /api/chat/steer
+Content-Type: application/json
+
+{ "userId": 123, "message": "Actually focus on X instead" }
+```
+
+Returns `409` if the agent is not currently running.
+
+#### Queue Follow-up
+
+Queue a message to run after the current agent turn completes. Safe to call at any time — the message is held until the agent is idle.
+
+```bash
+POST /api/chat/followup
+Content-Type: application/json
+
+{ "userId": 123, "message": "Now summarise what you just saved" }
 ```
 
 #### Reset Chat Session
