@@ -81,8 +81,8 @@ No app to open. No form to fill. No note to clean up later.
 ### 📱 Reach it from anywhere
 
 - **Telegram bot** — message it from your phone like a chat; send voice messages (Whisper transcription) or just text
-- **Web UI + REST API** — stream responses over SSE from any client
-- **Terminal UI** — live in your terminal, never leave the keyboard
+- **Web UI + REST API** — stream responses over SSE from any client *(work in progress)*
+- **Terminal UI** — live in your terminal, never leave the keyboard *(work in progress)*
 
 ### 🗃️ Markdown-first, Obsidian-compatible
 
@@ -193,7 +193,10 @@ Supports: text messages, voice messages (transcribed via Whisper), URLs, streami
 </details>
 
 <details>
-<summary><strong>Web UI / REST API</strong></summary>
+<summary><strong>Web UI / REST API</strong> — <em>work in progress</em></summary>
+
+> [!WARNING]
+> The Web UI is not yet complete. The REST API is functional but the web interface is under active development.
 
 Starts on port 3000 by default.
 
@@ -214,7 +217,10 @@ Responses stream over SSE. `GET /health` for healthcheck.
 </details>
 
 <details>
-<summary><strong>Terminal UI</strong></summary>
+<summary><strong>Terminal UI</strong> — <em>work in progress</em></summary>
+
+> [!WARNING]
+> The Terminal UI is not yet complete and is under active development.
 
 ```bash
 pnpm start:tui-only
