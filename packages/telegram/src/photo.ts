@@ -64,8 +64,9 @@ export async function handlePhotoMessage(
       `📷 Saving photo${caption ? ` with caption: "${caption}"` : ''}...`,
     );
 
-    // Build instruction for the agent to use save_image tool
-    // We'll pass the Telegram file URL which the tool can download
+    // Build instruction for the agent to use save_image tool.
+    // Pass the Telegram file URL — processor.ts validates format via sharp,
+    // not by content-type header (Telegram returns application/octet-stream).
     let instruction = `Use the save_image tool to save an image from this URL: ${fileUrl}`;
     if (caption) {
       instruction += `, with caption: "${caption}"`;

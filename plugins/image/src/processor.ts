@@ -63,8 +63,12 @@ export async function processImage(
       throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
     }
 
+    // Allow application/octet-stream (e.g. Telegram file URLs) in addition to
+    // image/* types — sharp validates the actual format below, so a strict
+    // content-type check here would reject valid images from authenticated CDNs.
     const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.startsWith('image/')) {
+    const isImageType = contentType?.startsWith('image/') || contentType?.includes('octet-stream');
+    if (!contentType || !isImageType) {
       throw new Error(`URL does not point to an image (content-type: ${contentType})`);
     }
 
