@@ -81,6 +81,8 @@ function markdownToHtml(text: string): string {
 
   // 4. Convert markdown syntax to HTML tags
   out = out
+    // Ensure headers always start on their own line (AI may omit the preceding newline)
+    .replace(/([^\n])(#{1,6} )/g, '$1\n$2')
     // Headers → bold (Telegram HTML has no heading tags)
     .replace(/^#{1,6} (.+)$/gm, (_, t: string) => `<b>${t}</b>`)
     // Bold — must come before italic
