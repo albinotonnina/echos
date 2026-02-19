@@ -11,6 +11,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript)](https://www.typescriptlang.org)
 [![Claude](https://img.shields.io/badge/powered%20by-Claude%20AI-orange)](https://anthropic.com)
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/P5P71PDYLX)
+
 </div>
 
 ---
@@ -53,6 +55,9 @@ No dashboards to maintain. No schemas to design. No commands to memorize. No typ
 | Saving things is friction | Send a Telegram message, a URL, or a voice note — done |
 | You can't type while on the move | Record a voice message → Whisper transcribes → Claude stores it |
 | Your notes are siloed | Obsidian-compatible markdown, git-friendly |
+
+> [!NOTE]
+> Already running that wildly popular open-source AI agent — the one with the crustacean logo, you know the one? EchOS coexists with it beautifully. That one is a generalist; EchOS is a specialist. One handles your shell and your tasks. The other remembers what you were actually thinking about. Different appendages, different purpose.
 
 ---
 
