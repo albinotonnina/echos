@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Agent, AgentMessage } from '@mariozechner/pi-agent-core';
 import type { AgentDeps } from '@echos/core';
-import { createEchosAgent, isAgentMessageOverflow } from '@echos/core';
+import { createEchosAgent, isAgentMessageOverflow, createContextMessage, createUserMessage } from '@echos/core';
 import type { Logger } from 'pino';
 
 const sessions = new Map<number, Agent>();
@@ -56,12 +56,12 @@ export function registerChatRoutes(
       }
     });
 
-    // Prepend current date/time context to the message
     const now = new Date();
-    const contextualMessage = `[Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: 'UTC' })} UTC)]\n\n${message}`;
-
     try {
-      await agent.prompt(contextualMessage);
+      await agent.prompt([
+        createContextMessage(`Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: 'UTC' })} UTC)`),
+        createUserMessage(message),
+      ]);
     } finally {
       unsubscribe();
     }

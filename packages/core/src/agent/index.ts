@@ -4,6 +4,7 @@ import { getModel, streamSimple } from '@mariozechner/pi-ai';
 import type { Logger } from 'pino';
 import { buildSystemPrompt } from './system-prompt.js';
 import { createContextWindow } from './context-manager.js';
+import { echosConvertToLlm } from './messages.js';
 import {
   createNoteTool,
   searchKnowledgeTool,
@@ -101,6 +102,7 @@ export function createEchosAgent(deps: AgentDeps): Agent {
       tools,
       thinkingLevel: deps.thinkingLevel ?? 'off',
     },
+    convertToLlm: echosConvertToLlm,
     transformContext: createContextWindow(80_000),
   });
 

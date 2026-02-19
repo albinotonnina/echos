@@ -2,7 +2,7 @@ import { createInterface } from 'node:readline';
 import type { Logger } from 'pino';
 import type { InterfaceAdapter } from '@echos/shared';
 import type { AgentDeps } from '@echos/core';
-import { createEchosAgent } from '@echos/core';
+import { createEchosAgent, createContextMessage, createUserMessage } from '@echos/core';
 
 export interface TuiAdapterOptions {
   agentDeps: AgentDeps;
@@ -50,10 +50,11 @@ export function createTuiAdapter(options: TuiAdapterOptions): InterfaceAdapter {
             return;
           }
           if (trimmed) {
-            // Prepend current date/time context to the prompt
             const now = new Date();
-            const contextualPrompt = `[Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: 'UTC' })} UTC)]\n\n${trimmed}`;
-            await agent.prompt(contextualPrompt);
+            await agent.prompt([
+              createContextMessage(`Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: 'UTC' })} UTC)`),
+              createUserMessage(trimmed),
+            ]);
           }
           askQuestion();
         });

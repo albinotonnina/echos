@@ -1,6 +1,6 @@
 import type { Context } from 'grammy';
 import type { Agent, AgentEvent, AgentMessage } from '@mariozechner/pi-agent-core';
-import { isAgentMessageOverflow } from '@echos/core';
+import { isAgentMessageOverflow, createContextMessage, createUserMessage } from '@echos/core';
 
 const EDIT_DEBOUNCE_MS = 1000;
 const MAX_MESSAGE_LENGTH = 4096;
@@ -212,12 +212,12 @@ export async function streamAgentResponse(
   const sent = await ctx.reply(statusLine);
   messageId = sent.message_id;
 
-  // Prepend current date/time context to the prompt
   const now = new Date();
-  const contextualPrompt = `[Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: 'UTC' })} UTC)]\n\n${prompt}`;
-
   try {
-    await agent.prompt(contextualPrompt);
+    await agent.prompt([
+      createContextMessage(`Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: 'UTC' })} UTC)`),
+      createUserMessage(prompt),
+    ]);
   } finally {
     unsubscribe();
     if (editTimeout) clearTimeout(editTimeout);

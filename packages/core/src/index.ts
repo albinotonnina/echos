@@ -23,6 +23,7 @@ export {
 
 export { createEchosAgent, SYSTEM_PROMPT, buildSystemPrompt, type AgentDeps } from './agent/index.js';
 export { isAgentMessageOverflow } from './agent/context-manager.js';
+export { createContextMessage, createUserMessage, type EchosContextMessage } from './agent/messages.js';
 export {
   categorizeContent,
   categorizeLightweight,

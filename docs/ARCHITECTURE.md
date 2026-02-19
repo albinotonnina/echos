@@ -62,6 +62,7 @@ The scheduler package (`@echos/scheduler`) runs background jobs via BullMQ + Red
 Notification delivery is decoupled via `NotificationService` (defined in `@echos/shared`). The Telegram package provides the concrete implementation; the scheduler receives it via dependency injection and never imports `@echos/telegram` directly. When Telegram is disabled, a log-only fallback is used.
 
 Workers:
+
 - **Digest**: Creates a throwaway AI agent to summarize recent notes and reminders, broadcasts the result
 - **Reminder check**: Queries SQLite for overdue reminders and sends notifications
 - **Content processing**: Processes article/YouTube URLs queued by the agent
@@ -71,6 +72,7 @@ See [SCHEDULER.md](SCHEDULER.md) for configuration and usage details.
 ## Plugin Architecture
 
 Content processors live in `plugins/` as separate workspace packages. Each plugin:
+
 - Implements the `EchosPlugin` interface from `@echos/core`
 - Returns agent tools from its `setup(context)` method
 - Receives a `PluginContext` with storage, embeddings, logger, and config
@@ -95,6 +97,7 @@ EchOS keeps the three storage layers in sync automatically, even when markdown f
 
 **Startup reconciliation** (`reconcileStorage` in `packages/core/src/storage/reconciler.ts`):
 Runs once at boot. Scans all `.md` files in the knowledge directory and compares them against SQLite using the `content_hash` column:
+
 - **New file** → full upsert to SQLite + generate embedding in LanceDB
 - **Content changed** → update SQLite + re-embed (OpenAI called only when content hash differs)
 - **File moved** (same hash, different path) → update file path in SQLite only, no re-embed
@@ -103,6 +106,7 @@ Runs once at boot. Scans all `.md` files in the knowledge directory and compares
 
 **Live file watcher** (`createFileWatcher` in `packages/core/src/storage/watcher.ts`):
 Uses `chokidar` to watch `knowledge/**/*.md` while the app is running. Events are debounced (500 ms) and `awaitWriteFinish` is enabled to handle atomic saves from editors (VS Code, Obsidian, etc.):
+
 - `add` / `change` → parse, compare content hash, upsert if changed (re-embed only on content change)
 - `unlink` → look up note by file path in SQLite, delete from SQLite + LanceDB
 
@@ -111,6 +115,7 @@ Both paths use the same content hash check, so the OpenAI embeddings API is only
 ## Search
 
 Hybrid search combines three strategies via Reciprocal Rank Fusion (RRF):
+
 1. **Keyword** (FTS5): BM25-ranked full-text search across title, content, tags
 2. **Semantic** (LanceDB): Cosine similarity on OpenAI embeddings
 3. **Hybrid**: RRF fusion of keyword + semantic results
@@ -124,11 +129,44 @@ Long-term memory (`remember_about_me` / `recall_knowledge` tools) uses a hybrid 
 
 This means `/reset` only clears the conversation history — all stored memories persist in SQLite and are reloaded into the next session automatically.
 
+## Custom Agent Message Types
+
+EchOS extends the `AgentMessage` union from `@mariozechner/pi-agent-core` via TypeScript declaration merging in `packages/core/src/agent/messages.ts`.
+
+### `echos_context`
+
+```typescript
+declare module '@mariozechner/pi-agent-core' {
+  interface CustomAgentMessages {
+    echos_context: EchosContextMessage;
+  }
+}
+```
+
+Used to inject structured context (e.g. current date/time) into each turn without string-concatenating it onto the user message in every interface adapter. The custom `convertToLlm` function (`echosConvertToLlm`) prepends the context content to the immediately following user message before the LLM call. Custom messages are preserved in `agent.state.messages` for debugging but never sent standalone to the LLM.
+
+**Helpers exported from `@echos/core`:**
+
+- `createContextMessage(content)` — creates an `echos_context` message
+- `createUserMessage(content)` — creates a typed `user` message
+
+**Usage in interfaces:**
+
+```typescript
+await agent.prompt([
+  createContextMessage(`Current date/time: ${now.toISOString()} UTC`),
+  createUserMessage(userInput),
+]);
+```
+
+All three interfaces (Telegram, Web, TUI) use this pattern.
+
 ## AI Categorization — Streaming with Progressive JSON
 
 The categorization service (`packages/core/src/agent/categorization.ts`) uses `streamSimple` from `@mariozechner/pi-ai` instead of a blocking `fetch`. As the LLM streams its JSON response, `parseStreamingJson` parses each partial chunk — which never throws, always returning `{}` on incomplete input.
 
 When new fields become fully formed in the partial JSON, an optional `onProgress` callback fires:
+
 - `"Category: programming"` — as soon as `category` is resolved
 - `"Tags: typescript, api"` — updated each time a new tag appears
 - `"Gist: One sentence summary."` — once the gist looks complete (>20 chars, ends with punctuation) — full mode only
@@ -146,6 +184,7 @@ Runs before every LLM call via `transformContext`. Estimates token usage and sli
 If a provider rejects the request despite pruning (e.g. single oversized message, model switch, token estimation drift), the last assistant message is checked against `isContextOverflow` from `@mariozechner/pi-ai`, which matches provider-specific error patterns for Anthropic, OpenAI, Gemini, Groq, Mistral, OpenRouter, and others.
 
 On overflow detection:
+
 - **Telegram**: Replies with "Conversation history is too long. Use /reset to start a new session." instead of a raw provider error string.
 - **Web API**: Returns HTTP 413 with a structured error body (`{ error: "Conversation history is too long. Please reset your session." }`).
 
@@ -162,6 +201,7 @@ Each agent instance is assigned a `sessionId` at creation time, forwarded to LLM
 | TUI | `tui-local` |
 
 **Effect by provider:**
+
 - **Anthropic**: Extends prompt cache TTL from the default 5 minutes to longer durations. Set `PI_CACHE_RETENTION=long` for 1-hour retention.
 - **OpenAI**: Enables 24-hour in-memory cache reuse across calls.
 
