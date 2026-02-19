@@ -141,6 +141,7 @@ After completing any feature work, ALWAYS update the relevant documentation:
 - Security changes → `docs/SECURITY.md`
 - Setup or configuration changes → `docs/SETUP_FIXES.md`
 - Categorization logic changes → `docs/CATEGORIZATION.md`
+- Import/export changes → `docs/KNOWLEDGE_IMPORT.md`
 
 Review `docs/TROUBLESHOOTING.md` to add any new common issues or solutions.
 

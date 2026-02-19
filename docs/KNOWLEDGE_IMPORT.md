@@ -1,0 +1,244 @@
+# Knowledge Import Guide
+
+EchOS stores every note as a plain `.md` file with YAML frontmatter, making the knowledge base
+natively readable in any markdown editor and trivially importable from Obsidian vaults or
+Notion exports.
+
+---
+
+## Opening EchOS in Obsidian
+
+Point Obsidian at the knowledge directory and everything works immediately:
+
+1. In Obsidian: **Open folder as vault** → select `data/knowledge/` (or wherever `KNOWLEDGE_DIR` points in your `.env`)
+2. All notes open with their frontmatter properties visible in Obsidian's Properties panel
+3. Live edits in Obsidian are picked up automatically by EchOS's file watcher — no restart needed
+
+> [!NOTE]
+> EchOS watches `KNOWLEDGE_DIR` for changes. Saving a file in Obsidian triggers a re-index
+> within seconds. New files added via Obsidian are indexed the same way.
+
+---
+
+## Dropping in pre-formatted files
+
+Any `.md` file that already has the required EchOS frontmatter is indexed automatically:
+
+1. Copy/paste the file into any folder under `data/knowledge/` (folder structure is free-form)
+2. Either wait for the file watcher to pick it up (if EchOS is running), or run:
+   ```bash
+   pnpm reconcile
+   ```
+3. The file appears in search results immediately
+
+Required frontmatter fields are listed in the [Frontmatter reference](#frontmatter-reference) below.
+
+---
+
+## Importing from an Obsidian vault
+
+Use the `import:obsidian` script to convert an existing Obsidian vault into EchOS format.
+
+### What gets converted
+
+| Obsidian field | EchOS field | Fallback |
+|---|---|---|
+| `id` (if UUID) | skipped — file already native | — |
+| `title` / `aliases[0]` | `title` | filename (date prefix stripped) |
+| `created` / `date` / `dateCreated` | `created` | file birthtime |
+| `updated` / `modified` / `dateModified` | `updated` | file mtime |
+| `tags` (array or string) | `tags` | inline `#tags` from content |
+| `category` | `category` | first path segment relative to vault root |
+| `[[WikiLinks]]` | `links` | extracted from content body |
+| `status` (if valid) | `status` | omitted |
+
+### Step by step
+
+**1. Preview first (recommended)**
+
+```bash
+pnpm import:obsidian --source ~/my-obsidian-vault --dry-run
+```
+
+This prints what would happen without writing anything:
+
+```
+Found 847 markdown file(s) in /Users/you/my-obsidian-vault
+
+  [convert] daily/2024-01-15 Morning pages.md
+  [convert] projects/echos/Architecture ideas.md
+  [skip]    templates/Daily Note Template.md (already has EchOS id)
+  ...
+
+Summary:
+  Processed : 847
+  Converted : 843
+  Skipped   : 4
+  Errors    : 0
+```
+
+**2. Convert in place** (modifies the vault files directly)
+
+```bash
+pnpm import:obsidian --source ~/my-obsidian-vault
+```
+
+Each file gets EchOS frontmatter written back into it. Original content is preserved.
+
+**3. Convert to a new location** (non-destructive)
+
+```bash
+pnpm import:obsidian \
+  --source ~/my-obsidian-vault \
+  --target ./data/knowledge \
+  --copy
+```
+
+Files are copied to `./data/knowledge/{type}/{category}/{date}-{slug}.md` with EchOS frontmatter.
+
+**4. Override the default type**
+
+```bash
+pnpm import:obsidian --source ~/vault --type journal
+```
+
+All notes without an explicit `type` in their frontmatter will be imported as `journal`.
+
+**5. Index the imported notes**
+
+```bash
+pnpm reconcile
+```
+
+Or just restart EchOS — it reconciles on startup.
+
+---
+
+## Importing from Notion
+
+Notion's markdown export has a few quirks the `import:notion` script handles automatically:
+
+- **Filename UUID suffix** — Notion appends a short hex ID: `My Note abc123def456.md` → title becomes `My Note`
+- **Date formats** — `Created: January 1, 2023` or ISO 8601; script tries multiple field names
+- **Comma-separated tags** — `Tags: ai, productivity` → `['ai', 'productivity']`
+- **No type field** — all imported as `'note'`
+
+### Notion export format
+
+To export from Notion: **Settings → Export content → Markdown & CSV → Export**.
+Unzip the export. The folder contains one `.md` per page plus sub-folders for nested pages.
+
+### Step by step
+
+**1. Preview**
+
+```bash
+pnpm import:notion --source ~/Downloads/notion-export --dry-run
+```
+
+**2. Convert and write to EchOS**
+
+```bash
+pnpm import:notion \
+  --source ~/Downloads/notion-export \
+  --target ./data/knowledge
+```
+
+Files are always written to `--target` (not modified in place), at:
+`{target}/note/{category}/{date}-{slug}.md`
+
+**3. Index**
+
+```bash
+pnpm reconcile
+```
+
+### Before/after example
+
+**Notion export (`My Ideas abc123.md`):**
+
+```yaml
+---
+Created: January 1, 2023
+Last Edited Time: March 15, 2023
+Tags: ai, tools, productivity
+Category: Research
+---
+
+# My Ideas
+
+Some content here...
+```
+
+**After `import:notion`:**
+
+```yaml
+---
+id: f47ac10b-58cc-4372-a567-0e02b2c3d479
+type: note
+title: My Ideas
+created: '2023-01-01T00:00:00.000Z'
+updated: '2023-03-15T00:00:00.000Z'
+tags:
+  - ai
+  - tools
+  - productivity
+links: []
+category: Research
+---
+
+# My Ideas
+
+Some content here...
+```
+
+---
+
+## Frontmatter reference
+
+All fields EchOS reads from `.md` files:
+
+| Field | Required | Type | Valid values / notes |
+|---|---|---|---|
+| `id` | **Yes** | `string` | UUID v4 — generated by import scripts |
+| `type` | **Yes** | `string` | `note` \| `journal` \| `article` \| `youtube` \| `reminder` \| `conversation` |
+| `title` | **Yes** | `string` | Free text |
+| `created` | **Yes** | `string` | ISO 8601 datetime, e.g. `'2024-01-15T09:30:00.000Z'` |
+| `updated` | **Yes** | `string` | ISO 8601 datetime |
+| `tags` | **Yes** | `string[]` | YAML list; may be empty `[]` |
+| `links` | **Yes** | `string[]` | Related note titles or IDs; may be empty `[]` |
+| `category` | **Yes** | `string` | Free text, e.g. `programming`, `health` |
+| `status` | No | `string` | `saved` \| `read` \| `archived` |
+| `inputSource` | No | `string` | `text` \| `voice` \| `url` \| `file` |
+| `source_url` | No | `string` | Original URL for articles/YouTube notes |
+| `gist` | No | `string` | Short summary / AI-generated abstract |
+| `author` | No | `string` | Author name for articles |
+
+> [!IMPORTANT]
+> Files missing `id` are silently skipped by the reconciler. The import scripts ensure `id`
+> is always written. If you create notes manually, you must add a UUID `id` field.
+
+---
+
+## After import: run `pnpm reconcile`
+
+```bash
+pnpm reconcile
+```
+
+This syncs all markdown files in `KNOWLEDGE_DIR` into:
+- **SQLite** (metadata + FTS5 full-text index)
+- **LanceDB** (placeholder vector embeddings — real embeddings generated when EchOS runs)
+
+Output looks like:
+
+```
+Results:
+  Scanned : 850
+  Added   : 843
+  Updated : 0
+  Skipped : 7
+  Deleted : 0
+```
+
+Alternatively, just start EchOS (`pnpm start`) — it reconciles on every startup.

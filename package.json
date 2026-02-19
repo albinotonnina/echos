@@ -28,6 +28,8 @@
     "wizard:check": "tsx scripts/setup.ts --check-only",
     "update-echos": "./scripts/update.sh",
     "reconcile": "tsx --env-file=.env scripts/reconcile.ts",
+    "import:obsidian": "tsx --env-file=.env scripts/import-obsidian.ts",
+    "import:notion": "tsx --env-file=.env scripts/import-notion.ts",
     "generate-test-notes": "tsx --env-file=.env scripts/generate-test-notes.ts",
     "clean": "pnpm -r clean && rm -rf node_modules",
     "deploy": "./scripts/deploy-fast.sh"

@@ -72,7 +72,15 @@ Three-strategy search fused with Reciprocal Rank Fusion:
 - **Terminal UI** — live in your terminal, never leave the keyboard
 
 ### 🗃️ Markdown-first, Obsidian-compatible
-Every note is a `.md` file with YAML frontmatter. Edit in Obsidian, VS Code, or any editor. EchOS watches for changes and syncs automatically.
+Every note is a plain `.md` file with YAML frontmatter — the same format Obsidian uses natively.
+
+- **Open in Obsidian today**: point Obsidian at `data/knowledge/` and browse your entire knowledge base
+- **Live sync**: edits saved in Obsidian are picked up by EchOS's file watcher instantly — no restart needed
+- **Drop files in**: add any EchOS-formatted `.md` file, run `pnpm reconcile`, and it's indexed
+- **Import existing vault**: `pnpm import:obsidian --source ~/vault --dry-run` previews the conversion; remove `--dry-run` to apply
+- **Import from Notion**: `pnpm import:notion --source ~/notion-export --dry-run`
+
+See [docs/KNOWLEDGE_IMPORT.md](docs/KNOWLEDGE_IMPORT.md) for the full import guide, frontmatter reference, and step-by-step walkthroughs.
 
 ### 🔌 Plugin architecture
 Content processors are plugins, not core code. Ships with:
@@ -254,6 +262,7 @@ Storage stays in sync automatically — a startup reconciler and live file watch
 | [INTERFACES.md](docs/INTERFACES.md) | Telegram, Web API, TUI reference |
 | [SCHEDULER.md](docs/SCHEDULER.md) | Background jobs, digests, reminders |
 | [SECURITY.md](docs/SECURITY.md) | Security model and threat mitigations |
+| [KNOWLEDGE_IMPORT.md](docs/KNOWLEDGE_IMPORT.md) | Obsidian vault opening, Notion import, frontmatter reference |
 | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and fixes |
 
 ---

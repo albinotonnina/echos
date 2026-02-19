@@ -85,7 +85,8 @@
       "Bash(gh auth switch:*)",
       "Bash(gh label create:*)",
       "WebSearch",
-      "Bash(yt-dlp:*)"
+      "Bash(yt-dlp:*)",
+      "Bash(/Users/albino.tonnina/CodePersonal/echos/data/knowledge/test/plain-obsidian-note.md:*)"
     ]
   }
 }
