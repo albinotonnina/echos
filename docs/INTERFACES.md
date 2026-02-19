@@ -15,7 +15,7 @@ ENABLE_TUI=false       # Terminal UI (experimental, disabled by default)
 # Web server port (only used when ENABLE_WEB=true)
 WEB_PORT=3000
 
-# Web API authentication key — required when ENABLE_WEB=true
+# Web API authentication key — mandatory when ENABLE_WEB=true (server exits without it)
 # Generate with: openssl rand -hex 32
 WEB_API_KEY=your_secret_key_here
 ```
@@ -104,7 +104,7 @@ Configure in `.env`:
 ```bash
 ENABLE_WEB=true
 WEB_PORT=3000
-WEB_API_KEY=your_secret_key_here   # required — protects all API routes
+WEB_API_KEY=your_secret_key_here   # required — server refuses to start without it
 ```
 
 Generate a key:
@@ -113,6 +113,8 @@ openssl rand -hex 32
 ```
 
 Or run `pnpm wizard` — it generates and stores the key automatically.
+
+> **Startup behaviour**: if `ENABLE_WEB=true` and `WEB_API_KEY` is not set, the web server throws at startup and the process exits. There is no unauthenticated fallback.
 
 ### Usage
 
@@ -420,7 +422,7 @@ This allows you to:
 - ✅ Binds to `127.0.0.1` — not reachable from the network
 - ✅ CORS restricted to `localhost` / `127.0.0.1` origins
 - ⚠️ Experimental — not recommended as the primary interface
-- ⚠️ If `WEB_API_KEY` is missing, the server starts but logs a warning and all routes are unauthenticated
+- ⚠️ If `WEB_API_KEY` is missing, the server **refuses to start** (exits with an error)
 
 ### TUI
 - ⚠️ **No authentication** — runs with local user permissions

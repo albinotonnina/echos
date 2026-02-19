@@ -302,7 +302,9 @@ function runNonInteractive(): WizardState {
     enableWeb: e['ENABLE_WEB'] === 'true',
     enableTui: e['ENABLE_TUI'] === 'true',
     webPort: parseInt(e['WEB_PORT'] ?? '3000', 10),
-    webApiKey: e['WEB_API_KEY'] ?? randomBytes(32).toString('hex'),
+    webApiKey: e['ENABLE_WEB'] === 'true'
+      ? (e['WEB_API_KEY'] ?? randomBytes(32).toString('hex'))
+      : (e['WEB_API_KEY'] ?? ''), // preserve existing key, but don't generate a new one
     enableScheduler: e['ENABLE_SCHEDULER'] === 'true',
     redisUrl: e['REDIS_URL'] ?? 'redis://localhost:6379',
     digestSchedule: e['DIGEST_SCHEDULE'] ?? '',

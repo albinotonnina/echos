@@ -19,7 +19,10 @@ export function createWebAdapter(options: WebAdapterOptions): InterfaceAdapter {
   return {
     async start(): Promise<void> {
       if (!config.webApiKey) {
-        logger.warn('WEB_API_KEY is not set — web API is unprotected! Set it in .env to secure the API.');
+        throw new Error(
+          'WEB_API_KEY is not set. Set it in .env before enabling the web interface, ' +
+          'or run `pnpm wizard` to generate one automatically.',
+        );
       }
 
       // CORS: restrict to localhost only (web UI is self-hosted)
@@ -38,9 +41,8 @@ export function createWebAdapter(options: WebAdapterOptions): InterfaceAdapter {
 
       // API key authentication for all other routes
       app.addHook('preHandler', async (request, reply) => {
-        if (request.url === '/health') return;
-
-        if (!config.webApiKey) return; // no key configured — unauthenticated (warn already logged)
+        // Match on the registered route path, not the raw URL (avoids query-string false negatives)
+        if (request.routeOptions?.url === '/health') return;
 
         const auth = request.headers['authorization'];
         if (!auth || !auth.startsWith('Bearer ') || auth.slice(7) !== config.webApiKey) {

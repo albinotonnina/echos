@@ -174,6 +174,9 @@ export function registerChatRoutes(
     Body: { userId: number };
   }>('/api/chat/reset', async (request, reply) => {
     const { userId } = request.body;
+    if (!userId) {
+      return reply.status(400).send({ error: 'Missing userId' });
+    }
     if (!isAllowed(userId)) {
       logger.warn({ userId }, 'Unauthorized userId in web reset request');
       return reply.status(403).send({ error: 'Forbidden' });
