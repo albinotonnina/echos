@@ -37,8 +37,9 @@ EchOS is a **self-hosted AI agent** that manages your knowledge base through nat
 - *"What do I know about LLMs?"* → hybrid full-text + semantic search across everything
 - *"Remind me to review that paper next Monday"* → persistent reminder with delivery via Telegram
 - *"Summarize what I've been reading this week"* → AI-generated digest from your actual notes
+- 🎙️ *Send a voice message while commuting* → Whisper transcribes it, Claude processes it, your note is saved
 
-No dashboards to maintain. No schemas to design. No commands to memorize.
+No dashboards to maintain. No schemas to design. No commands to memorize. No typing required.
 
 ---
 
@@ -49,7 +50,8 @@ No dashboards to maintain. No schemas to design. No commands to memorize.
 | Notion/Obsidian don't understand you | Natural language via Claude AI agent |
 | Cloud tools store your data | Fully self-hosted — your server, your data |
 | Chatbots forget everything | Persistent memory, hybrid search, markdown storage |
-| Saving things is friction | Send a Telegram message or a URL — done |
+| Saving things is friction | Send a Telegram message, a URL, or a voice note — done |
+| You can't type while on the move | Record a voice message → Whisper transcribes → Claude stores it |
 | Your notes are siloed | Obsidian-compatible markdown, git-friendly |
 
 ---
@@ -68,9 +70,17 @@ Three-strategy search fused with Reciprocal Rank Fusion:
 - **Semantic** — cosine similarity on OpenAI vector embeddings
 - **Hybrid** — best of both, reranked
 
+### 🎙️ Capture thoughts without touching a keyboard
+
+The biggest barrier to a knowledge base is the moment you think *"I'll add this later"* — and never do.
+
+Send EchOS a **voice message on Telegram** while you're commuting, walking, or mid-thought. OpenAI Whisper transcribes it, Claude processes the intent, and it lands in your knowledge base — tagged, embedded, and searchable — before you've put your phone away.
+
+No app to open. No form to fill. No note to clean up later.
+
 ### 📱 Reach it from anywhere
 
-- **Telegram bot** — message it from your phone like a chat, including voice messages (Whisper transcription)
+- **Telegram bot** — message it from your phone like a chat; send voice messages (Whisper transcription) or just text
 - **Web UI + REST API** — stream responses over SSE from any client
 - **Terminal UI** — live in your terminal, never leave the keyboard
 

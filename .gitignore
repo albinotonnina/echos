@@ -42,3 +42,6 @@ coverage/
 
 # Docker
 docker-compose.override.yml
+
+# Private notes (not for version control)
+docs/private/
