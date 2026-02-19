@@ -107,6 +107,12 @@ Every note is a plain `.md` file with YAML frontmatter — the same format Obsid
 
 See [docs/KNOWLEDGE_IMPORT.md](docs/KNOWLEDGE_IMPORT.md) for the full import guide, frontmatter reference, and step-by-step walkthroughs.
 
+#### Accessing your knowledge from your local machine
+
+If EchOS runs on a VPS, you can access `data/knowledge/` locally and open it in Obsidian as a live vault. There are several ways to do this depending on your preference: SSHFS (mount the directory over SSH), rsync (periodic one-way or two-way sync), or Syncthing (continuous background sync with no manual steps).
+
+See [docs/REMOTE_ACCESS.md](docs/REMOTE_ACCESS.md) for setup instructions for each approach.
+
 ### 🔌 Plugin architecture
 
 Content processors are plugins, not core code. Ships with:
@@ -406,6 +412,7 @@ See [docs/SECURITY.md](docs/SECURITY.md) for the full threat model and implement
 | [SCHEDULER.md](docs/SCHEDULER.md) | Background jobs, digests, reminders |
 | [SECURITY.md](docs/SECURITY.md) | Security model and threat mitigations |
 | [KNOWLEDGE_IMPORT.md](docs/KNOWLEDGE_IMPORT.md) | Obsidian vault opening, Notion import, frontmatter reference |
+| [REMOTE_ACCESS.md](docs/REMOTE_ACCESS.md) | Accessing knowledge files from a local machine (SSHFS, rsync, Syncthing) |
 | [WRITING.md](docs/WRITING.md) | Agent voice, style profiles, content generation |
 | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and fixes |
 
