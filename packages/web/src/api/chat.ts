@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Agent, AgentMessage } from '@mariozechner/pi-agent-core';
 import type { AgentDeps } from '@echos/core';
-import { createEchosAgent, isAgentMessageOverflow, createContextMessage, createUserMessage } from '@echos/core';
+import { createEchosAgent, isAgentMessageOverflow, createContextMessage, createUserMessage, resolveModel, MODEL_PRESETS, type ModelPreset } from '@echos/core';
 import type { Logger } from 'pino';
 
 const sessions = new Map<number, Agent>();
@@ -83,6 +83,32 @@ export function registerChatRoutes(
       response: responseText,
       toolCalls,
     });
+  });
+
+  // Switch model preset for the session
+  app.post<{
+    Body: { preset: ModelPreset; userId: number };
+  }>('/api/chat/model', async (request, reply) => {
+    const { preset, userId } = request.body;
+    if (!preset || !userId) {
+      return reply.status(400).send({ error: 'Missing preset or userId' });
+    }
+    if (!['fast', 'balanced', 'deep'].includes(preset)) {
+      return reply.status(400).send({ error: 'preset must be fast | balanced | deep' });
+    }
+    const agent = sessions.get(userId);
+    if (!agent) {
+      return reply.status(404).send({ error: 'No active session' });
+    }
+    const presets = agentDeps.modelPresets ?? {};
+    const modelSpec =
+      preset === 'fast'
+        ? (agentDeps.modelId ?? MODEL_PRESETS.fast)
+        : preset === 'balanced'
+          ? (presets.balanced ?? MODEL_PRESETS.balanced)
+          : (presets.deep ?? MODEL_PRESETS.deep);
+    agent.setModel(resolveModel(modelSpec));
+    return reply.send({ ok: true, model: agent.state.model.id });
   });
 
   // Steer the running agent mid-turn (interrupt after current tool, skip remaining)

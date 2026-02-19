@@ -58,6 +58,7 @@ The application will start all enabled interfaces simultaneously.
 | `/reset` | Clear conversation history and start fresh |
 | `/usage` | Show token usage and cost for the current session |
 | `/followup <message>` | Queue a message to run after the current task finishes |
+| `/model [fast\|balanced\|deep]` | Show or switch the model for the current session |
 
 ### Steering (mid-run interruption)
 
@@ -153,6 +154,17 @@ Content-Type: application/json
 ```
 
 Returns `409` if the agent is not currently running.
+
+#### Switch Model Preset
+
+```bash
+POST /api/chat/model
+Content-Type: application/json
+
+{ "userId": 123, "preset": "balanced" }
+```
+
+Valid presets: `fast` | `balanced` | `deep`. Returns `{ ok: true, model: "<model-id>" }`.
 
 #### Queue Follow-up
 

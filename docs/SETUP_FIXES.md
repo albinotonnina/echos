@@ -2,6 +2,45 @@
 
 This document tracks configuration changes and fixes made to ensure the project runs correctly.
 
+## February 19, 2026 — Model Presets & Cross-Provider Handoffs
+
+### New env vars: `MODEL_BALANCED`, `MODEL_DEEP`
+
+Configure named model presets for on-the-fly switching during a session:
+
+```bash
+MODEL_BALANCED=claude-sonnet-4-5     # default balanced preset
+MODEL_DEEP=claude-opus-4-5           # default deep preset
+```
+
+**Format**: plain model ID (provider inferred from prefix) or `provider/model-id` for explicit provider:
+```bash
+MODEL_BALANCED=openai/gpt-4o         # cross-provider: OpenAI
+MODEL_DEEP=anthropic/claude-opus-4-5
+```
+
+**Built-in defaults** (used when env vars are not set):
+| Preset | Default model |
+|---|---|
+| `fast` | `claude-3-5-haiku-20241022` |
+| `balanced` | `claude-sonnet-4-5` |
+| `deep` | `claude-opus-4-5` |
+
+**Switching mid-session** (conversation history is preserved across model switches; thinking blocks from Claude are automatically converted to `<thinking>` tagged text for cross-provider compatibility):
+- Telegram: `/model balanced`
+- Web API: `POST /api/chat/model { "preset": "balanced", "userId": 123 }`
+
+**Files changed:**
+- `packages/shared/src/config/index.ts` — `modelBalanced`, `modelDeep` fields
+- `packages/core/src/agent/model-resolver.ts` — `resolveModel(spec)`, `MODEL_PRESETS`, `ModelPreset`
+- `packages/core/src/agent/index.ts` — `modelPresets?` in `AgentDeps`
+- `packages/core/src/index.ts` — exports resolver + preset types
+- `src/index.ts` — passes presets into `AgentDeps`
+- `packages/telegram/src/index.ts` — `/model` command
+- `packages/web/src/api/chat.ts` — `POST /api/chat/model` endpoint
+
+---
+
 ## February 19, 2026 — Configurable Thinking Level
 
 ### New env var: `THINKING_LEVEL`

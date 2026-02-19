@@ -33,6 +33,8 @@ export interface AgentDeps {
   anthropicApiKey: string;
   modelId?: string;
   logger: Logger;
+  /** Named model presets available for /model switching */
+  modelPresets?: { balanced?: string; deep?: string };
   /** Reasoning/thinking level for the LLM (set THINKING_LEVEL=off|minimal|low|medium|high|xhigh) */
   thinkingLevel?: ThinkingLevel;
   /** Log raw LLM request payloads at debug level (set LOG_LLM_PAYLOADS=true) */

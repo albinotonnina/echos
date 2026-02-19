@@ -2,7 +2,7 @@ import { Bot } from 'grammy';
 import type { Logger } from 'pino';
 import type { Config, InterfaceAdapter, NotificationService } from '@echos/shared';
 import type { AgentDeps } from '@echos/core';
-import { computeSessionUsage, createUserMessage } from '@echos/core';
+import { computeSessionUsage, createUserMessage, resolveModel, MODEL_PRESETS, type ModelPreset } from '@echos/core';
 import { createAuthMiddleware, createRateLimitMiddleware, createErrorHandler } from './middleware/index.js';
 import { getOrCreateSession, getSession, clearAllSessions } from './session.js';
 import { streamAgentResponse } from './streaming.js';
@@ -87,6 +87,51 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
       `Cost: ${costStr}\n` +
       `Context window: ${usage.contextWindowPercent.toFixed(1)}%`,
     );
+  });
+
+  // /model command — switch model preset for the current session
+  bot.command('model', async (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    const preset = ctx.match?.toLowerCase().trim() as ModelPreset | '' | undefined;
+
+    if (!preset) {
+      const agent = getSession(userId);
+      const currentModel = agent?.state.model.id ?? '(no session)';
+      const presets = agentDeps.modelPresets ?? {};
+      const available = [
+        `fast: ${agentDeps.modelId ?? MODEL_PRESETS.fast}`,
+        `balanced: ${presets.balanced ?? MODEL_PRESETS.balanced}`,
+        `deep: ${presets.deep ?? MODEL_PRESETS.deep}`,
+      ].join('\n  ');
+      await ctx.reply(
+        `Current model: ${currentModel}\n\nAvailable presets:\n  ${available}\n\nUsage: /model fast|balanced|deep`,
+      );
+      return;
+    }
+
+    if (!['fast', 'balanced', 'deep'].includes(preset)) {
+      await ctx.reply('Unknown preset. Use: fast | balanced | deep');
+      return;
+    }
+
+    const agent = getSession(userId);
+    if (!agent) {
+      await ctx.reply('No active session. Send a message first.');
+      return;
+    }
+
+    const presets = agentDeps.modelPresets ?? {};
+    const modelSpec =
+      preset === 'fast'
+        ? (agentDeps.modelId ?? MODEL_PRESETS.fast)
+        : preset === 'balanced'
+          ? (presets.balanced ?? MODEL_PRESETS.balanced)
+          : (presets.deep ?? MODEL_PRESETS.deep);
+
+    agent.setModel(resolveModel(modelSpec));
+    await ctx.reply(`✅ Switched to ${preset}: ${agent.state.model.id}`);
   });
 
   // /followup command — queue work to run after the current agent turn finishes

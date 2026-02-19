@@ -24,6 +24,7 @@ export {
 export { createEchosAgent, SYSTEM_PROMPT, buildSystemPrompt, type AgentDeps } from './agent/index.js';
 export { isAgentMessageOverflow } from './agent/context-manager.js';
 export { createContextMessage, createUserMessage, type EchosContextMessage } from './agent/messages.js';
+export { resolveModel, MODEL_PRESETS, MODEL_PRESET_NAMES, type ModelPreset } from './agent/model-resolver.js';
 export {
   categorizeContent,
   categorizeLightweight,
