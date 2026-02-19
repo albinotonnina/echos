@@ -1,0 +1,29 @@
+{
+  "name": "@echos/plugin-image",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@echos/core": "workspace:*",
+    "@echos/shared": "workspace:*",
+    "@mariozechner/pi-agent-core": "^0.53.0",
+    "@mariozechner/pi-ai": "^0.53.0",
+    "@sinclair/typebox": "^0.34.48",
+    "pino": "^10.3.1",
+    "uuid": "^13.0.0",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "@types/uuid": "^11.0.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -36,6 +36,7 @@ import {
 import youtubePlugin from '@echos/plugin-youtube';
 import articlePlugin from '@echos/plugin-article';
 import contentCreationPlugin from '@echos/plugin-content-creation';
+import imagePlugin from '@echos/plugin-image';
 
 const logger = createLogger('echos');
 
@@ -65,6 +66,7 @@ async function main(): Promise<void> {
   pluginRegistry.register(articlePlugin);
   pluginRegistry.register(youtubePlugin);
   pluginRegistry.register(contentCreationPlugin);
+  pluginRegistry.register(imagePlugin);
 
   await pluginRegistry.setupAll({
     sqlite,
@@ -77,6 +79,7 @@ async function main(): Promise<void> {
       anthropicApiKey: config.anthropicApiKey,
       webshareProxyUsername: config.webshareProxyUsername,
       webshareProxyPassword: config.webshareProxyPassword,
+      knowledgeDir: config.knowledgeDir,
     },
   });
 
