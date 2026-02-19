@@ -86,47 +86,4 @@ jobs:
             pnpm update-echos
             ```
 
-  # ── 3. Deploy to personal VPS instance ─────────────────────────────
-  deploy:
-    name: Deploy to VPS
-    runs-on: ubuntu-latest
-    needs: docker
-    timeout-minutes: 10
-
-    steps:
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "${{ secrets.ORACLE_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
-
-      - name: Pull new image and restart
-        run: |
-          ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            "${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}" << 'ENDSSH'
-            set -e
-            cd echos/docker
-
-            echo "Pulling ghcr.io/albinotonnina/echos:latest..."
-            docker compose pull echos
-
-            echo "Restarting..."
-            docker compose up -d
-
-            sleep 5
-            docker compose ps
-            echo ""
-            echo "Recent logs:"
-            docker compose logs --tail=20 echos
-          ENDSSH
-
-      - name: Health check
-        run: |
-          sleep 10
-          curl --fail --silent --max-time 10 \
-            "http://${{ secrets.ORACLE_HOST }}:${{ secrets.WEB_PORT || '3000' }}/health" \
-            && echo "Health check passed" \
-            || echo "Health check failed (non-fatal)"
-        continue-on-error: true
+            To deploy to your VPS manually, use the "Deploy to VPS" workflow from the Actions tab.
