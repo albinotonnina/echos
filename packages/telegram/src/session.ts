@@ -20,6 +20,7 @@ export function getOrCreateSession(userId: number, deps: AgentDeps): Agent {
     if (now - existing.lastActivity > SESSION_TIMEOUT_MS) {
       existing.agent.reset();
       const agent = createEchosAgent(deps);
+      agent.sessionId = `telegram-${userId}`;
       sessions.set(userId, { agent, lastActivity: now });
       return agent;
     }
@@ -28,6 +29,7 @@ export function getOrCreateSession(userId: number, deps: AgentDeps): Agent {
   }
 
   const agent = createEchosAgent(deps);
+  agent.sessionId = `telegram-${userId}`;
   sessions.set(userId, { agent, lastActivity: now });
   return agent;
 }

@@ -10,6 +10,7 @@ function getOrCreateAgent(userId: number, deps: AgentDeps): Agent {
   let agent = sessions.get(userId);
   if (!agent) {
     agent = createEchosAgent(deps);
+    agent.sessionId = `web-${userId}`;
     sessions.set(userId, agent);
   }
   return agent;

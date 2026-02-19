@@ -17,6 +17,7 @@ export function createTuiAdapter(options: TuiAdapterOptions): InterfaceAdapter {
     async start(): Promise<void> {
       running = true;
       const agent = createEchosAgent(agentDeps);
+      agent.sessionId = 'tui-local';
 
       const unsubscribe = agent.subscribe((event) => {
         if (event.type === 'message_update' && 'assistantMessageEvent' in event) {
