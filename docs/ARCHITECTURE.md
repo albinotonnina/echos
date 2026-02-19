@@ -124,6 +124,22 @@ Long-term memory (`remember_about_me` / `recall_knowledge` tools) uses a hybrid 
 
 This means `/reset` only clears the conversation history — all stored memories persist in SQLite and are reloaded into the next session automatically.
 
+## Agent Session Caching
+
+Each agent instance is assigned a `sessionId` at creation time, forwarded to LLM providers that support session-aware prompt caching:
+
+| Interface | Session ID format |
+|---|---|
+| Telegram | `telegram-{userId}` |
+| Web | `web-{userId}` |
+| TUI | `tui-local` |
+
+**Effect by provider:**
+- **Anthropic**: Extends prompt cache TTL from the default 5 minutes to longer durations. Set `PI_CACHE_RETENTION=long` for 1-hour retention.
+- **OpenAI**: Enables 24-hour in-memory cache reuse across calls.
+
+No configuration required — caching is automatic when a `sessionId` is present.
+
 ## Security
 
 - User authentication via Telegram user ID whitelist

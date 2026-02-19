@@ -55,6 +55,12 @@ export const configSchema = z.object({
   webshareProxyUsername: z.string().optional(),
   webshareProxyPassword: z.string().optional(),
 
+  // Debug
+  logLlmPayloads: z
+    .string()
+    .default('false')
+    .transform((s) => s === 'true'),
+
   // Schedules
   digestSchedule: optionalCron,
   newsletterSchedule: optionalCron,
@@ -87,6 +93,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     enableScheduler: env['ENABLE_SCHEDULER'],
     webshareProxyUsername: env['WEBSHARE_PROXY_USERNAME'],
     webshareProxyPassword: env['WEBSHARE_PROXY_PASSWORD'],
+    logLlmPayloads: env['LOG_LLM_PAYLOADS'],
     digestSchedule: env['DIGEST_SCHEDULE'],
     newsletterSchedule: env['NEWSLETTER_SCHEDULE'],
     trendingSchedule: env['TRENDING_SCHEDULE'],

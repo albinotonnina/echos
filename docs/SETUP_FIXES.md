@@ -2,6 +2,25 @@
 
 This document tracks configuration changes and fixes made to ensure the project runs correctly.
 
+## February 19, 2026 — LLM Payload Debug Logging
+
+### New env var: `LOG_LLM_PAYLOADS`
+
+Set `LOG_LLM_PAYLOADS=true` to log the raw request payload sent to the LLM provider before each API call. Logged at Pino `debug` level under the key `payload`.
+
+```bash
+LOG_LLM_PAYLOADS=true pnpm start
+```
+
+**Files changed:**
+- `packages/shared/src/config/index.ts` — added `logLlmPayloads` field
+- `packages/core/src/agent/index.ts` — wraps `agent.streamFn` with `onPayload` hook when enabled
+- `src/index.ts` — passes `config.logLlmPayloads` into `AgentDeps`
+
+**Security note:** Pino redaction (`ANTHROPIC_API_KEY`, `Authorization` headers) applies before any log output, so keys are not exposed even with this flag enabled. Do not enable in production unless actively debugging.
+
+---
+
 ## February 18, 2026 — Distribution & First-Run Setup Wizard
 
 ### Setup Wizard (`pnpm wizard`)

@@ -1,6 +1,6 @@
 import { Agent } from '@mariozechner/pi-agent-core';
 import type { AgentTool } from '@mariozechner/pi-agent-core';
-import { getModel } from '@mariozechner/pi-ai';
+import { getModel, streamSimple } from '@mariozechner/pi-ai';
 import type { Logger } from 'pino';
 import { buildSystemPrompt } from './system-prompt.js';
 import { createContextWindow } from './context-manager.js';
@@ -32,6 +32,8 @@ export interface AgentDeps {
   anthropicApiKey: string;
   modelId?: string;
   logger: Logger;
+  /** Log raw LLM request payloads at debug level (set LOG_LLM_PAYLOADS=true) */
+  logLlmPayloads?: boolean;
   /** Additional tools registered by plugins */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pluginTools?: AgentTool<any>[];
@@ -90,7 +92,7 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     'Creating EchOS agent',
   );
 
-  return new Agent({
+  const agent = new Agent({
     initialState: {
       systemPrompt,
       model,
@@ -99,6 +101,16 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     },
     transformContext: createContextWindow(80_000),
   });
+
+  if (deps.logLlmPayloads) {
+    agent.streamFn = (m, context, options) =>
+      streamSimple(m, context, {
+        ...options,
+        onPayload: (payload) => deps.logger.debug({ payload }, 'LLM request payload'),
+      });
+  }
+
+  return agent;
 }
 
 export { SYSTEM_PROMPT, buildSystemPrompt } from './system-prompt.js';
