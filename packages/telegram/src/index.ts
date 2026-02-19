@@ -146,8 +146,11 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
 
     async start(): Promise<void> {
       logger.info('Starting Telegram bot...');
+      // Drop pending updates to prevent stale /start commands from being processed
+      // when the bot reconnects after being offline (e.g., user cleared messages)
       bot.start({
         onStart: () => logger.info('Telegram bot started'),
+        drop_pending_updates: true,
       });
     },
 
