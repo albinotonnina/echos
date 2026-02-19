@@ -51,6 +51,7 @@
     "@echos/plugin-youtube": "workspace:*",
     "@echos/plugin-article": "workspace:*",
     "@echos/plugin-content-creation": "workspace:*",
+    "@echos/plugin-image": "workspace:*",
     "tsx": "^4.21.0"
   },
   "devDependencies": {

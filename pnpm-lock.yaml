@@ -17,6 +17,9 @@ importers:
       '@echos/plugin-content-creation':
         specifier: workspace:*
         version: link:plugins/content-creation
+      '@echos/plugin-image':
+        specifier: workspace:*
+        version: link:plugins/image
       '@echos/plugin-youtube':
         specifier: workspace:*
         version: link:plugins/youtube
@@ -86,10 +89,10 @@ importers:
         version: 0.22.3(apache-arrow@18.1.0)
       '@mariozechner/pi-agent-core':
         specifier: ^0.53.0
-        version: 0.53.0(ws@8.19.0)(zod@4.3.6)
+        version: 0.53.0(ws@8.19.0)(zod@3.25.76)
       '@mariozechner/pi-ai':
         specifier: ^0.53.0
-        version: 0.53.0(ws@8.19.0)(zod@4.3.6)
+        version: 0.53.0(ws@8.19.0)(zod@3.25.76)
       '@sinclair/typebox':
         specifier: ^0.34.48
         version: 0.34.48
@@ -352,10 +355,10 @@ importers:
         version: link:../../packages/shared
       '@mariozechner/pi-agent-core':
         specifier: ^0.53.0
-        version: 0.53.0(ws@8.19.0)(zod@3.25.76)
+        version: 0.53.0(ws@8.19.0)(zod@4.3.6)
       '@mariozechner/pi-ai':
         specifier: ^0.53.0
-        version: 0.53.0(ws@8.19.0)(zod@3.25.76)
+        version: 0.53.0(ws@8.19.0)(zod@4.3.6)
       '@sinclair/typebox':
         specifier: ^0.34.48
         version: 0.34.48
