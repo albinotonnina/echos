@@ -71,6 +71,11 @@ export async function handleVoiceMessage(
     const transcribedText = typeof transcription === 'string' ? transcription.trim() : '';
 
     if (!transcribedText) {
+      await ctx.api.setMessageReaction(
+        ctx.chat!.id,
+        ctx.message!.message_id,
+        [{ type: 'emoji', emoji: '😱' }],
+      ).catch(() => undefined);
       await ctx.api.editMessageText(
         ctx.chat!.id,
         statusMsg.message_id,
@@ -91,6 +96,11 @@ export async function handleVoiceMessage(
     await streamAgentResponse(agent, transcribedText, ctx);
   } catch (err) {
     logger.error({ err }, 'Failed to process voice message');
+    await ctx.api.setMessageReaction(
+      ctx.chat!.id,
+      ctx.message!.message_id,
+      [{ type: 'emoji', emoji: '😱' }],
+    ).catch(() => undefined);
     await ctx.api.editMessageText(
       ctx.chat!.id,
       statusMsg.message_id,

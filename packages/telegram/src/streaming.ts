@@ -247,4 +247,14 @@ export async function streamAgentResponse(
   } else {
     await updateMessage('Done.');
   }
+
+  // React to the original user message to signal completion
+  const userMessageId = ctx.message?.message_id;
+  if (userMessageId) {
+    await ctx.api.setMessageReaction(
+      ctx.chat!.id,
+      userMessageId,
+      [{ type: 'emoji', emoji: agentError ? '😱' : '👌' }],
+    ).catch(() => undefined);
+  }
 }

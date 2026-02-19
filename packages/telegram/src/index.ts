@@ -169,6 +169,7 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
       return;
     }
 
+    await ctx.react('👀').catch(() => undefined);
     await streamAgentResponse(agent, ctx.message.text, ctx);
   });
 
@@ -182,6 +183,7 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
       return;
     }
 
+    await ctx.react('🤗').catch(() => undefined);
     const agent = getOrCreateSession(userId, agentDeps);
     await handleVoiceMessage(ctx, agent, config.openaiApiKey, logger);
   });
