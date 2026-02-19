@@ -17,6 +17,7 @@ export interface PluginContext {
   config: Record<string, unknown> & {
     openaiApiKey?: string;
     anthropicApiKey?: string;
+    knowledgeDir?: string;
   };
 }
 
