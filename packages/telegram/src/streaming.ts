@@ -212,6 +212,13 @@ export async function streamAgentResponse(
   const sent = await ctx.reply(statusLine);
   messageId = sent.message_id;
 
+  // Keep Telegram's native "typing…" indicator alive while the agent processes.
+  // It auto-expires after ~5 s, so refresh every 4 s.
+  void ctx.api.sendChatAction(ctx.chat!.id, 'typing');
+  const typingInterval = setInterval(() => {
+    void ctx.api.sendChatAction(ctx.chat!.id, 'typing');
+  }, 4000);
+
   const now = new Date();
   try {
     await agent.prompt([
@@ -219,6 +226,7 @@ export async function streamAgentResponse(
       createUserMessage(prompt),
     ]);
   } finally {
+    clearInterval(typingInterval);
     unsubscribe();
     if (editTimeout) clearTimeout(editTimeout);
   }
