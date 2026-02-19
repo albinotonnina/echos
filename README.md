@@ -125,11 +125,7 @@ Redis-backed scheduler via BullMQ:
 
 ### 🔐 Security-first
 
-- User whitelist (Telegram user ID allowlist)
-- SSRF prevention on all URL fetching
-- Rate limiting per user (token bucket)
-- HTML sanitization, secret redaction in logs
-- All API keys stored in `chmod 0600` `.env` only
+EchOS is designed to be safe to run on your own infrastructure. It does not touch your file system beyond its own `data/` directory, does not execute shell commands, and does not run code from AI responses. See the [Security](#security) section for the full model.
 
 ### 🎭 Agent voice — shape how EchOS talks to you
 
@@ -332,6 +328,54 @@ Storage Layer
 ```
 
 Storage stays in sync automatically — a startup reconciler and live file watcher handle files added or edited outside the app. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
+
+---
+
+## Security
+
+EchOS is designed to be safe to self-host. Here is exactly what it does and does not do.
+
+### What EchOS does NOT do
+
+| Guarantee | Detail |
+|---|---|
+| Does not touch your file system | EchOS only reads and writes inside its own `data/` directory. It never traverses your home directory, system files, or anything outside that scope. |
+| Does not execute shell commands | No user input, AI output, or plugin code ever reaches a shell. `exec`, `spawn`, and similar calls are absent from the codebase. |
+| Does not run code from AI responses | Claude's output is treated as text. EchOS never passes AI-generated strings to `eval()`, `Function()`, `vm.runInNewContext()`, or any other dynamic execution primitive. |
+| Does not exfiltrate your data | EchOS is fully self-hosted. The only outbound calls are to the APIs you configure (Anthropic, OpenAI) — and those calls never include data you haven't explicitly asked it to process. |
+| Does not store secrets in logs | Pino is configured with redaction paths covering all common secret field names. API keys and tokens never appear in log output. |
+
+### Authentication
+
+EchOS is a **single-user system**. Access is gated by a Telegram user ID allowlist that you configure. Only your Telegram account can interact with the bot. The Web UI uses the same identity via the Telegram Login Widget. The TUI is local-only and requires no auth.
+
+### SSRF Prevention
+
+All URL fetching goes through `validateUrl()` before any network call is made:
+
+- Only `http:` and `https:` protocols are accepted
+- Private IP ranges are blocked: `10.x`, `172.16–31.x`, `192.168.x`, `127.x`
+- Localhost and cloud metadata endpoints (e.g. `169.254.169.254`) are blocked
+
+This means even if you paste a malicious URL, EchOS cannot be used to probe your internal network.
+
+### Rate Limiting
+
+Token bucket algorithm — 20 tokens, 1 token/second refill — applied per user at the middleware level across all interfaces.
+
+### Input Validation & Content Sanitization
+
+- All configuration validated with Zod schemas at startup
+- Tool parameters validated with TypeBox + AJV
+- HTML content from external sources sanitized with DOMPurify before processing
+- `sanitizeHtml()` strips all tags and re-escapes entities; `escapeXml()` handles XML contexts
+- AI output is treated as untrusted data throughout
+
+### Audit Logging
+
+Security-relevant events (auth failures, content access, mutations) are written to a separate audit logger with structured timestamps and user IDs.
+
+See [docs/SECURITY.md](docs/SECURITY.md) for the full threat model and implementation details.
 
 ---
 

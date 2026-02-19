@@ -1,5 +1,19 @@
 # Security
 
+## What EchOS Does NOT Do
+
+These are hard guarantees about what EchOS will never do to your system:
+
+| Guarantee | Detail |
+|---|---|
+| Does not touch your file system | EchOS only reads and writes inside its own `data/` directory. It never traverses your home directory, system files, or anything outside that scope. |
+| Does not execute shell commands | No user input, AI output, or plugin code ever reaches a shell. `exec`, `spawn`, and similar calls are absent from the codebase. |
+| Does not run code from AI responses | Claude's output is treated as text. EchOS never passes AI-generated strings to `eval()`, `Function()`, `vm.runInNewContext()`, or any other dynamic execution primitive. |
+| Does not exfiltrate your data | The only outbound calls are to the APIs you configure (Anthropic, OpenAI). No data is ever sent to any other third party. |
+| Does not store secrets in logs | Pino redaction paths cover all common secret field names. API keys and tokens never appear in log output, error messages, or audit trails. |
+
+---
+
 ## Authentication
 
 - Single-user system authenticated via Telegram user ID whitelist
