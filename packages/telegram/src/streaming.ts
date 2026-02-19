@@ -81,10 +81,10 @@ function markdownToHtml(text: string): string {
 
   // 4. Convert markdown syntax to HTML tags
   out = out
-    // Ensure headers always start on their own line (AI may omit the preceding newline)
-    .replace(/([^\n])(#{1,6} )/g, '$1\n$2')
-    // Headers → bold (Telegram HTML has no heading tags)
-    .replace(/^#{1,6} (.+)$/gm, (_, t: string) => `<b>${t}</b>`)
+    // Headers → bold (Telegram HTML has no heading tags).
+    // Handles "## Title", "##" alone, and "## " with no content.
+    // If the header has content, wrap in <b>; if empty/standalone, remove the marker.
+    .replace(/^#{1,6}\s*(.*)$/gm, (_, t: string) => (t.trim() ? `<b>${t.trim()}</b>` : ''))
     // Bold — must come before italic
     .replace(/\*\*(.+?)\*\*/gs, '<b>$1</b>')
     .replace(/__(.+?)__/gs, '<b>$1</b>')
