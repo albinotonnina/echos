@@ -43,6 +43,7 @@ EchOS is a **self-hosted AI agent** that manages your knowledge base through nat
 - *"Remind me to review that paper next Monday"* → persistent reminder with delivery via Telegram
 - *"Summarize what I've been reading this week"* → AI-generated digest from your actual notes
 - 🎙️ *Send a voice message while commuting* → Whisper transcribes it, Claude processes it, your note is saved
+- *"Write a blog post about distributed systems"* → generates content in your voice, sourced from your notes
 
 No dashboards to maintain. No schemas to design. No commands to memorize. No typing required.
 
@@ -58,6 +59,7 @@ No dashboards to maintain. No schemas to design. No commands to memorize. No typ
 | Saving things is friction | Send a Telegram message, a URL, or a voice note — done |
 | You can't type while on the move | Record a voice message → Whisper transcribes → Claude stores it |
 | Your notes are siloed | Obsidian-compatible markdown, git-friendly |
+| Writing content is starting from scratch | Generate blog posts, threads, emails in your own voice, grounded in your notes |
 
 > [!NOTE]
 > Already running that wildly popular open-source AI agent — the one with the crustacean logo, you know the one? EchOS coexists with it beautifully. That one is a generalist; EchOS is a specialist. One handles your shell and your tasks. The other remembers what you were actually thinking about. Different appendages, different purpose.
@@ -144,13 +146,52 @@ You:    Reset your voice to default.
 EchOS:  Back to my default tone.
 ```
 
-The agent interprets your words and writes its own directive — so "be more chill" becomes a coherent instruction it will actually follow. The change:
+The agent interprets your words and writes its own directive — so "be more chill" becomes a coherent instruction it will actually follow. The change takes effect immediately and persists across sessions.
 
-- **takes effect immediately** in the same conversation
-- **persists across sessions** — no need to repeat yourself
+### ✍️ Write in your voice, grounded in your knowledge
+
+The second barrier to a knowledge base — after *saving* things — is doing something with them.
+
+EchOS can draft blog posts, articles, threads, emails, essays, and tutorials that sound like you wrote them. Not generic AI prose. Your cadence, your vocabulary, your way of opening a paragraph. It learns this from writing you've already done, then draws on your actual notes when generating new content.
+
+```
+You:    Write a blog post about the tradeoffs of embedded databases
+EchOS:  [generates a post in your voice, citing notes you've saved on the topic]
+
+You:    Make it shorter and punchier, aimed at a general audience
+EchOS:  [revised draft]
+
+You:    Save it
+EchOS:  Saved. Tagged as blog_post, ai-generated. You can open it in Obsidian.
+```
+
+**How it learns your voice:**
+
+1. Find a note with writing you're proud of and say *"mark this as a voice example"* — do this for 5–15 polished pieces
+2. Say *"analyze my writing style"* — it reads all your examples and builds a profile: tone, formality, sentence structure, signature phrases, paragraph style
+3. Say *"show me my style profile"* to see what it learned
+4. That profile is used automatically every time you ask it to write something
+
+**What it generates:**
+
+| Type | Good for |
+|---|---|
+| `blog_post` | Technical or personal posts |
+| `article` | Long-form, more formal |
+| `thread` | Twitter/X-style multi-part |
+| `linkedin_post` | LinkedIn-style single post |
+| `email` | Drafts to a specific recipient |
+| `essay` | Exploratory, argument-driven |
+| `tutorial` | Step-by-step instructional |
+
+**It uses your knowledge base as context.** When you ask for a post about distributed systems, EchOS retrieves your most relevant notes via semantic search and uses them as source material — so the content reflects what you actually know and have read, not what the model was trained on.
+
+Generated content is saved as a regular note, tagged and indexed like everything else. Open it in Obsidian, edit it, publish it, or feed it back as a voice example.
 
 > [!NOTE]
-> Agent voice controls how EchOS *talks to you*. Your style profile (built with `analyze_my_style`) controls how it *writes content on your behalf*. A formal writing style and a casual conversational agent are completely independent.
+> Agent voice controls how EchOS *talks to you*. Your style profile controls how it *writes content on your behalf*. These are independent — a formal writing style and a casual conversational agent work fine together.
+
+See [docs/WRITING.md](docs/WRITING.md) for the full setup guide.
 
 ---
 
@@ -320,6 +361,7 @@ Storage stays in sync automatically — a startup reconciler and live file watch
 | [SCHEDULER.md](docs/SCHEDULER.md) | Background jobs, digests, reminders |
 | [SECURITY.md](docs/SECURITY.md) | Security model and threat mitigations |
 | [KNOWLEDGE_IMPORT.md](docs/KNOWLEDGE_IMPORT.md) | Obsidian vault opening, Notion import, frontmatter reference |
+| [WRITING.md](docs/WRITING.md) | Agent voice, style profiles, content generation |
 | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and fixes |
 
 ---

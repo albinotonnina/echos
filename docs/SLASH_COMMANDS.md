@@ -100,7 +100,7 @@ The following tools are available through plugins:
 - `save_youtube` - Save and process YouTube videos with optional AI categorization
 
 #### Content Creation Plugin
-- `analyze_style` - Analyze writing style from example content
+- `analyze_my_style` - Analyze writing style from notes tagged `voice-example`
 - `create_content` - Generate new content based on style profile
 - `get_style_profile` - Retrieve saved style profiles
-- `mark_voice_example` - Mark content as a voice/style example
+- `mark_as_voice_example` - Tag a note as a voice/style example
