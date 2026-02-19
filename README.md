@@ -40,6 +40,7 @@ EchOS is a **self-hosted AI agent** that manages your knowledge base through nat
 
 - *"Save this article for me"* → fetches, summarizes, categorizes, and indexes it
 - *"What do I know about LLMs?"* → hybrid full-text + semantic search across everything
+- *"Let's brainstorm ideas for my next project"* → have a real conversation, then say "save this conversation as a note" when you're done
 - *"Remind me to review that paper next Monday"* → persistent reminder with delivery via Telegram
 - *"Summarize what I've been reading this week"* → AI-generated digest from your actual notes
 - 🎙️ *Send a voice message while commuting* → Whisper transcribes it, Claude processes it, your note is saved
@@ -229,6 +230,12 @@ With nginx + Let's Encrypt:
 sed "s/DOMAIN_NAME/yourdomain.com/g" docker/nginx.conf.template > docker/nginx.conf
 docker compose --profile nginx up -d
 ```
+
+### Oracle Cloud — free tier
+
+Run EchOS on Oracle Cloud's Always Free tier (ARM instance with 24GB RAM). Configuration is more involved than a standard VPS, but your coding agent (or even EchOS itself) can help you through it.
+
+See [docs/ORACLE_CLOUD_VAULT.md](docs/ORACLE_CLOUD_VAULT.md) for secure secret management on Oracle Cloud instances.
 
 > [!TIP]
 > See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for systemd service setup, nginx SSL, and VPS deployment instructions.
