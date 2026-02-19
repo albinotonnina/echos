@@ -2,8 +2,33 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { categorizeLightweight, processFull, categorizeContent } from './categorization.js';
 import { createLogger } from '@echos/shared';
 
-// Mock fetch for Anthropic API
-global.fetch = vi.fn();
+// Mock the pi-ai module since categorization uses streamSimple, not fetch directly
+vi.mock('@mariozechner/pi-ai', () => ({
+  getModel: vi.fn(() => ({ id: 'claude-3-5-haiku-20241022' })),
+  streamSimple: vi.fn(),
+  parseStreamingJson: vi.fn((text: string) => {
+    try {
+      return JSON.parse(text) as unknown;
+    } catch {
+      return {};
+    }
+  }),
+}));
+
+import { streamSimple } from '@mariozechner/pi-ai';
+
+function makeStream(jsonPayload: unknown): AsyncIterable<{ type: string; delta: string }> {
+  const text = JSON.stringify(jsonPayload);
+  return (async function* () {
+    yield { type: 'text_delta', delta: text };
+  })();
+}
+
+function makeErrorStream(): AsyncIterable<never> {
+  return (async function* () {
+    throw new Error('API error');
+  })();
+}
 
 describe('Categorization Service', () => {
   const logger = createLogger('test');
@@ -17,32 +42,19 @@ describe('Categorization Service', () => {
 
   describe('categorizeLightweight', () => {
     it('should return category and tags on success', async () => {
-      const mockResponse = {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              category: 'programming',
-              tags: ['typescript', 'javascript', 'web-development'],
-            }),
-          },
-        ],
-      };
-
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      } as Response);
+      vi.mocked(streamSimple).mockReturnValueOnce(
+        makeStream({ category: 'programming', tags: ['typescript', 'javascript', 'web-development'] }) as ReturnType<typeof streamSimple>,
+      );
 
       const result = await categorizeLightweight(title, content, testApiKey, logger);
 
       expect(result.category).toBe('programming');
       expect(result.tags).toEqual(['typescript', 'javascript', 'web-development']);
-      expect(global.fetch).toHaveBeenCalledOnce();
+      expect(streamSimple).toHaveBeenCalledOnce();
     });
 
     it('should return default values on error', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('API error'));
+      vi.mocked(streamSimple).mockReturnValueOnce(makeErrorStream() as ReturnType<typeof streamSimple>);
 
       const result = await categorizeLightweight(title, content, testApiKey, logger);
 
@@ -61,19 +73,7 @@ describe('Categorization Service', () => {
         keyPoints: ['Static typing', 'Compiles to JavaScript', 'Better tooling'],
       };
 
-      const mockResponse = {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(mockResult),
-          },
-        ],
-      };
-
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      } as Response);
+      vi.mocked(streamSimple).mockReturnValueOnce(makeStream(mockResult) as ReturnType<typeof streamSimple>);
 
       const result = await processFull(title, content, testApiKey, logger);
 
@@ -85,7 +85,7 @@ describe('Categorization Service', () => {
     });
 
     it('should return fallback values on error', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('API error'));
+      vi.mocked(streamSimple).mockReturnValueOnce(makeErrorStream() as ReturnType<typeof streamSimple>);
 
       const result = await processFull(title, content, testApiKey, logger);
 
@@ -99,22 +99,9 @@ describe('Categorization Service', () => {
 
   describe('categorizeContent', () => {
     it('should call categorizeLightweight for lightweight mode', async () => {
-      const mockResponse = {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              category: 'programming',
-              tags: ['typescript'],
-            }),
-          },
-        ],
-      };
-
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      } as Response);
+      vi.mocked(streamSimple).mockReturnValueOnce(
+        makeStream({ category: 'programming', tags: ['typescript'] }) as ReturnType<typeof streamSimple>,
+      );
 
       const result = await categorizeContent(title, content, 'lightweight', testApiKey, logger);
 
@@ -131,19 +118,7 @@ describe('Categorization Service', () => {
         keyPoints: ['Point 1'],
       };
 
-      const mockResponse = {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(mockResult),
-          },
-        ],
-      };
-
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      } as Response);
+      vi.mocked(streamSimple).mockReturnValueOnce(makeStream(mockResult) as ReturnType<typeof streamSimple>);
 
       const result = await categorizeContent(title, content, 'full', testApiKey, logger);
 
