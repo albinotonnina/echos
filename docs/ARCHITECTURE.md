@@ -124,6 +124,17 @@ Long-term memory (`remember_about_me` / `recall_knowledge` tools) uses a hybrid 
 
 This means `/reset` only clears the conversation history — all stored memories persist in SQLite and are reloaded into the next session automatically.
 
+## AI Categorization — Streaming with Progressive JSON
+
+The categorization service (`packages/core/src/agent/categorization.ts`) uses `streamSimple` from `@mariozechner/pi-ai` instead of a blocking `fetch`. As the LLM streams its JSON response, `parseStreamingJson` parses each partial chunk — which never throws, always returning `{}` on incomplete input.
+
+When new fields become fully formed in the partial JSON, an optional `onProgress` callback fires:
+- `"Category: programming"` — as soon as `category` is resolved
+- `"Tags: typescript, api"` — updated each time a new tag appears
+- `"Gist: One sentence summary."` — once the gist looks complete (>20 chars, ends with punctuation) — full mode only
+
+Both `categorizeLightweight` and `processFull` accept `onProgress?: (message: string) => void`. Callers that don't need progressive updates (e.g. the scheduler digest worker) pass no callback and get the same blocking behaviour as before.
+
 ## Context Overflow Detection
 
 The agent uses a two-layer approach to context window management:

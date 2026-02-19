@@ -164,6 +164,7 @@ export function createMyTool(
             mode,
             context.config.anthropicApiKey as string,
             context.logger,
+            (message) => onUpdate?.({ content: [{ type: 'text', text: message }], details: { phase: 'categorizing' } }),
           );
 
           category = result.category;
@@ -312,32 +313,36 @@ Plugins can use the built-in categorization service from `@echos/core`:
 ```typescript
 import { categorizeContent, type ProcessingMode } from '@echos/core';
 
-// Lightweight mode: ~1-2 seconds, category + tags only
+// Lightweight mode: category + tags only
 const result = await categorizeContent(
   title,
   content,
   'lightweight',
   context.config.anthropicApiKey as string,
   context.logger,
+  // Optional: receive progressive updates as the LLM streams its response
+  (message) => onUpdate?.({ content: [{ type: 'text', text: message }], details: { phase: 'categorizing' } }),
 );
 // result: { category: string, tags: string[] }
 
-// Full mode: ~3-5 seconds, includes gist, summary, key points
+// Full mode: includes gist, summary, key points
 const fullResult = await categorizeContent(
   title,
   content,
   'full',
   context.config.anthropicApiKey as string,
   context.logger,
+  (message) => onUpdate?.({ content: [{ type: 'text', text: message }], details: { phase: 'categorizing' } }),
 );
 // fullResult: { category, tags, gist, summary, keyPoints }
 ```
 
-The categorization service automatically:
-- Analyzes content using Claude AI
-- Extracts structured metadata (category, tags, etc.)
+The categorization service:
+- Uses `streamSimple` + `parseStreamingJson` to stream the LLM response progressively
+- Fires `onProgress` as fields resolve: category → tags → gist (full mode)
 - Handles errors with safe defaults (fallback to 'uncategorized')
 - Respects content length limits (5000 chars for lightweight, 10000 for full)
+- Is safe to call without `onProgress` — callers that don't need streaming omit the last argument
 
 See [CATEGORIZATION.md](CATEGORIZATION.md) for detailed documentation.
 

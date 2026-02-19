@@ -1,5 +1,5 @@
 import { Agent } from '@mariozechner/pi-agent-core';
-import type { AgentTool } from '@mariozechner/pi-agent-core';
+import type { AgentTool, ThinkingLevel } from '@mariozechner/pi-agent-core';
 import { getModel, streamSimple } from '@mariozechner/pi-ai';
 import type { Logger } from 'pino';
 import { buildSystemPrompt } from './system-prompt.js';
@@ -32,6 +32,8 @@ export interface AgentDeps {
   anthropicApiKey: string;
   modelId?: string;
   logger: Logger;
+  /** Reasoning/thinking level for the LLM (set THINKING_LEVEL=off|minimal|low|medium|high|xhigh) */
+  thinkingLevel?: ThinkingLevel;
   /** Log raw LLM request payloads at debug level (set LOG_LLM_PAYLOADS=true) */
   logLlmPayloads?: boolean;
   /** Additional tools registered by plugins */
@@ -88,7 +90,7 @@ export function createEchosAgent(deps: AgentDeps): Agent {
   const systemPrompt = buildSystemPrompt(memories, hasMore);
 
   deps.logger.info(
-    { model: model.id, coreTools: coreTools.length, pluginTools: (deps.pluginTools ?? []).length, totalTools: tools.length, memoriesLoaded: memories.length, memoriesTotal: hasMore ? `>${MEMORY_INJECT_LIMIT}` : memories.length },
+    { model: model.id, thinkingLevel: deps.thinkingLevel ?? 'off', coreTools: coreTools.length, pluginTools: (deps.pluginTools ?? []).length, totalTools: tools.length, memoriesLoaded: memories.length, memoriesTotal: hasMore ? `>${MEMORY_INJECT_LIMIT}` : memories.length },
     'Creating EchOS agent',
   );
 
@@ -97,7 +99,7 @@ export function createEchosAgent(deps: AgentDeps): Agent {
       systemPrompt,
       model,
       tools,
-      thinkingLevel: 'off',
+      thinkingLevel: deps.thinkingLevel ?? 'off',
     },
     transformContext: createContextWindow(80_000),
   });

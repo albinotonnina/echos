@@ -52,6 +52,7 @@
   },
   "devDependencies": {
     "@clack/prompts": "^1.0.1",
+    "gray-matter": "^4.0.3",
     "@eslint/js": "^10.0.1",
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^10.0.0",

@@ -2,6 +2,28 @@
 
 This document tracks configuration changes and fixes made to ensure the project runs correctly.
 
+## February 19, 2026 — Configurable Thinking Level
+
+### New env var: `THINKING_LEVEL`
+
+Controls the LLM reasoning depth. Defaults to `off`.
+
+```bash
+THINKING_LEVEL=medium pnpm start   # extended reasoning on every turn
+THINKING_LEVEL=off pnpm start      # default — no reasoning, fastest
+```
+
+Valid values: `off` | `minimal` | `low` | `medium` | `high` | `xhigh`
+
+> **Note**: `xhigh` is only supported by OpenAI GPT-5.2/5.3 and Anthropic Opus 4.6 (where it maps to adaptive effort "max"). Setting it on an unsupported model will produce an error. Use `medium` or `high` as safe upgrades for Claude Haiku/Sonnet.
+
+**Files changed:**
+- `packages/shared/src/config/index.ts` — added `thinkingLevel` Zod enum field
+- `packages/core/src/agent/index.ts` — `thinkingLevel?` in `AgentDeps`; passed to `Agent` constructor; logged at startup
+- `src/index.ts` — passes `config.thinkingLevel` into `AgentDeps`
+
+---
+
 ## February 19, 2026 — LLM Payload Debug Logging
 
 ### New env var: `LOG_LLM_PAYLOADS`

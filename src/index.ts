@@ -88,6 +88,7 @@ async function main(): Promise<void> {
     generateEmbedding,
     anthropicApiKey: config.anthropicApiKey,
     modelId: config.defaultModel,
+    thinkingLevel: config.thinkingLevel,
     logLlmPayloads: config.logLlmPayloads,
     logger,
     pluginTools: pluginRegistry.getTools(),

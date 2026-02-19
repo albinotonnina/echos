@@ -4,6 +4,7 @@
  */
 
 import type { Logger } from 'pino';
+import { streamSimple, getModel, parseStreamingJson } from '@mariozechner/pi-ai';
 
 /**
  * Categorization result (lightweight mode)
@@ -27,6 +28,8 @@ export interface FullProcessingResult extends CategorizationResult {
  */
 export type ProcessingMode = 'lightweight' | 'full';
 
+const MODEL_ID = 'claude-3-5-haiku-20241022';
+
 /**
  * Generate lightweight categorization (category + tags only)
  */
@@ -35,6 +38,7 @@ export async function categorizeLightweight(
   content: string,
   apiKey: string,
   logger: Logger,
+  onProgress?: (message: string) => void,
 ): Promise<CategorizationResult> {
   logger.debug({ title }, 'Starting lightweight categorization');
 
@@ -56,34 +60,34 @@ Respond with a JSON object in this exact format:
 }`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
-        max_tokens: 500,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      }),
-    });
+    const model = getModel('anthropic', MODEL_ID as 'claude-3-5-haiku-20241022');
+    const stream = streamSimple(
+      model,
+      { messages: [{ role: 'user', content: prompt, timestamp: Date.now() }] },
+      { apiKey, maxTokens: 500 },
+    );
 
-    if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`);
+    let accumulated = '';
+    let lastCategory = '';
+    let lastTagCount = 0;
+
+    for await (const event of stream) {
+      if (event.type === 'text_delta') {
+        accumulated += event.delta;
+        const partial = parseStreamingJson<Partial<CategorizationResult>>(accumulated);
+
+        if (partial.category && partial.category !== lastCategory) {
+          lastCategory = partial.category;
+          onProgress?.(`Category: ${partial.category}`);
+        }
+        if (partial.tags && partial.tags.length > lastTagCount) {
+          lastTagCount = partial.tags.length;
+          onProgress?.(`Tags: ${partial.tags.filter(Boolean).join(', ')}`);
+        }
+      }
     }
 
-    const data = await response.json() as { content: Array<{ type: string; text: string }> };
-    const text = data.content[0]?.text ?? '{}';
-    
-    // Extract JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? jsonMatch[0] : '{}';
     const result = JSON.parse(jsonStr) as CategorizationResult;
 
@@ -98,7 +102,6 @@ Respond with a JSON object in this exact format:
     };
   } catch (error) {
     logger.error({ error }, 'Categorization failed');
-    // Fallback to default categorization
     return {
       category: 'uncategorized',
       tags: [],
@@ -114,6 +117,7 @@ export async function processFull(
   content: string,
   apiKey: string,
   logger: Logger,
+  onProgress?: (message: string) => void,
 ): Promise<FullProcessingResult> {
   logger.debug({ title }, 'Starting full content processing');
 
@@ -141,34 +145,45 @@ Respond with a JSON object in this exact format:
 }`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
-        max_tokens: 2000,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      }),
-    });
+    const model = getModel('anthropic', MODEL_ID as 'claude-3-5-haiku-20241022');
+    const stream = streamSimple(
+      model,
+      { messages: [{ role: 'user', content: prompt, timestamp: Date.now() }] },
+      { apiKey, maxTokens: 2000 },
+    );
 
-    if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`);
+    let accumulated = '';
+    let lastCategory = '';
+    let lastTagCount = 0;
+    let lastGist = '';
+
+    for await (const event of stream) {
+      if (event.type === 'text_delta') {
+        accumulated += event.delta;
+        const partial = parseStreamingJson<Partial<FullProcessingResult>>(accumulated);
+
+        if (partial.category && partial.category !== lastCategory) {
+          lastCategory = partial.category;
+          onProgress?.(`Category: ${partial.category}`);
+        }
+        if (partial.tags && partial.tags.length > lastTagCount) {
+          lastTagCount = partial.tags.length;
+          onProgress?.(`Tags: ${partial.tags.filter(Boolean).join(', ')}`);
+        }
+        // Only surface gist once it looks complete (ends with punctuation or is long enough)
+        if (
+          partial.gist &&
+          partial.gist !== lastGist &&
+          partial.gist.length > 20 &&
+          /[.!?]$/.test(partial.gist)
+        ) {
+          lastGist = partial.gist;
+          onProgress?.(`Gist: ${partial.gist}`);
+        }
+      }
     }
 
-    const data = await response.json() as { content: Array<{ type: string; text: string }> };
-    const text = data.content[0]?.text ?? '{}';
-    
-    // Extract JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? jsonMatch[0] : '{}';
     const result = JSON.parse(jsonStr) as FullProcessingResult;
 
@@ -186,7 +201,6 @@ Respond with a JSON object in this exact format:
     };
   } catch (error) {
     logger.error({ error }, 'Full processing failed');
-    // Fallback to default values
     return {
       category: 'uncategorized',
       tags: [],
@@ -206,10 +220,11 @@ export async function categorizeContent(
   mode: ProcessingMode,
   apiKey: string,
   logger: Logger,
+  onProgress?: (message: string) => void,
 ): Promise<CategorizationResult | FullProcessingResult> {
   if (mode === 'lightweight') {
-    return categorizeLightweight(title, content, apiKey, logger);
+    return categorizeLightweight(title, content, apiKey, logger, onProgress);
   } else {
-    return processFull(title, content, apiKey, logger);
+    return processFull(title, content, apiKey, logger, onProgress);
   }
 }

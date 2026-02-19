@@ -71,6 +71,7 @@ export function createSaveYoutubeTool(
             mode,
             context.config.anthropicApiKey as string,
             context.logger,
+            (message) => onUpdate?.({ content: [{ type: 'text', text: message }], details: { phase: 'categorizing' } }),
           );
 
           category = result.category;
