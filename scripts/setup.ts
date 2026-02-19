@@ -12,6 +12,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { randomBytes } from 'node:crypto';
 import { execSync, spawnSync } from 'node:child_process';
 import * as clack from '@clack/prompts';
 import pc from 'picocolors';
@@ -34,6 +35,7 @@ interface WizardState {
   enableWeb: boolean;
   enableTui: boolean;
   webPort: number;
+  webApiKey: string;
   enableScheduler: boolean;
   redisUrl: string;
   digestSchedule: string;
@@ -239,6 +241,7 @@ function stateToEnv(state: WizardState): string {
     `ENABLE_WEB=${state.enableWeb}`,
     `ENABLE_TUI=${state.enableTui}`,
     `WEB_PORT=${state.webPort}`,
+    state.webApiKey ? `WEB_API_KEY=${state.webApiKey}` : '# WEB_API_KEY=',
     '',
     '# ── Telegram (required when ENABLE_TELEGRAM=true) ───────────────────────────',
     state.telegramBotToken
@@ -296,9 +299,10 @@ function runNonInteractive(): WizardState {
     allowedUserIds: e['ALLOWED_USER_IDS'] ?? '',
     enableTelegram: e['ENABLE_TELEGRAM'] === 'true',
     telegramBotToken: e['TELEGRAM_BOT_TOKEN'] ?? '',
-    enableWeb: e['ENABLE_WEB'] !== 'false',
+    enableWeb: e['ENABLE_WEB'] === 'true',
     enableTui: e['ENABLE_TUI'] === 'true',
     webPort: parseInt(e['WEB_PORT'] ?? '3000', 10),
+    webApiKey: e['WEB_API_KEY'] ?? randomBytes(32).toString('hex'),
     enableScheduler: e['ENABLE_SCHEDULER'] === 'true',
     redisUrl: e['REDIS_URL'] ?? 'redis://localhost:6379',
     digestSchedule: e['DIGEST_SCHEDULE'] ?? '',
@@ -422,15 +426,19 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
   // ── Step 4: Other Interfaces ─────────────────────────────────────────────
 
   clack.log.step('Additional Interfaces');
+  clack.log.warn(
+    pc.yellow('Web UI and TUI are') + pc.bold(pc.yellow(' experimental')) + pc.yellow(' and disabled by default.\n') +
+    pc.dim('  Telegram is the recommended and most stable interface.'),
+  );
 
   const interfaceChoices = await clack.multiselect<string, string>({
-    message: 'Enable interfaces',
+    message: 'Enable interfaces (optional)',
     options: [
-      { value: 'web', label: 'Web UI', hint: 'REST/SSE API + web interface' },
-      { value: 'tui', label: 'TUI', hint: 'terminal user interface' },
+      { value: 'web', label: 'Web UI', hint: 'experimental — REST API + web interface (requires API key auth)' },
+      { value: 'tui', label: 'TUI', hint: 'experimental — terminal user interface' },
     ],
     initialValues: [
-      ...(existing['ENABLE_WEB'] !== 'false' ? ['web'] : []),
+      ...(existing['ENABLE_WEB'] === 'true' ? ['web'] : []),
       ...(existing['ENABLE_TUI'] === 'true' ? ['tui'] : []),
     ],
     required: false,
@@ -439,6 +447,18 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
   const ifaces = interfaceChoices as string[];
   const enableWeb = ifaces.includes('web');
   const enableTui = ifaces.includes('tui');
+
+  // Generate or reuse API key for web interface
+  const webApiKey = enableWeb
+    ? (existing['WEB_API_KEY'] ?? randomBytes(32).toString('hex'))
+    : '';
+
+  if (enableWeb) {
+    clack.log.info(
+      pc.dim('Web API key (') + pc.bold('keep this secret') + pc.dim(', stored in .env):') +
+      '\n  ' + pc.cyan(webApiKey),
+    );
+  }
 
   let webPort = 3000;
   if (enableWeb) {
@@ -582,6 +602,7 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
     enableWeb,
     enableTui,
     webPort,
+    webApiKey,
     enableScheduler,
     redisUrl,
     digestSchedule,
@@ -734,8 +755,8 @@ async function main(): Promise<void> {
       `OpenAI key       : ${state.openaiApiKey ? maskKey(state.openaiApiKey) : pc.dim('(not set)')}`,
       `Allowed user IDs : ${state.allowedUserIds}`,
       `Telegram         : ${state.enableTelegram ? pc.green('enabled') : pc.dim('disabled')}${state.telegramBotToken ? ` (${maskKey(state.telegramBotToken)})` : ''}`,
-      `Web UI           : ${state.enableWeb ? pc.green(`enabled :${state.webPort}`) : pc.dim('disabled')}`,
-      `TUI              : ${state.enableTui ? pc.green('enabled') : pc.dim('disabled')}`,
+      `Web UI           : ${state.enableWeb ? pc.green(`enabled :${state.webPort}`) + pc.dim(` (key: ${state.webApiKey.slice(0, 8)}…)`) : pc.dim('disabled (experimental)')}`,
+      `TUI              : ${state.enableTui ? pc.green('enabled') : pc.dim('disabled (experimental)')}`,
       `Scheduler        : ${state.enableScheduler ? pc.green(`enabled — ${state.redisUrl}`) : pc.dim('disabled')}`,
       `Storage          : ${state.knowledgeDir}, ${state.dbPath}, ${state.sessionDir}`,
     ].join('\n  ');

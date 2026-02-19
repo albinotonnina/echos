@@ -44,6 +44,7 @@ export const configSchema = z.object({
 
   // Web
   webPort: z.coerce.number().int().positive().default(3000),
+  webApiKey: z.string().optional(),
 
   // Scheduler
   enableScheduler: z
@@ -99,6 +100,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     enableWeb: env['ENABLE_WEB'],
     enableTui: env['ENABLE_TUI'],
     webPort: env['WEB_PORT'],
+    webApiKey: env['WEB_API_KEY'],
     enableScheduler: env['ENABLE_SCHEDULER'],
     webshareProxyUsername: env['WEBSHARE_PROXY_USERNAME'],
     webshareProxyPassword: env['WEBSHARE_PROXY_PASSWORD'],

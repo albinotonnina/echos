@@ -19,8 +19,15 @@ function getOrCreateAgent(userId: number, deps: AgentDeps): Agent {
 export function registerChatRoutes(
   app: FastifyInstance,
   agentDeps: AgentDeps,
+  allowedUserIds: number[],
   logger: Logger,
 ): void {
+  const allowedSet = new Set(allowedUserIds);
+
+  function isAllowed(userId: number): boolean {
+    return allowedSet.has(userId);
+  }
+
   // Send a message and get a streamed response
   app.post<{
     Body: { message: string; userId: number };
@@ -29,6 +36,10 @@ export function registerChatRoutes(
 
     if (!message || !userId) {
       return reply.status(400).send({ error: 'Missing message or userId' });
+    }
+    if (!isAllowed(userId)) {
+      logger.warn({ userId }, 'Unauthorized userId in web chat request');
+      return reply.status(403).send({ error: 'Forbidden' });
     }
 
     const agent = getOrCreateAgent(userId, agentDeps);
@@ -93,6 +104,10 @@ export function registerChatRoutes(
     if (!preset || !userId) {
       return reply.status(400).send({ error: 'Missing preset or userId' });
     }
+    if (!isAllowed(userId)) {
+      logger.warn({ userId }, 'Unauthorized userId in web model request');
+      return reply.status(403).send({ error: 'Forbidden' });
+    }
     if (!['fast', 'balanced', 'deep'].includes(preset)) {
       return reply.status(400).send({ error: 'preset must be fast | balanced | deep' });
     }
@@ -119,6 +134,10 @@ export function registerChatRoutes(
     if (!message || !userId) {
       return reply.status(400).send({ error: 'Missing message or userId' });
     }
+    if (!isAllowed(userId)) {
+      logger.warn({ userId }, 'Unauthorized userId in web steer request');
+      return reply.status(403).send({ error: 'Forbidden' });
+    }
     const agent = sessions.get(userId);
     if (!agent) {
       return reply.status(404).send({ error: 'No active session' });
@@ -138,6 +157,10 @@ export function registerChatRoutes(
     if (!message || !userId) {
       return reply.status(400).send({ error: 'Missing message or userId' });
     }
+    if (!isAllowed(userId)) {
+      logger.warn({ userId }, 'Unauthorized userId in web followup request');
+      return reply.status(403).send({ error: 'Forbidden' });
+    }
     const agent = sessions.get(userId);
     if (!agent) {
       return reply.status(404).send({ error: 'No active session' });
@@ -151,6 +174,10 @@ export function registerChatRoutes(
     Body: { userId: number };
   }>('/api/chat/reset', async (request, reply) => {
     const { userId } = request.body;
+    if (!isAllowed(userId)) {
+      logger.warn({ userId }, 'Unauthorized userId in web reset request');
+      return reply.status(403).send({ error: 'Forbidden' });
+    }
     const agent = sessions.get(userId);
     if (agent) {
       agent.reset();
