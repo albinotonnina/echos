@@ -79,17 +79,26 @@ Content processors live in `plugins/` as separate workspace packages. Each plugi
 - Is registered via `PluginRegistry` in the application entry point
 
 Core tools (create_note, search, get, list, update, delete, reminders, memory, linking, categorize_note, save_conversation, mark_content) remain in `@echos/core`.
-Domain-specific processors (YouTube, article, etc.) are plugins.
+Domain-specific processors (YouTube, article, image, etc.) are plugins.
 
 Plugins can optionally use the AI categorization service from `@echos/core` to automatically extract category, tags, gist, summary, and key points from content. See [CATEGORIZATION.md](CATEGORIZATION.md) for details.
 
+### Available Plugins
+
+- **article**: Web article extraction using Readability
+- **youtube**: YouTube video transcript extraction
+- **image**: Image storage with metadata extraction (format, dimensions, EXIF)
+- **content-creation**: Content generation tools
+
+See [PLUGINS.md](PLUGINS.md) for detailed plugin documentation.
+
 ## Storage Architecture
 
-**SQLite** (better-sqlite3): Structured metadata index, FTS5 full-text search, memory store, reminders. The memory table stores long-term personal facts with a confidence score (0–1) and kind (`fact`, `preference`, `person`, `project`, `expertise`). Notes also store a `content_hash` (SHA-256) used to detect changes and skip unnecessary re-embedding. The `status` column tracks content lifecycle (`saved`, `read`, `archived`) and `input_source` records how content was captured (`text`, `voice`, `url`, `file`).
+**SQLite** (better-sqlite3): Structured metadata index, FTS5 full-text search, memory store, reminders. The memory table stores long-term personal facts with a confidence score (0–1) and kind (`fact`, `preference`, `person`, `project`, `expertise`). Notes also store a `content_hash` (SHA-256) used to detect changes and skip unnecessary re-embedding. The `status` column tracks content lifecycle (`saved`, `read`, `archived`) and `input_source` records how content was captured (`text`, `voice`, `url`, `file`, `image`). For images, additional columns store `image_path` (local file path), `image_url` (source URL), `image_metadata` (JSON with dimensions, format, EXIF), and `ocr_text` (for future OCR support).
 
 **LanceDB** (embedded): Vector embeddings for semantic search. No server process needed.
 
-**Markdown files**: Source of truth. YAML frontmatter with structured metadata. Directory layout: `knowledge/{type}/{category}/{date}-{slug}.md`.
+**Markdown files**: Source of truth. YAML frontmatter with structured metadata. Directory layout: `knowledge/{type}/{category}/{date}-{slug}.md`. Images are stored in `knowledge/image/{category}/{hash}.{ext}` and referenced from markdown notes.
 
 ### Storage Sync
 

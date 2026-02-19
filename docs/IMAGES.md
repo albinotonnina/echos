@@ -1,0 +1,376 @@
+# Image Handling in EchOS
+
+EchOS provides comprehensive support for storing, organizing, and searching images as part of your personal knowledge base.
+
+## Overview
+
+Images are treated as first-class content in EchOS, stored alongside notes, articles, and other content types. Each image includes:
+
+- **Metadata**: dimensions, format, file size, EXIF data
+- **Storage**: original file on disk + markdown representation
+- **Search**: embedded descriptions for semantic search
+- **Organization**: tags, categories, and captions
+
+## Supported Formats
+
+- JPEG/JPG
+- PNG
+- GIF
+- WebP
+- AVIF
+- TIFF
+- BMP
+
+Maximum file size: 20MB
+
+## Image Storage Architecture
+
+### Three-Layer Storage
+
+Like all content in EchOS, images use a three-layer storage architecture:
+
+1. **Original File**: Stored in `knowledge/image/{category}/{hash}.{ext}`
+2. **Markdown Note**: Stored in `knowledge/note/{category}/{date}-{slug}.md`
+3. **SQLite Index**: Metadata for fast retrieval and search
+4. **Vector Embeddings**: For semantic search based on descriptions
+
+### Directory Structure
+
+```
+knowledge/
+├── image/
+│   ├── photos/
+│   │   ├── abc123def456.jpg
+│   │   └── 789xyz456uvw.png
+│   └── screenshots/
+│       └── screen001xyz.png
+└── note/
+    └── photos/
+        ├── 2024-01-15-vacation-beach.md
+        └── 2024-01-15-family-dinner.md
+```
+
+### Markdown Format
+
+Each image note includes:
+
+```markdown
+---
+id: abc123-def456-...
+type: image
+title: Beach Vacation
+created: 2024-01-15T10:30:00Z
+updated: 2024-01-15T10:30:00Z
+tags:
+  - vacation
+  - beach
+  - family
+category: photos
+status: saved
+inputSource: image
+imagePath: /path/to/knowledge/image/photos/abc123def456.jpg
+imageUrl: https://...
+imageMetadata: '{"format":"jpeg","width":1920,"height":1080,...}'
+---
+
+Beautiful sunset at the beach with family
+
+![Beach Vacation](../../image/photos/abc123def456.jpg)
+```
+
+## Using Images
+
+### Via Telegram
+
+Send a photo to the EchOS bot:
+
+1. **Simple**: Just send the photo - it will be saved automatically
+2. **With Caption**: Add a caption for context
+3. **Auto-Categorization**: The agent will categorize it based on content
+
+Example:
+```
+[Send photo]
+Caption: "Team meeting notes from Q4 planning"
+```
+
+The agent will:
+- Download and validate the image
+- Extract metadata (dimensions, format, EXIF)
+- Categorize it (e.g., "work/meetings")
+- Add relevant tags
+- Save to knowledge base
+- Create searchable embeddings
+
+### Via save_image Tool
+
+The agent can save images from URLs or base64 data:
+
+```json
+{
+  "imageUrl": "https://example.com/photo.jpg",
+  "title": "Product Design Mockup",
+  "caption": "Final design for mobile app homepage",
+  "tags": ["design", "mobile", "ui"],
+  "category": "design",
+  "autoCategorize": false
+}
+```
+
+Parameters:
+- `imageUrl` (optional): URL to download image from
+- `imageData` (optional): Base64-encoded image data
+- `title` (optional): Image title
+- `caption` (optional): Description or context
+- `tags` (optional): Array of tags
+- `category` (optional): Category (default: "photos")
+- `autoCategorize` (optional): Use AI to categorize (default: false)
+- `processingMode` (optional): "lightweight" or "full" AI processing
+
+## Image Metadata
+
+EchOS extracts and stores comprehensive metadata:
+
+### Basic Metadata
+- **Format**: jpeg, png, gif, etc.
+- **Dimensions**: width x height in pixels
+- **File Size**: in bytes
+- **Color Space**: RGB, grayscale, etc.
+- **Alpha Channel**: transparency support
+
+### EXIF Data (when available)
+- Camera make/model
+- Date taken
+- GPS coordinates
+- Exposure settings
+- ISO, aperture, shutter speed
+
+Access metadata via the note:
+```javascript
+const note = await search.get(imageId);
+const metadata = JSON.parse(note.metadata.imageMetadata);
+console.log(metadata.width, metadata.height, metadata.format);
+```
+
+## Searching Images
+
+### Text Search
+
+Images are searchable by:
+- Title
+- Caption
+- Tags
+- Category
+
+```
+search for images about "vacation beach"
+find photos tagged "family"
+show me screenshots from last week
+```
+
+### Semantic Search
+
+Captions and descriptions are embedded for semantic search:
+
+```
+find images related to product design
+show me photos of outdoor activities
+```
+
+### Filtering
+
+```
+list images in category "work"
+show recent photos with tag "project-alpha"
+```
+
+## AI Categorization
+
+When `autoCategorize: true`, the agent:
+
+### Lightweight Mode
+- Suggests category based on title/caption
+- Generates relevant tags
+
+### Full Mode
+- Category and tags (as above)
+- Gist (one-line summary)
+- Detailed analysis
+
+Example output:
+```
+Category: work/meetings
+Tags: [team, planning, q4, strategy]
+Gist: Team planning session for Q4 objectives
+```
+
+## Best Practices
+
+### Naming and Captions
+
+- **Descriptive titles**: "Q4 Planning Whiteboard" vs "IMG_1234"
+- **Contextual captions**: Add who, what, when, why
+- **Consistent tagging**: Use a tagging system
+
+### Organization
+
+- **Use categories**: Separate personal/work, by project, etc.
+- **Tag liberally**: Multiple tags help retrieval
+- **Regular review**: Mark as 'read' or 'archived' when processed
+
+### Performance
+
+- **Reasonable sizes**: Stay under 5MB when possible for faster processing
+- **Supported formats**: Prefer JPEG/PNG for photos, PNG for screenshots
+- **Bulk imports**: Process in batches to avoid overwhelming the system
+
+## Integration with Other Features
+
+### Linking
+
+Images can be linked to/from other notes:
+
+```markdown
+See the [[design-mockup-v2]] image for the latest iteration.
+```
+
+### Reminders
+
+```
+remind me to review these vacation photos next month
+```
+
+### Memory System
+
+The agent can remember preferences:
+```
+User prefers categorizing travel photos by location
+User tags work screenshots with project names
+```
+
+## Future Enhancements
+
+Planned features (not yet implemented):
+
+- **OCR**: Extract text from images for searchability
+- **Vision API**: AI-powered image descriptions
+- **Image Similarity**: Find visually similar images
+- **Thumbnails**: Multiple sizes for faster loading
+- **Compression**: Automatic optimization
+- **Gallery Views**: Web UI for browsing images
+- **Batch Operations**: Tag/categorize multiple images at once
+- **Face Recognition**: Group photos by people (privacy-aware)
+
+## Privacy & Security
+
+- **Local Storage**: All images stored locally, never uploaded to third parties
+- **Metadata Privacy**: EXIF data retained but not exposed externally
+- **Access Control**: User authentication required
+- **Encryption**: Consider encrypting the knowledge directory at rest
+
+## Troubleshooting
+
+### Image Not Saving
+
+- Check file format is supported
+- Verify file size under 20MB
+- Ensure sufficient disk space
+- Check logs for errors
+
+### Metadata Not Extracted
+
+- Some formats don't include EXIF (e.g., screenshots)
+- Web images may have stripped metadata
+- This is normal and doesn't affect functionality
+
+### Search Not Finding Images
+
+- Ensure image has title or caption
+- Check tags and category are set
+- Verify embeddings are generated (requires API key)
+- Try broader search terms
+
+### Telegram Photos Not Working
+
+- Verify bot has file access permissions
+- Check network connectivity
+- Ensure bot token is valid
+- Try sending as file if photo fails
+
+## API Reference
+
+### save_image Tool
+
+```typescript
+{
+  name: 'save_image',
+  parameters: {
+    imageUrl?: string;      // URL to download
+    imageData?: string;     // Base64-encoded data
+    title?: string;         // Image title
+    caption?: string;       // Description
+    tags?: string[];        // Tags
+    category?: string;      // Category
+    autoCategorize?: boolean;
+    processingMode?: 'lightweight' | 'full';
+  }
+}
+```
+
+### Image Metadata Schema
+
+```typescript
+interface ImageMetadata {
+  format: string;           // jpeg, png, etc.
+  width: number;            // pixels
+  height: number;           // pixels
+  size: number;             // bytes
+  hasAlpha: boolean;        // transparency
+  space?: string;           // color space
+  density?: number;         // DPI
+  exif?: unknown;           // EXIF data
+}
+```
+
+### Storage Schema
+
+```sql
+-- Additional columns in notes table
+image_path TEXT,           -- path to image file
+image_url TEXT,            -- source URL
+image_metadata TEXT,       -- JSON metadata
+ocr_text TEXT              -- extracted text (future)
+```
+
+## Examples
+
+### Save from URL
+
+```
+save this image: https://example.com/chart.png
+categorize it and tag it appropriately
+```
+
+### Organize Existing Images
+
+```
+tag all photos in category "vacation" with "2024"
+recategorize screenshots to "work/screenshots"
+```
+
+### Search and Retrieve
+
+```
+show me the design mockup from last week
+find photos of the product launch
+list all images tagged "important"
+```
+
+### Batch Processing
+
+```
+save these images:
+- https://example.com/img1.jpg (title: Logo Design v1)
+- https://example.com/img2.jpg (title: Logo Design v2)
+auto-categorize all of them
+```

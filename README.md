@@ -43,6 +43,7 @@ EchOS is a **self-hosted AI agent** that manages your knowledge base through nat
 - *"Remind me to review that paper next Monday"* → persistent reminder with delivery via Telegram
 - *"Summarize what I've been reading this week"* → AI-generated digest from your actual notes
 - 🎙️ *Send a voice message while commuting* → Whisper transcribes it, Claude processes it, your note is saved
+- 📸 *Send a photo of your whiteboard* → stores it with metadata, categorizes it, makes it searchable
 - *"Write a blog post about distributed systems"* → generates content in your voice, sourced from your notes
 
 No dashboards to maintain. No schemas to design. No commands to memorize. No typing required.
@@ -56,7 +57,7 @@ No dashboards to maintain. No schemas to design. No commands to memorize. No typ
 | Notion/Obsidian don't understand you | Natural language via Claude AI agent |
 | Cloud tools store your data | Fully self-hosted — your server, your data |
 | Chatbots forget everything | Persistent memory, hybrid search, markdown storage |
-| Saving things is friction | Send a Telegram message, a URL, or a voice note — done |
+| Saving things is friction | Send a Telegram message, a URL, voice note, or photo — done |
 | You can't type while on the move | Record a voice message → Whisper transcribes → Claude stores it |
 | Your notes are siloed | Obsidian-compatible markdown, git-friendly |
 | Writing content is starting from scratch | Generate blog posts, threads, emails in your own voice, grounded in your notes |
