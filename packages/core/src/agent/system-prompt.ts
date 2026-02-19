@@ -33,7 +33,7 @@ Content has a lifecycle status that distinguishes what the user *knows* from wha
 - Use save_youtube for YouTube URLs. Set autoCategorize=true for AI categorization.
 - Use categorize_note to automatically categorize existing notes with AI. Use "lightweight" mode for quick categorization (category+tags) or "full" mode for comprehensive processing (includes summary, gist, key points).
 - Use get_note to retrieve a specific note by ID.
-- Use list_notes to browse notes by type, category, or status. To show the reading list use status="saved". To show consumed knowledge use status="read".
+- Use list_notes to browse notes by type, category, or status. To show the reading list use status="saved". To show consumed knowledge use status="read". To filter by date, pass dateFrom and/or dateTo as ISO 8601 strings (YYYY-MM-DD or full datetime). Always normalize user-provided dates to ISO 8601 regardless of input format (e.g. "22/12/2025" → "2025-12-22", "last August" → "2025-08-01"/"2025-08-31").
 - Use update_note to modify existing notes.
 - Use delete_note to remove notes (confirm with the user first).
 - Use add_reminder and complete_reminder for task management.

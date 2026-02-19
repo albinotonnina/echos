@@ -52,6 +52,8 @@ export interface ListNotesOptions {
   category?: string;
   tags?: string[];
   status?: ContentStatus;
+  dateFrom?: string;
+  dateTo?: string;
   limit?: number;
   offset?: number;
   orderBy?: 'created' | 'updated' | 'title';
@@ -216,18 +218,6 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
     getNoteByFilePath: db.prepare(
       'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource FROM notes WHERE file_path = ?',
     ),
-    listNotes: db.prepare(
-      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource FROM notes ORDER BY created DESC LIMIT ? OFFSET ?',
-    ),
-    listNotesByType: db.prepare(
-      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource FROM notes WHERE type = ? ORDER BY created DESC LIMIT ? OFFSET ?',
-    ),
-    listNotesByStatus: db.prepare(
-      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource FROM notes WHERE status = ? ORDER BY created DESC LIMIT ? OFFSET ?',
-    ),
-    listNotesByTypeAndStatus: db.prepare(
-      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource FROM notes WHERE type = ? AND status = ? ORDER BY created DESC LIMIT ? OFFSET ?',
-    ),
     searchFts: db.prepare(`
       SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, notes.content_hash AS contentHash, notes.status, notes.input_source AS inputSource, bm25(notes_fts) as rank
       FROM notes_fts
@@ -311,17 +301,19 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
     listNotes(opts: ListNotesOptions = {}): NoteRow[] {
       const limit = opts.limit ?? 50;
       const offset = opts.offset ?? 0;
+      const conditions: string[] = [];
+      const params: unknown[] = [];
 
-      if (opts.type && opts.status) {
-        return stmts.listNotesByTypeAndStatus.all(opts.type, opts.status, limit, offset) as NoteRow[];
-      }
-      if (opts.type) {
-        return stmts.listNotesByType.all(opts.type, limit, offset) as NoteRow[];
-      }
-      if (opts.status) {
-        return stmts.listNotesByStatus.all(opts.status, limit, offset) as NoteRow[];
-      }
-      return stmts.listNotes.all(limit, offset) as NoteRow[];
+      if (opts.type) { conditions.push('type = ?'); params.push(opts.type); }
+      if (opts.status) { conditions.push('status = ?'); params.push(opts.status); }
+      if (opts.dateFrom) { conditions.push('created >= ?'); params.push(opts.dateFrom); }
+      if (opts.dateTo) { conditions.push('created <= ?'); params.push(opts.dateTo); }
+
+      const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+      const sql = `SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource FROM notes ${where} ORDER BY created DESC LIMIT ? OFFSET ?`;
+      params.push(limit, offset);
+
+      return db.prepare(sql).all(...params) as NoteRow[];
     },
 
     searchFts(query: string, opts: FtsOptions = {}): NoteRow[] {
