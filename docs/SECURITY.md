@@ -16,9 +16,13 @@ These are hard guarantees about what EchOS will never do to your system:
 
 ## Authentication
 
-- Single-user system authenticated via Telegram user ID whitelist
-- Web interface uses Telegram Login Widget (same user identity)
-- TUI is local-only (no auth needed)
+| Interface | Mechanism |
+|---|---|
+| Telegram | User ID whitelist (`ALLOWED_USER_IDS`) enforced in middleware before every message |
+| Web API | Bearer token (`WEB_API_KEY`) on every request + `userId` validated against `ALLOWED_USER_IDS` |
+| TUI | Local only — no network, no auth |
+
+The Web API also binds to `127.0.0.1` and enforces localhost-only CORS, so it is not reachable from the network even if the firewall is misconfigured.
 
 ## SSRF Prevention
 

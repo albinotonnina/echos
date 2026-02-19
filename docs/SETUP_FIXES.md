@@ -2,6 +2,49 @@
 
 This document tracks configuration changes and fixes made to ensure the project runs correctly.
 
+## February 19, 2026 — Web API Security & Experimental Interface Defaults
+
+### Web and TUI marked experimental, disabled by default
+
+Web UI and TUI are now clearly marked as experimental in the setup wizard with a warning before the interface selection step. Both default to **off** (they were already off in the config schema, but the wizard was pre-selecting Web UI if no existing `.env` was found).
+
+### New env var: `WEB_API_KEY`
+
+All web API routes (except `GET /health`) now require `Authorization: Bearer <WEB_API_KEY>`.
+
+```bash
+# .env
+WEB_API_KEY=your_64_char_hex_key   # generate: openssl rand -hex 32
+```
+
+The setup wizard generates and stores this key automatically when you enable the web interface. On re-runs it reuses the existing key from `.env`.
+
+If `WEB_API_KEY` is not set, the server starts but logs a warning and all routes are unauthenticated.
+
+### `userId` now validated against `ALLOWED_USER_IDS` in web routes
+
+All `/api/chat/*` routes now verify the `userId` in the request body is in `ALLOWED_USER_IDS`. Unknown user IDs return `403 Forbidden`. Previously the web API accepted any numeric `userId`.
+
+### Web server binds to `127.0.0.1` (was `0.0.0.0`)
+
+The Fastify server no longer listens on all interfaces. It is only reachable from localhost.
+
+### CORS restricted to localhost origins
+
+`origin: true` (allow all) replaced with a function that only allows `http(s)://localhost:*` and `http(s)://127.0.0.1:*`.
+
+### Non-interactive wizard fix: `enableWeb` default
+
+`ENABLE_WEB` in `--non-interactive` mode was defaulting to `true` unless explicitly set to `'false'`. Fixed to `false` unless explicitly set to `'true'`, matching the config schema default.
+
+**Files changed:**
+- `packages/shared/src/config/index.ts` — `webApiKey` field added
+- `packages/web/src/index.ts` — auth hook, localhost bind, restricted CORS
+- `packages/web/src/api/chat.ts` — `allowedUserIds` param, `403` on unknown userId
+- `scripts/setup.ts` — experimental warning, fix defaults, generate/store `WEB_API_KEY`
+
+---
+
 ## February 19, 2026 — Model Presets & Cross-Provider Handoffs
 
 ### New env vars: `MODEL_BALANCED`, `MODEL_DEEP`
