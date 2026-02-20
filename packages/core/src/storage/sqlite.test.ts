@@ -122,7 +122,11 @@ describe('SQLite Notes', () => {
   });
 
   it('should support conversation content type', () => {
-    storage.upsertNote(makeMeta({ id: 'conv-1', type: 'conversation', status: 'read' }), 'Summary...', '/conv.md');
+    storage.upsertNote(
+      makeMeta({ id: 'conv-1', type: 'conversation', status: 'read' }),
+      'Summary...',
+      '/conv.md',
+    );
 
     const row = storage.getNote('conv-1');
     expect(row!.type).toBe('conversation');
@@ -132,7 +136,11 @@ describe('SQLite Notes', () => {
 
 describe('SQLite FTS5 Search', () => {
   it('should find notes by keyword', () => {
-    storage.upsertNote(makeMeta({ id: 'a', title: 'TypeScript Guide' }), 'Learn TypeScript here', '/a.md');
+    storage.upsertNote(
+      makeMeta({ id: 'a', title: 'TypeScript Guide' }),
+      'Learn TypeScript here',
+      '/a.md',
+    );
     storage.upsertNote(makeMeta({ id: 'b', title: 'Python Guide' }), 'Learn Python here', '/b.md');
 
     const results = storage.searchFts('TypeScript');
@@ -141,7 +149,11 @@ describe('SQLite FTS5 Search', () => {
   });
 
   it('should search across title and content', () => {
-    storage.upsertNote(makeMeta({ id: 'a', title: 'Generic Title' }), 'Contains the word quantum', '/a.md');
+    storage.upsertNote(
+      makeMeta({ id: 'a', title: 'Generic Title' }),
+      'Contains the word quantum',
+      '/a.md',
+    );
 
     const results = storage.searchFts('quantum');
     expect(results).toHaveLength(1);
@@ -154,6 +166,42 @@ describe('SQLite FTS5 Search', () => {
     const results = storage.searchFts('test', { type: 'article' });
     expect(results).toHaveLength(1);
     expect(results[0]!.type).toBe('article');
+  });
+
+  it('should handle special characters without throwing', () => {
+    storage.upsertNote(
+      makeMeta({ id: 'a', title: 'Functional Programming' }),
+      'Currying and composition',
+      '/a.md',
+    );
+
+    // FTS5 special characters that would cause MATCH syntax errors if unsanitized
+    const specialQueries = [
+      'function()',
+      '"unbalanced quote',
+      'hello*world',
+      'test:value',
+      'a & b | c',
+      '(nested (parens))',
+      '<html>',
+      '{brackets}',
+      '!@#$%^',
+      '',
+      '   ',
+    ];
+
+    for (const query of specialQueries) {
+      expect(() => storage.searchFts(query)).not.toThrow();
+    }
+  });
+
+  it('should return results for sanitized special-character queries', () => {
+    storage.upsertNote(makeMeta({ id: 'a', title: 'Hello World' }), 'Programming basics', '/a.md');
+
+    // Query with special chars wrapping a real term - should still find results
+    const results = storage.searchFts('(hello)');
+    expect(results).toHaveLength(1);
+    expect(results[0]!.id).toBe('a');
   });
 });
 
@@ -177,12 +225,20 @@ describe('SQLite Reminders', () => {
 
   it('should list incomplete reminders', () => {
     storage.upsertReminder({
-      id: 'r1', title: 'A', priority: 'low', completed: false,
-      created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z',
+      id: 'r1',
+      title: 'A',
+      priority: 'low',
+      completed: false,
+      created: '2024-01-01T00:00:00Z',
+      updated: '2024-01-01T00:00:00Z',
     });
     storage.upsertReminder({
-      id: 'r2', title: 'B', priority: 'high', completed: true,
-      created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z',
+      id: 'r2',
+      title: 'B',
+      priority: 'high',
+      completed: true,
+      created: '2024-01-01T00:00:00Z',
+      updated: '2024-01-01T00:00:00Z',
     });
 
     const incomplete = storage.listReminders(false);
@@ -213,12 +269,24 @@ describe('SQLite Memory', () => {
 
   it('should search memory by subject or content', () => {
     storage.upsertMemory({
-      id: 'm1', kind: 'fact', subject: 'coffee', content: 'Likes oat milk',
-      confidence: 0.9, source: 'chat', created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z',
+      id: 'm1',
+      kind: 'fact',
+      subject: 'coffee',
+      content: 'Likes oat milk',
+      confidence: 0.9,
+      source: 'chat',
+      created: '2024-01-01T00:00:00Z',
+      updated: '2024-01-01T00:00:00Z',
     });
     storage.upsertMemory({
-      id: 'm2', kind: 'person', subject: 'Alice', content: 'Works at Acme',
-      confidence: 0.8, source: 'chat', created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z',
+      id: 'm2',
+      kind: 'person',
+      subject: 'Alice',
+      content: 'Works at Acme',
+      confidence: 0.8,
+      source: 'chat',
+      created: '2024-01-01T00:00:00Z',
+      updated: '2024-01-01T00:00:00Z',
     });
 
     const results = storage.searchMemory('coffee');
