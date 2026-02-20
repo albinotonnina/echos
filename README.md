@@ -223,9 +223,19 @@ Detects platform, installs prerequisites, clones repo, installs deps, and launch
 
 ```bash
 git clone https://github.com/albinotonnina/echos.git && cd echos
+
+# Set required env vars before running the wizard
+export ANTHROPIC_API_KEY=sk-ant-...          # required
+export ALLOWED_USER_IDS=123456789            # your Telegram user ID(s), comma-separated
+export TELEGRAM_BOT_TOKEN=...               # required if ENABLE_TELEGRAM=true
+export ENABLE_TELEGRAM=true
+
 pnpm wizard --non-interactive   # reads env vars, writes .env
 cd docker && docker compose up -d
 ```
+
+> [!TIP]
+> For a full list of supported env vars and their defaults, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 With nginx + Let's Encrypt:
 
