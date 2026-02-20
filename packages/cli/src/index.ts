@@ -37,7 +37,8 @@ function makeContextMessage() {
 // ── CLI ────────────────────────────────────────────────────────────────────
 
 async function runCli(): Promise<void> {
-  const DATA_DIR = process.env['DATA_DIR'] ?? './data';
+  const dbPath = process.env['DB_PATH'] ?? './data/db';
+  const knowledgeDir = process.env['KNOWLEDGE_DIR'] ?? './data/knowledge';
   const anthropicApiKey = process.env['ANTHROPIC_API_KEY'];
 
   if (!anthropicApiKey) {
@@ -47,9 +48,9 @@ async function runCli(): Promise<void> {
 
   const logger = createLogger('echos-cli', process.env['LOG_LEVEL'] ?? 'warn');
 
-  const sqlite = createSqliteStorage(join(DATA_DIR, 'db', 'echos.db'), logger);
-  const markdown = createMarkdownStorage(join(DATA_DIR, 'knowledge'), logger);
-  const vectorDb = await createVectorStorage(join(DATA_DIR, 'db', 'vectors'), logger);
+  const sqlite = createSqliteStorage(join(dbPath, 'echos.db'), logger);
+  const markdown = createMarkdownStorage(knowledgeDir, logger);
+  const vectorDb = await createVectorStorage(join(dbPath, 'vectors'), logger);
   const search = createSearchService(sqlite, vectorDb, markdown, logger);
   const generateEmbedding = async (_text: string): Promise<number[]> => new Array(1536).fill(0);
 
@@ -60,6 +61,7 @@ async function runCli(): Promise<void> {
     search,
     generateEmbedding,
     anthropicApiKey,
+    modelId: process.env['DEFAULT_MODEL'],
     logger,
   });
   agent.sessionId = 'cli-local';
