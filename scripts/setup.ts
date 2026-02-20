@@ -82,12 +82,15 @@ function checkPnpm(): PrereqResult {
 
 function checkPython(): PrereqResult {
   try {
-    execSync('python3 -c "from youtube_transcript_api import YouTubeTranscriptApi"', { stdio: 'pipe' });
+    execSync('python3 -c "from youtube_transcript_api import YouTubeTranscriptApi"', {
+      stdio: 'pipe',
+    });
     return { ok: true, message: 'youtube-transcript-api available', fatal: false };
   } catch {
     return {
       ok: false,
-      message: 'youtube-transcript-api not found (YouTube plugin will fail) — run: pip3 install youtube-transcript-api',
+      message:
+        'youtube-transcript-api not found (YouTube plugin will fail) — run: pip3 install youtube-transcript-api',
       fatal: false,
     };
   }
@@ -158,7 +161,9 @@ async function validateOpenAIKey(key: string): Promise<{ valid: boolean; error?:
   }
 }
 
-async function validateTelegramToken(token: string): Promise<{ valid: boolean; botName?: string; error?: string }> {
+async function validateTelegramToken(
+  token: string,
+): Promise<{ valid: boolean; botName?: string; error?: string }> {
   try {
     const resp = await fetch(`https://api.telegram.org/bot${token}/getMe`, {
       signal: AbortSignal.timeout(10000),
@@ -287,7 +292,9 @@ function runNonInteractive(): WizardState {
   const requiredKeys = ['ANTHROPIC_API_KEY', 'ALLOWED_USER_IDS'];
   const missing = requiredKeys.filter((k) => !e[k]);
   if (missing.length > 0) {
-    console.error(`\nError: Missing required env vars for --non-interactive mode: ${missing.join(', ')}\n`);
+    console.error(
+      `\nError: Missing required env vars for --non-interactive mode: ${missing.join(', ')}\n`,
+    );
     process.exit(1);
   }
 
@@ -299,9 +306,10 @@ function runNonInteractive(): WizardState {
     telegramBotToken: e['TELEGRAM_BOT_TOKEN'] ?? '',
     enableWeb: e['ENABLE_WEB'] === 'true',
     webPort: parseInt(e['WEB_PORT'] ?? '3000', 10),
-    webApiKey: e['ENABLE_WEB'] === 'true'
-      ? (e['WEB_API_KEY'] ?? randomBytes(32).toString('hex'))
-      : (e['WEB_API_KEY'] ?? ''), // preserve existing key, but don't generate a new one
+    webApiKey:
+      e['ENABLE_WEB'] === 'true'
+        ? (e['WEB_API_KEY'] ?? randomBytes(32).toString('hex'))
+        : (e['WEB_API_KEY'] ?? ''), // preserve existing key, but don't generate a new one
     enableScheduler: e['ENABLE_SCHEDULER'] === 'true',
     redisUrl: e['REDIS_URL'] ?? 'redis://localhost:6379',
     digestSchedule: e['DIGEST_SCHEDULE'] ?? '',
@@ -426,18 +434,22 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
 
   clack.log.step('Additional Interfaces');
   clack.log.warn(
-    pc.yellow('Web UI is') + pc.bold(pc.yellow(' experimental')) + pc.yellow(' and disabled by default.\n') +
-    pc.dim('  Telegram is the recommended interface. Use `pnpm echos` for CLI/terminal access.'),
+    pc.yellow('Web UI is') +
+      pc.bold(pc.yellow(' experimental')) +
+      pc.yellow(' and disabled by default.\n') +
+      pc.dim('  Telegram is the recommended interface. Use `pnpm echos` for CLI/terminal access.'),
   );
 
   const interfaceChoices = await clack.multiselect<string, string>({
     message: 'Enable interfaces (optional)',
     options: [
-      { value: 'web', label: 'Web UI', hint: 'experimental — REST API + web interface (requires API key auth)' },
+      {
+        value: 'web',
+        label: 'Web UI',
+        hint: 'experimental — REST API + web interface (requires API key auth)',
+      },
     ],
-    initialValues: [
-      ...(existing['ENABLE_WEB'] === 'true' ? ['web'] : []),
-    ],
+    initialValues: [...(existing['ENABLE_WEB'] === 'true' ? ['web'] : [])],
     required: false,
   });
   if (clack.isCancel(interfaceChoices)) cancel();
@@ -445,14 +457,15 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
   const enableWeb = ifaces.includes('web');
 
   // Generate or reuse API key for web interface
-  const webApiKey = enableWeb
-    ? (existing['WEB_API_KEY'] ?? randomBytes(32).toString('hex'))
-    : '';
+  const webApiKey = enableWeb ? (existing['WEB_API_KEY'] ?? randomBytes(32).toString('hex')) : '';
 
   if (enableWeb) {
     clack.log.info(
-      pc.dim('Web API key (') + pc.bold('keep this secret') + pc.dim(', stored in .env):') +
-      '\n  ' + pc.cyan(webApiKey),
+      pc.dim('Web API key (') +
+        pc.bold('keep this secret') +
+        pc.dim(', stored in .env):') +
+        '\n  ' +
+        pc.cyan(webApiKey),
     );
   }
 
@@ -490,9 +503,15 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
   if (enableScheduler) {
     clack.log.info(
       pc.dim('Redis install commands (if not already running):') +
-      '\n  ' + pc.cyan('macOS :') + '  brew install redis && brew services start redis' +
-      '\n  ' + pc.cyan('Ubuntu:') + '  sudo apt install redis-server && sudo systemctl enable --now redis' +
-      '\n  ' + pc.cyan('Docker:') + '  docker run -d -p 6379:6379 --name redis redis:7-alpine',
+        '\n  ' +
+        pc.cyan('macOS :') +
+        '  brew install redis && brew services start redis' +
+        '\n  ' +
+        pc.cyan('Ubuntu:') +
+        '  sudo apt install redis-server && sudo systemctl enable --now redis' +
+        '\n  ' +
+        pc.cyan('Docker:') +
+        '  docker run -d -p 6379:6379 --name redis redis:7-alpine',
     );
     const redisRaw = await clack.text({
       message: 'Redis URL',
@@ -521,7 +540,9 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
       }
     }
 
-    clack.log.info(pc.dim('Cron schedules — leave blank to disable. Reference: https://crontab.guru'));
+    clack.log.info(
+      pc.dim('Cron schedules — leave blank to disable. Reference: https://crontab.guru'),
+    );
 
     const digestRaw = await clack.text({
       message: `Daily digest cron ${pc.dim('(e.g. 0 8 * * * for 8am daily — leave blank to skip)')}`,
@@ -654,12 +675,9 @@ function cancel(): never {
 async function main(): Promise<void> {
   if (!NON_INTERACTIVE) {
     clack.intro(
-      pc.bgCyan(pc.black(' EchOS Setup Wizard ')) +
-        pc.dim('  — estimated time: 3-5 minutes'),
+      pc.bgCyan(pc.black(' EchOS Setup Wizard ')) + pc.dim('  — estimated time: 3-5 minutes'),
     );
-    clack.log.info(
-      pc.dim('No changes will be made until you confirm at the summary step.'),
-    );
+    clack.log.info(pc.dim('No changes will be made until you confirm at the summary step.'));
   }
 
   // ── Prerequisite checks ─────────────────────────────────────────────────
