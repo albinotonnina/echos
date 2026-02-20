@@ -27,7 +27,10 @@ const logger = createLogger('reconcile');
 async function main(): Promise<void> {
   const config = loadConfig();
 
-  logger.info({ knowledgeDir: config.knowledgeDir, dbPath: config.dbPath }, 'Initializing storage...');
+  logger.info(
+    { knowledgeDir: config.knowledgeDir, dbPath: config.dbPath },
+    'Initializing storage...',
+  );
 
   const sqlite = createSqliteStorage(join(config.dbPath, 'echos.db'), logger);
   const markdown = createMarkdownStorage(config.knowledgeDir, logger);

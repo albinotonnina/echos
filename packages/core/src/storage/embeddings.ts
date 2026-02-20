@@ -54,7 +54,10 @@ export function createEmbeddingFn(
       throw new Error('Empty embedding returned from OpenAI');
     }
 
-    logger?.debug({ model, textLength: truncated.length, dimensions: embedding.length }, 'Embedding generated');
+    logger?.debug(
+      { model, textLength: truncated.length, dimensions: embedding.length },
+      'Embedding generated',
+    );
     return embedding;
   };
 }
