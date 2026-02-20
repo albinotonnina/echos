@@ -111,23 +111,29 @@ async function runCli(): Promise<void> {
   // ── One-shot mode ─────────────────────────────────────────────────────────
 
   if (argInput) {
-    await send(argInput);
-    cleanup();
+    try {
+      await send(argInput);
+    } finally {
+      cleanup();
+    }
     return;
   }
 
   // ── Pipe mode ─────────────────────────────────────────────────────────────
 
   if (hasPipedInput) {
-    const chunks: Buffer[] = [];
-    for await (const chunk of process.stdin as AsyncIterable<Buffer>) {
-      chunks.push(chunk);
+    try {
+      const chunks: Buffer[] = [];
+      for await (const chunk of process.stdin as AsyncIterable<Buffer>) {
+        chunks.push(chunk);
+      }
+      const stdinText = Buffer.concat(chunks).toString('utf8').trim();
+      if (stdinText) {
+        await send(stdinText);
+      }
+    } finally {
+      cleanup();
     }
-    const stdinText = Buffer.concat(chunks).toString('utf8').trim();
-    if (stdinText) {
-      await send(stdinText);
-    }
-    cleanup();
     return;
   }
 
@@ -198,10 +204,16 @@ async function runCli(): Promise<void> {
       return;
     }
     rl.pause();
-    void send(trimmed).then(() => {
-      rl.resume();
-      rl.prompt();
-    });
+    void send(trimmed)
+      .then(() => {
+        rl.resume();
+        rl.prompt();
+      })
+      .catch((err: unknown) => {
+        console.error('Error during prompt:', err);
+        rl.resume();
+        rl.prompt();
+      });
   });
 
   rl.on('close', () => {
