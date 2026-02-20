@@ -4,7 +4,7 @@
  * Supported formats:
  *   "claude-haiku-4-5-20251001"        → inferred provider (anthropic)
  *   "gpt-4o"                           → inferred provider (openai)
- *   "anthropic/claude-sonnet-4-5"      → explicit provider
+ *   "anthropic/claude-sonnet-4-6"      → explicit provider
  *   "openai/gpt-4o"                    → explicit provider
  *
  * Falls back to anthropic for unrecognised prefixes.
@@ -49,8 +49,8 @@ export function resolveModel(spec: string): Model<any> {
 
 export const MODEL_PRESETS = {
   fast: 'claude-haiku-4-5-20251001',
-  balanced: 'claude-sonnet-4-5',
-  deep: 'claude-opus-4-5',
+  balanced: 'claude-sonnet-4-6',
+  deep: 'claude-opus-4-6',
 } as const;
 
 export type ModelPreset = keyof typeof MODEL_PRESETS;

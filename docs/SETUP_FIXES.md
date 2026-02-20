@@ -93,22 +93,22 @@ The Fastify server no longer listens on all interfaces. It is only reachable fro
 Configure named model presets for on-the-fly switching during a session:
 
 ```bash
-MODEL_BALANCED=claude-sonnet-4-5     # default balanced preset
-MODEL_DEEP=claude-opus-4-5           # default deep preset
+MODEL_BALANCED=claude-sonnet-4-6     # default balanced preset
+MODEL_DEEP=claude-opus-4-6           # default deep preset
 ```
 
 **Format**: plain model ID (provider inferred from prefix) or `provider/model-id` for explicit provider:
 ```bash
 MODEL_BALANCED=openai/gpt-4o         # cross-provider: OpenAI
-MODEL_DEEP=anthropic/claude-opus-4-5
+MODEL_DEEP=anthropic/claude-opus-4-6
 ```
 
 **Built-in defaults** (used when env vars are not set):
 | Preset | Default model |
 |---|---|
 | `fast` | `claude-3-5-haiku-20241022` |
-| `balanced` | `claude-sonnet-4-5` |
-| `deep` | `claude-opus-4-5` |
+| `balanced` | `claude-sonnet-4-6` |
+| `deep` | `claude-opus-4-6` |
 
 **Switching mid-session** (conversation history is preserved across model switches; thinking blocks from Claude are automatically converted to `<thinking>` tagged text for cross-provider compatibility):
 - Telegram: `/model balanced`
