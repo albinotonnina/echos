@@ -37,6 +37,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Claude Code — local settings contain machine-specific paths and permission allowlists
+.claude/settings.local.json
+
 # Test
 coverage/
 

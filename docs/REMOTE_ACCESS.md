@@ -1,0 +1,195 @@
+# Accessing Your Knowledge Base Remotely
+
+When EchOS runs on a VPS, the knowledge files live at `data/knowledge/` on the server. This guide covers the main ways to access that directory from your local machine so you can open it in Obsidian, back it up, or work with the files directly.
+
+---
+
+## Option 1: SSHFS (live mount)
+
+SSHFS mounts the remote directory as if it were a local folder. Obsidian sees it as a normal vault. Notes added via Telegram appear immediately; edits made in Obsidian are written directly to the server and picked up by EchOS's file watcher.
+
+**Install**
+
+macOS: requires [macFUSE](https://osxfuse.github.io/) and [SSHFS for macOS](https://github.com/osxfuse/sshfs).
+
+```bash
+brew install --cask macfuse
+brew install gromgit/fuse/sshfs-mac
+```
+
+Linux:
+
+```bash
+sudo apt install sshfs          # Debian/Ubuntu
+sudo dnf install fuse-sshfs     # Fedora
+```
+
+**Mount**
+
+```bash
+mkdir -p ~/Echos-Knowledge
+
+sshfs user@your-server:/home/user/echos/data/knowledge ~/Echos-Knowledge \
+  -o IdentityFile=~/.ssh/your-key \
+  -o volname=Echos \
+  -o defer_permissions \
+  -o nolocalcaches
+```
+
+**Unmount**
+
+```bash
+umount ~/Echos-Knowledge          # macOS / Linux
+fusermount -u ~/Echos-Knowledge   # Linux alternative
+```
+
+**Alias for convenience**
+
+Add to your `~/.zshrc` or `~/.bashrc`:
+
+```bash
+alias mount-echos="umount ~/Echos-Knowledge 2>/dev/null; \
+  sshfs user@your-server:/home/user/echos/data/knowledge ~/Echos-Knowledge \
+  -o IdentityFile=~/.ssh/your-key \
+  -o volname=Echos \
+  -o defer_permissions \
+  -o nolocalcaches \
+  && echo 'Mounted successfully'"
+```
+
+Then point Obsidian at `~/Echos-Knowledge`.
+
+**Trade-offs**
+
+- Feels like a local disk, always up to date
+- Requires a stable network connection — slow or dropped connections affect file access
+- `nolocalcaches` ensures consistency but means every read hits the network
+
+---
+
+## Option 2: rsync (periodic sync)
+
+rsync copies files from the server to your local machine (or vice versa). It's not live — you run it when you want a sync — but it's fast (only transfers changes), reliable, and has no dependencies beyond OpenSSH.
+
+**Pull from server → local (read your notes locally)**
+
+```bash
+rsync -avz --delete \
+  user@your-server:/home/user/echos/data/knowledge/ \
+  ~/Echos-Knowledge/
+```
+
+The trailing `/` on the source path matters — it syncs the contents, not the directory itself.
+
+**Push local → server (sync edits back)**
+
+```bash
+rsync -avz --delete \
+  ~/Echos-Knowledge/ \
+  user@your-server:/home/user/echos/data/knowledge/
+```
+
+> [!WARNING]
+> `--delete` removes files on the destination that no longer exist on the source. If EchOS has added new notes since your last pull, push carefully — pull first, then push. Or omit `--delete` if you only want to push additions.
+
+**Automate with cron**
+
+Run a pull every 15 minutes:
+
+```bash
+crontab -e
+# add:
+*/15 * * * * rsync -az user@your-server:/home/user/echos/data/knowledge/ ~/Echos-Knowledge/
+```
+
+Or on macOS with launchd, create `~/Library/LaunchAgents/com.echos.sync.plist`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.echos.sync</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/rsync</string>
+    <string>-az</string>
+    <string>user@your-server:/home/user/echos/data/knowledge/</string>
+    <string>/Users/you/Echos-Knowledge/</string>
+  </array>
+  <key>StartInterval</key>
+  <integer>900</integer>
+</dict>
+</plist>
+```
+
+Load it: `launchctl load ~/Library/LaunchAgents/com.echos.sync.plist`
+
+**Trade-offs**
+
+- No extra software, works everywhere
+- Not live — there's a lag between adding a note and seeing it locally
+- Bidirectional sync requires care to avoid overwriting
+
+---
+
+## Option 3: Syncthing (continuous background sync)
+
+[Syncthing](https://syncthing.net) is a peer-to-peer sync tool that keeps folders in sync continuously and automatically. Once configured, it runs in the background and you never think about it again. Works across NAT without port forwarding.
+
+**Install on the server**
+
+```bash
+# Debian/Ubuntu
+sudo apt install syncthing
+
+# Or via the official repo for the latest version:
+curl -s https://syncthing.net/release-key.txt | sudo gpg --dearmor -o /usr/share/keyrings/syncthing-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/syncthing-archive-keyring.gpg] https://apt.syncthing.net/ syncthing stable" | sudo tee /etc/apt/sources.list.d/syncthing.list
+sudo apt update && sudo apt install syncthing
+```
+
+Run as a service:
+
+```bash
+sudo systemctl enable syncthing@your-user --now
+```
+
+**Install on your local machine**
+
+macOS: `brew install syncthing` or download from [syncthing.net](https://syncthing.net/downloads/).
+
+Linux: same as server above, or via your package manager.
+
+**Configure**
+
+1. Open the Syncthing web UI on the server: `http://your-server:8384` (you may need to SSH tunnel: `ssh -L 8384:localhost:8384 user@your-server`)
+2. Open the Syncthing web UI locally: `http://localhost:8384`
+3. Add the server as a remote device (copy the device ID from the web UI)
+4. Share the `data/knowledge/` folder from the server with your local device
+5. Accept the share on the local side, set the local path to `~/Echos-Knowledge`
+
+Syncthing handles conflicts, retries, and compression automatically.
+
+**Trade-offs**
+
+- Truly automatic — set it up once, forget about it
+- Works through NAT and firewalls without port forwarding
+- More moving parts to install and configure initially
+- Syncthing needs to run as a background service on both machines
+
+---
+
+## Which option to choose
+
+| | SSHFS | rsync | Syncthing |
+|---|---|---|---|
+| Live updates | Yes | No (scheduled) | Yes |
+| Works offline | No | Partial (local copy) | Yes (syncs when reconnected) |
+| Setup complexity | Low | Low | Medium |
+| Dependencies | macFUSE (macOS) | None | Syncthing daemon on both |
+| Best for | Browsing notes in Obsidian | Backups, occasional reads | Always-on local copy |
+
+For most people: **SSHFS** if you want simplicity and don't mind needing a connection, **Syncthing** if you want a fully automatic local copy that's always up to date.

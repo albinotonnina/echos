@@ -8,6 +8,7 @@ import { getOrCreateSession, getSession, clearAllSessions } from './session.js';
 import { streamAgentResponse } from './streaming.js';
 import { createTelegramNotificationService } from './notification.js';
 import { handleVoiceMessage } from './voice.js';
+import { handlePhotoMessage } from './photo.js';
 
 export interface TelegramAdapterOptions {
   config: Config;
@@ -45,6 +46,7 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
       'You can:\n' +
       '- Send text to create notes\n' +
       '- Send URLs to save articles\n' +
+      '- Send photos to save and categorize images\n' +
       '- Ask questions about your knowledge\n' +
       '- Send voice messages to transcribe and process them\n' +
       '- Manage reminders and more',
@@ -186,6 +188,16 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
     await ctx.react('🤗').catch(() => undefined);
     const agent = getOrCreateSession(userId, agentDeps);
     await handleVoiceMessage(ctx, agent, config.openaiApiKey, logger);
+  });
+
+  // Handle photo messages
+  bot.on('message:photo', async (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    await ctx.react('👀').catch(() => undefined);
+    const agent = getOrCreateSession(userId, agentDeps);
+    await handlePhotoMessage(ctx, agent, logger);
   });
 
   return {

@@ -352,3 +352,53 @@ See [CATEGORIZATION.md](CATEGORIZATION.md) for detailed documentation.
 |--------|---------|-------------|
 | YouTube | `@echos/plugin-youtube` | Transcript extraction via Python + Whisper fallback |
 | Article | `@echos/plugin-article` | Web article extraction via Readability + DOMPurify |
+| Image | `@echos/plugin-image` | Image storage with metadata extraction (Sharp) |
+
+### Image Plugin
+
+The image plugin (`@echos/plugin-image`) provides the `save_image` tool for storing and organizing images in the knowledge base.
+
+**Features:**
+- Download images from URLs or accept base64 data
+- Extract metadata: dimensions, format, file size, EXIF
+- Store original files in `knowledge/image/{category}/`
+- Create searchable markdown notes with image references
+- Optional AI categorization for automatic tagging
+
+**Tool: save_image**
+
+```typescript
+{
+  imageUrl?: string;        // URL to download image from
+  imageData?: string;       // Base64-encoded image data
+  title?: string;           // Image title
+  caption?: string;         // Description or context
+  tags?: string[];          // Array of tags
+  category?: string;        // Category (default: "photos")
+  autoCategorize?: boolean; // Use AI to categorize (default: false)
+  processingMode?: 'lightweight' | 'full'; // AI processing mode
+}
+```
+
+**Supported formats:**
+- JPEG, PNG, GIF, WebP, AVIF, TIFF, BMP
+- Maximum size: 20MB
+
+**Processor (`processImage`):**
+- Validates image format and size
+- Extracts metadata using Sharp library
+- Generates content-based filename hash
+- Returns structured metadata and buffer
+
+**Storage:**
+- Original file: `knowledge/image/{category}/{hash}.{ext}`
+- Markdown note: `knowledge/note/{category}/{date}-{slug}.md`
+- Embedded reference: `![title](../../image/{category}/{filename})`
+
+**Telegram Integration:**
+- Automatic photo handler via `bot.on('message:photo')`
+- Downloads from Telegram API
+- Passes URL to save_image tool
+- Supports captions for context
+
+See [IMAGES.md](IMAGES.md) for complete documentation on image handling.

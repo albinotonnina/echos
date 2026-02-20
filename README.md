@@ -44,6 +44,7 @@ EchOS is a **self-hosted AI agent** that manages your knowledge base through nat
 - *"Remind me to review that paper next Monday"* → persistent reminder with delivery via Telegram
 - *"Summarize what I've been reading this week"* → AI-generated digest from your actual notes
 - 🎙️ *Send a voice message while commuting* → Whisper transcribes it, Claude processes it, your note is saved
+- 📸 *Send a photo of your whiteboard* → stores it with metadata, categorizes it, makes it searchable
 - *"Write a blog post about distributed systems"* → generates content in your voice, sourced from your notes
 
 No dashboards to maintain. No schemas to design. No commands to memorize. No typing required.
@@ -57,7 +58,7 @@ No dashboards to maintain. No schemas to design. No commands to memorize. No typ
 | Notion/Obsidian don't understand you | Natural language via Claude AI agent |
 | Cloud tools store your data | Fully self-hosted — your server, your data |
 | Chatbots forget everything | Persistent memory, hybrid search, markdown storage |
-| Saving things is friction | Send a Telegram message, a URL, or a voice note — done |
+| Saving things is friction | Send a Telegram message, a URL, voice note, or photo — done |
 | You can't type while on the move | Record a voice message → Whisper transcribes → Claude stores it |
 | Your notes are siloed | Obsidian-compatible markdown, git-friendly |
 | Writing content is starting from scratch | Generate blog posts, threads, emails in your own voice, grounded in your notes |
@@ -107,6 +108,12 @@ Every note is a plain `.md` file with YAML frontmatter — the same format Obsid
 
 See [docs/KNOWLEDGE_IMPORT.md](docs/KNOWLEDGE_IMPORT.md) for the full import guide, frontmatter reference, and step-by-step walkthroughs.
 
+#### Accessing your knowledge from your local machine
+
+If EchOS runs on a VPS, you can access `data/knowledge/` locally and open it in Obsidian as a live vault. There are several ways to do this depending on your preference: SSHFS (mount the directory over SSH), rsync (periodic one-way or two-way sync), or Syncthing (continuous background sync with no manual steps).
+
+See [docs/REMOTE_ACCESS.md](docs/REMOTE_ACCESS.md) for setup instructions for each approach.
+
 ### 🔌 Plugin architecture
 
 Content processors are plugins, not core code. Ships with:
@@ -126,11 +133,7 @@ Redis-backed scheduler via BullMQ:
 
 ### 🔐 Security-first
 
-- User whitelist (Telegram user ID allowlist)
-- SSRF prevention on all URL fetching
-- Rate limiting per user (token bucket)
-- HTML sanitization, secret redaction in logs
-- All API keys stored in `chmod 0600` `.env` only
+EchOS is designed to be safe to run on your own infrastructure. It does not touch your file system beyond its own `data/` directory, does not execute shell commands, and does not run code from AI responses. See the [Security](#security) section for the full model.
 
 ### 🎭 Agent voice — shape how EchOS talks to you
 
@@ -336,6 +339,54 @@ Storage stays in sync automatically — a startup reconciler and live file watch
 
 ---
 
+## Security
+
+EchOS is designed to be safe to self-host. Here is exactly what it does and does not do.
+
+### What EchOS does NOT do
+
+| Guarantee | Detail |
+|---|---|
+| Does not touch your file system | EchOS only reads and writes inside its own `data/` directory. It never traverses your home directory, system files, or anything outside that scope. |
+| Does not execute shell commands | No user input, AI output, or plugin code ever reaches a shell. `exec`, `spawn`, and similar calls are absent from the codebase. |
+| Does not run code from AI responses | Claude's output is treated as text. EchOS never passes AI-generated strings to `eval()`, `Function()`, `vm.runInNewContext()`, or any other dynamic execution primitive. |
+| Does not exfiltrate your data | EchOS is fully self-hosted. The only outbound calls are to the APIs you configure (Anthropic, OpenAI) — and those calls never include data you haven't explicitly asked it to process. |
+| Does not store secrets in logs | Pino is configured with redaction paths covering all common secret field names. API keys and tokens never appear in log output. |
+
+### Authentication
+
+EchOS is a **single-user system**. Access is gated by a Telegram user ID allowlist that you configure. Only your Telegram account can interact with the bot. The Web UI uses the same identity via the Telegram Login Widget. The TUI is local-only and requires no auth.
+
+### SSRF Prevention
+
+All URL fetching goes through `validateUrl()` before any network call is made:
+
+- Only `http:` and `https:` protocols are accepted
+- Private IP ranges are blocked: `10.x`, `172.16–31.x`, `192.168.x`, `127.x`
+- Localhost and cloud metadata endpoints (e.g. `169.254.169.254`) are blocked
+
+This means even if you paste a malicious URL, EchOS cannot be used to probe your internal network.
+
+### Rate Limiting
+
+Token bucket algorithm — 20 tokens, 1 token/second refill — applied per user at the middleware level across all interfaces.
+
+### Input Validation & Content Sanitization
+
+- All configuration validated with Zod schemas at startup
+- Tool parameters validated with TypeBox + AJV
+- HTML content from external sources sanitized with DOMPurify before processing
+- `sanitizeHtml()` strips all tags and re-escapes entities; `escapeXml()` handles XML contexts
+- AI output is treated as untrusted data throughout
+
+### Audit Logging
+
+Security-relevant events (auth failures, content access, mutations) are written to a separate audit logger with structured timestamps and user IDs.
+
+See [docs/SECURITY.md](docs/SECURITY.md) for the full threat model and implementation details.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -362,6 +413,7 @@ Storage stays in sync automatically — a startup reconciler and live file watch
 | [SCHEDULER.md](docs/SCHEDULER.md) | Background jobs, digests, reminders |
 | [SECURITY.md](docs/SECURITY.md) | Security model and threat mitigations |
 | [KNOWLEDGE_IMPORT.md](docs/KNOWLEDGE_IMPORT.md) | Obsidian vault opening, Notion import, frontmatter reference |
+| [REMOTE_ACCESS.md](docs/REMOTE_ACCESS.md) | Accessing knowledge files from a local machine (SSHFS, rsync, Syncthing) |
 | [WRITING.md](docs/WRITING.md) | Agent voice, style profiles, content generation |
 | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and fixes |
 

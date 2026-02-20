@@ -1,8 +1,8 @@
-export type ContentType = 'note' | 'journal' | 'article' | 'youtube' | 'reminder' | 'conversation';
+export type ContentType = 'note' | 'journal' | 'article' | 'youtube' | 'reminder' | 'conversation' | 'image';
 
 export type ContentStatus = 'saved' | 'read' | 'archived';
 
-export type InputSource = 'text' | 'voice' | 'url' | 'file';
+export type InputSource = 'text' | 'voice' | 'url' | 'file' | 'image';
 
 export interface NoteMetadata {
   id: string;
@@ -18,6 +18,10 @@ export interface NoteMetadata {
   gist?: string;
   status?: ContentStatus;
   inputSource?: InputSource;
+  imagePath?: string;
+  imageUrl?: string;
+  imageMetadata?: string;
+  ocrText?: string;
 }
 
 export interface Note {

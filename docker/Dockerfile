@@ -14,6 +14,7 @@ COPY packages/scheduler/package.json packages/scheduler/
 COPY plugins/article/package.json plugins/article/
 COPY plugins/youtube/package.json plugins/youtube/
 COPY plugins/content-creation/package.json plugins/content-creation/
+COPY plugins/image/package.json plugins/image/
 RUN pnpm install --frozen-lockfile --prod=false
 
 # Build
@@ -41,6 +42,7 @@ COPY --from=deps /app/packages/scheduler/package.json packages/scheduler/
 COPY --from=deps /app/plugins/article/package.json plugins/article/
 COPY --from=deps /app/plugins/youtube/package.json plugins/youtube/
 COPY --from=deps /app/plugins/content-creation/package.json plugins/content-creation/
+COPY --from=deps /app/plugins/image/package.json plugins/image/
 RUN pnpm install --prod --frozen-lockfile
 
 # Copy build artifacts (changes frequently, so last)

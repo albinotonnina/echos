@@ -8,13 +8,19 @@ Edit `.env` to control which interfaces are active:
 
 ```bash
 # Enable/disable interfaces
-ENABLE_TELEGRAM=true   # Telegram bot
-ENABLE_WEB=true        # Web API server
-ENABLE_TUI=false       # Terminal UI
+ENABLE_TELEGRAM=true   # Telegram bot (stable, recommended)
+ENABLE_WEB=false       # Web API server (experimental, disabled by default)
+ENABLE_TUI=false       # Terminal UI (experimental, disabled by default)
 
-# Web server port
+# Web server port (only used when ENABLE_WEB=true)
 WEB_PORT=3000
+
+# Web API authentication key — mandatory when ENABLE_WEB=true (server exits without it)
+# Generate with: openssl rand -hex 32
+WEB_API_KEY=your_secret_key_here
 ```
+
+> **Note**: Web UI and TUI are experimental interfaces. Telegram is the recommended interface for daily use. The setup wizard (`pnpm wizard`) generates a `WEB_API_KEY` automatically when you enable the web interface.
 
 **Start the application:**
 ```bash
@@ -90,7 +96,7 @@ Only users listed in `ALLOWED_USER_IDS` can interact with the bot. All requests 
 
 ## 2. Web API Interface
 
-**Default**: Enabled
+**Default**: Disabled — **experimental**
 
 ### Setup
 
@@ -98,7 +104,17 @@ Configure in `.env`:
 ```bash
 ENABLE_WEB=true
 WEB_PORT=3000
+WEB_API_KEY=your_secret_key_here   # required — server refuses to start without it
 ```
+
+Generate a key:
+```bash
+openssl rand -hex 32
+```
+
+Or run `pnpm wizard` — it generates and stores the key automatically.
+
+> **Startup behaviour**: if `ENABLE_WEB=true` and `WEB_API_KEY` is not set, the web server throws at startup and the process exits. There is no unauthenticated fallback.
 
 ### Usage
 
@@ -120,11 +136,20 @@ GET /health
 }
 ```
 
+All API routes except `/health` require an `Authorization` header:
+
+```
+Authorization: Bearer <WEB_API_KEY>
+```
+
+The `userId` in every request must be one of the values in `ALLOWED_USER_IDS` — requests with unknown user IDs are rejected with `403`.
+
 #### Send Chat Message
 
 ```bash
 POST /api/chat
 Content-Type: application/json
+Authorization: Bearer <WEB_API_KEY>
 
 {
   "userId": 123,
@@ -149,6 +174,7 @@ Interrupt the agent mid-turn. Only valid while a `/api/chat` request is in fligh
 ```bash
 POST /api/chat/steer
 Content-Type: application/json
+Authorization: Bearer <WEB_API_KEY>
 
 { "userId": 123, "message": "Actually focus on X instead" }
 ```
@@ -160,6 +186,7 @@ Returns `409` if the agent is not currently running.
 ```bash
 POST /api/chat/model
 Content-Type: application/json
+Authorization: Bearer <WEB_API_KEY>
 
 { "userId": 123, "preset": "balanced" }
 ```
@@ -173,6 +200,7 @@ Queue a message to run after the current agent turn completes. Safe to call at a
 ```bash
 POST /api/chat/followup
 Content-Type: application/json
+Authorization: Bearer <WEB_API_KEY>
 
 { "userId": 123, "message": "Now summarise what you just saved" }
 ```
@@ -182,6 +210,7 @@ Content-Type: application/json
 ```bash
 POST /api/chat/reset
 Content-Type: application/json
+Authorization: Bearer <WEB_API_KEY>
 
 {
   "userId": 123
@@ -201,33 +230,27 @@ Content-Type: application/json
 ```bash
 curl -X POST http://localhost:3000/api/chat \
   -H "Content-Type: application/json" \
-  -d '{
-    "userId": 123,
-    "message": "Create a note about quantum computing basics"
-  }'
+  -H "Authorization: Bearer $WEB_API_KEY" \
+  -d '{"userId": 123, "message": "Create a note about quantum computing basics"}'
 ```
 
 **Search knowledge:**
 ```bash
 curl -X POST http://localhost:3000/api/chat \
   -H "Content-Type: application/json" \
-  -d '{
-    "userId": 123,
-    "message": "Find notes about machine learning"
-  }'
+  -H "Authorization: Bearer $WEB_API_KEY" \
+  -d '{"userId": 123, "message": "Find notes about machine learning"}'
 ```
 
 **Save an article:**
 ```bash
 curl -X POST http://localhost:3000/api/chat \
   -H "Content-Type: application/json" \
-  -d '{
-    "userId": 123,
-    "message": "Save this article: https://example.com/ai-trends"
-  }'
+  -H "Authorization: Bearer $WEB_API_KEY" \
+  -d '{"userId": 123, "message": "Save this article: https://example.com/ai-trends"}'
 ```
 
-**Health check:**
+**Health check (no auth required):**
 ```bash
 curl http://localhost:3000/health
 ```
@@ -235,7 +258,10 @@ curl http://localhost:3000/health
 ### Features
 
 - ✅ RESTful JSON API
-- ✅ CORS enabled (for frontend integration)
+- ✅ Bearer token authentication (`WEB_API_KEY`)
+- ✅ `userId` validated against `ALLOWED_USER_IDS`
+- ✅ CORS restricted to localhost origins
+- ✅ Server binds to `127.0.0.1` (not externally reachable)
 - ✅ Session management per user
 - ✅ Tool execution tracking
 - ✅ Non-streaming responses (full response after completion)
@@ -245,20 +271,22 @@ curl http://localhost:3000/health
 Build a frontend application that calls this API:
 
 ```javascript
-async function chat(message) {
+const API_KEY = process.env.WEB_API_KEY; // load from env, never hardcode
+
+async function chat(message, userId) {
   const response = await fetch('http://localhost:3000/api/chat', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userId: 123,
-      message: message
-    })
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`,
+    },
+    body: JSON.stringify({ userId, message }),
   });
   return await response.json();
 }
 
 // Usage
-const result = await chat('What are my recent notes?');
+const result = await chat('What are my recent notes?', 123);
 console.log(result.response);
 ```
 
@@ -266,7 +294,7 @@ console.log(result.response);
 
 ## 3. Terminal UI (TUI) Interface
 
-**Default**: Disabled
+**Default**: Disabled — **experimental**
 
 ### Setup
 
@@ -342,20 +370,21 @@ information about useState, useEffect, or other hooks?
 
 | Feature | Telegram | Web API | TUI |
 |---------|----------|---------|-----|
+| **Status** | ✅ Stable | ⚠️ Experimental | ⚠️ Experimental |
+| **Default** | On | Off | Off |
 | **Multi-user** | ✅ Yes | ✅ Yes | ❌ No |
-| **Authentication** | ✅ User IDs | ⚠️ DIY | ❌ None |
+| **Authentication** | ✅ User IDs | ✅ API key + user IDs | ❌ Local only |
+| **Network exposure** | Telegram servers | localhost only | None |
 | **Streaming** | ✅ Yes | ❌ No | ✅ Yes |
-| **Mobile Access** | ✅ Yes | ✅ Yes | ❌ No |
+| **Mobile Access** | ✅ Yes | ✅ Yes (localhost) | ❌ No |
 | **Voice Input** | ✅ Yes | ❌ No | ❌ No |
-| **Easy Setup** | ⚠️ Bot token | ✅ Simple | ✅ Instant |
-| **Production Ready** | ✅ Yes | ⚠️ Needs auth | ❌ Dev only |
-| **Best For** | Daily use | Integration | Testing |
+| **Best For** | Daily use | Local integration | Dev/testing |
 
 **Recommendations:**
 
-- **Primary use**: Telegram (most features, best UX)
-- **Automation/integration**: Web API (build custom frontends)
-- **Development/testing**: TUI (instant feedback, no setup)
+- **Primary use**: Telegram (most features, best UX, stable)
+- **Local automation/integration**: Web API (requires `WEB_API_KEY`)
+- **Development/testing**: TUI (instant feedback, no network)
 
 ---
 
@@ -388,27 +417,18 @@ This allows you to:
 - ⚠️ Only one instance can run per bot token
 
 ### Web API
-- ⚠️ **No built-in authentication** - add your own!
-- ⚠️ Exposed on `0.0.0.0` (all network interfaces)
-- ✅ CORS enabled (configure as needed)
-- 💡 **Production**: Deploy behind nginx with HTTPS + auth
+- ✅ Bearer token auth via `WEB_API_KEY` (set in `.env`)
+- ✅ `userId` validated against `ALLOWED_USER_IDS` on every request
+- ✅ Binds to `127.0.0.1` — not reachable from the network
+- ✅ CORS restricted to `localhost` / `127.0.0.1` origins
+- ⚠️ Experimental — not recommended as the primary interface
+- ⚠️ If `WEB_API_KEY` is missing, the server **refuses to start** (exits with an error)
 
 ### TUI
-- ⚠️ **No authentication** - runs with system user permissions
-- ✅ Local only (no network exposure)
+- ⚠️ **No authentication** — runs with local user permissions
+- ✅ No network exposure (stdin/stdout only)
 - ✅ Safe for development/testing
-
-**For production Web API deployment**, add authentication:
-
-```typescript
-// Example: API key middleware
-app.addHook('preHandler', async (request, reply) => {
-  const apiKey = request.headers['x-api-key'];
-  if (apiKey !== process.env.API_KEY) {
-    reply.code(401).send({ error: 'Unauthorized' });
-  }
-});
-```
+- ⚠️ Experimental
 
 ---
 
@@ -420,10 +440,14 @@ app.addHook('preHandler', async (request, reply) => {
 pnpm start:web-only
 
 # In another terminal, test it:
-curl http://localhost:3000/health
+curl http://localhost:3000/health   # no auth required
+
+# Load key from .env
+export WEB_API_KEY=$(grep ^WEB_API_KEY .env | cut -d= -f2)
 
 curl -X POST http://localhost:3000/api/chat \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $WEB_API_KEY" \
   -d '{"userId": 123, "message": "Hello!"}'
 ```
 

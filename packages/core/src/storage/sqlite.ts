@@ -48,6 +48,10 @@ export interface NoteRow {
   contentHash: string | null;
   status: ContentStatus | null;
   inputSource: string | null;
+  imagePath: string | null;
+  imageUrl: string | null;
+  imageMetadata: string | null;
+  ocrText: string | null;
 }
 
 export interface ListNotesOptions {
@@ -218,28 +222,50 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
     // Column already exists — that's fine
   }
 
+  // Migration: add image-specific columns for existing databases
+  try {
+    db.exec(`ALTER TABLE notes ADD COLUMN image_path TEXT DEFAULT NULL`);
+  } catch {
+    // Column already exists — that's fine
+  }
+  try {
+    db.exec(`ALTER TABLE notes ADD COLUMN image_url TEXT DEFAULT NULL`);
+  } catch {
+    // Column already exists — that's fine
+  }
+  try {
+    db.exec(`ALTER TABLE notes ADD COLUMN image_metadata TEXT DEFAULT NULL`);
+  } catch {
+    // Column already exists — that's fine
+  }
+  try {
+    db.exec(`ALTER TABLE notes ADD COLUMN ocr_text TEXT DEFAULT NULL`);
+  } catch {
+    // Column already exists — that's fine
+  }
+
   logger.info({ dbPath }, 'SQLite database initialized');
 
   // Prepared statements
   const stmts = {
     upsertNote: db.prepare(`
-      INSERT INTO notes (id, type, title, content, file_path, tags, links, category, source_url, author, gist, created, updated, content_hash, status, input_source)
-      VALUES (@id, @type, @title, @content, @filePath, @tags, @links, @category, @sourceUrl, @author, @gist, @created, @updated, @contentHash, @status, @inputSource)
+      INSERT INTO notes (id, type, title, content, file_path, tags, links, category, source_url, author, gist, created, updated, content_hash, status, input_source, image_path, image_url, image_metadata, ocr_text)
+      VALUES (@id, @type, @title, @content, @filePath, @tags, @links, @category, @sourceUrl, @author, @gist, @created, @updated, @contentHash, @status, @inputSource, @imagePath, @imageUrl, @imageMetadata, @ocrText)
       ON CONFLICT(id) DO UPDATE SET
         title=@title, content=@content, file_path=@filePath, tags=@tags, links=@links,
         category=@category, source_url=@sourceUrl, author=@author, gist=@gist, updated=@updated,
-        content_hash=@contentHash, status=@status, input_source=@inputSource
+        content_hash=@contentHash, status=@status, input_source=@inputSource, image_path=@imagePath, image_url=@imageUrl, image_metadata=@imageMetadata, ocr_text=@ocrText
     `),
     updateNoteStatus: db.prepare(`UPDATE notes SET status=?, updated=? WHERE id=?`),
     deleteNote: db.prepare('DELETE FROM notes WHERE id = ?'),
     getNote: db.prepare(
-      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource FROM notes WHERE id = ?',
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText FROM notes WHERE id = ?',
     ),
     getNoteByFilePath: db.prepare(
-      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource FROM notes WHERE file_path = ?',
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText FROM notes WHERE file_path = ?',
     ),
     searchFts: db.prepare(`
-      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, notes.content_hash AS contentHash, notes.status, notes.input_source AS inputSource, bm25(notes_fts) as rank
+      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, notes.content_hash AS contentHash, notes.status, notes.input_source AS inputSource, notes.image_path AS imagePath, notes.image_url AS imageUrl, notes.image_metadata AS imageMetadata, notes.ocr_text AS ocrText, bm25(notes_fts) as rank
       FROM notes_fts
       JOIN notes ON notes.rowid = notes_fts.rowid
       WHERE notes_fts MATCH ?
@@ -247,7 +273,7 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       LIMIT ?
     `),
     searchFtsWithType: db.prepare(`
-      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, notes.content_hash AS contentHash, notes.status, notes.input_source AS inputSource, bm25(notes_fts) as rank
+      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, notes.content_hash AS contentHash, notes.status, notes.input_source AS inputSource, notes.image_path AS imagePath, notes.image_url AS imageUrl, notes.image_metadata AS imageMetadata, notes.ocr_text AS ocrText, bm25(notes_fts) as rank
       FROM notes_fts
       JOIN notes ON notes.rowid = notes_fts.rowid
       WHERE notes_fts MATCH ? AND notes.type = ?
@@ -305,6 +331,10 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
         contentHash: contentHash ?? null,
         status: meta.status ?? null,
         inputSource: meta.inputSource ?? null,
+        imagePath: meta.imagePath ?? null,
+        imageUrl: meta.imageUrl ?? null,
+        imageMetadata: meta.imageMetadata ?? null,
+        ocrText: meta.ocrText ?? null,
       });
     },
 
@@ -336,7 +366,7 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       if (opts.dateTo) { conditions.push('created <= ?'); params.push(opts.dateTo); }
 
       const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-      const sql = `SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource FROM notes ${where} ORDER BY created DESC LIMIT ? OFFSET ?`;
+      const sql = `SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText FROM notes ${where} ORDER BY created DESC LIMIT ? OFFSET ?`;
       params.push(limit, offset);
 
       return db.prepare(sql).all(...params) as NoteRow[];
