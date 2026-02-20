@@ -28,7 +28,8 @@ export interface FullProcessingResult extends CategorizationResult {
  */
 export type ProcessingMode = 'lightweight' | 'full';
 
-const MODEL_ID = 'claude-3-5-haiku-20241022';
+const MODEL_ID = 'claude-haiku-4-5-20251001';
+export { MODEL_ID as DEFAULT_CATEGORIZATION_MODEL };
 
 /**
  * Generate lightweight categorization (category + tags only)
@@ -39,6 +40,7 @@ export async function categorizeLightweight(
   apiKey: string,
   logger: Logger,
   onProgress?: (message: string) => void,
+  modelId: string = MODEL_ID,
 ): Promise<CategorizationResult> {
   logger.debug({ title }, 'Starting lightweight categorization');
 
@@ -60,7 +62,8 @@ Respond with a JSON object in this exact format:
 }`;
 
   try {
-    const model = getModel('anthropic', MODEL_ID as 'claude-3-5-haiku-20241022');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const model = getModel('anthropic', modelId as any);
     const stream = streamSimple(
       model,
       { messages: [{ role: 'user', content: prompt, timestamp: Date.now() }] },
@@ -118,6 +121,7 @@ export async function processFull(
   apiKey: string,
   logger: Logger,
   onProgress?: (message: string) => void,
+  modelId: string = MODEL_ID,
 ): Promise<FullProcessingResult> {
   logger.debug({ title }, 'Starting full content processing');
 
@@ -145,7 +149,8 @@ Respond with a JSON object in this exact format:
 }`;
 
   try {
-    const model = getModel('anthropic', MODEL_ID as 'claude-3-5-haiku-20241022');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const model = getModel('anthropic', modelId as any);
     const stream = streamSimple(
       model,
       { messages: [{ role: 'user', content: prompt, timestamp: Date.now() }] },
@@ -221,10 +226,11 @@ export async function categorizeContent(
   apiKey: string,
   logger: Logger,
   onProgress?: (message: string) => void,
+  modelId: string = MODEL_ID,
 ): Promise<CategorizationResult | FullProcessingResult> {
   if (mode === 'lightweight') {
-    return categorizeLightweight(title, content, apiKey, logger, onProgress);
+    return categorizeLightweight(title, content, apiKey, logger, onProgress, modelId);
   } else {
-    return processFull(title, content, apiKey, logger, onProgress);
+    return processFull(title, content, apiKey, logger, onProgress, modelId);
   }
 }

@@ -132,6 +132,7 @@ export function createContentTool(
           relevantNotes,
           anthropicApiKey,
           logger,
+          context.config.defaultModel as string,
         );
 
         // Save as a new note with metadata
@@ -176,9 +177,7 @@ export function createContentTool(
             : result.content.content;
 
         const costEstimate = result.tokensUsed
-          ? ((result.tokensUsed.input * 3 + result.tokensUsed.output * 15) / 1_000_000).toFixed(
-              4,
-            )
+          ? ((result.tokensUsed.input * 3 + result.tokensUsed.output * 15) / 1_000_000).toFixed(4)
           : 'N/A';
 
         const voiceNote = usingDefault

@@ -8,6 +8,7 @@ export async function analyzeLinguisticStyle(
   texts: string[],
   anthropicApiKey: string,
   logger: Logger,
+  modelId: string,
 ): Promise<LLMStyleAnalysis> {
   if (texts.length === 0) {
     throw new Error('Cannot analyze style: no text samples provided');
@@ -78,7 +79,7 @@ Return ONLY valid JSON, no other text.`;
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-3-5-haiku-20241022',
+          model: modelId,
           max_tokens: 4000,
           messages: [
             {
@@ -97,31 +98,32 @@ Return ONLY valid JSON, no other text.`;
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error(
-        { status: response.status, error: errorText },
-        'Anthropic API request failed',
-      );
+      logger.error({ status: response.status, error: errorText }, 'Anthropic API request failed');
 
       // Provide specific error messages based on status code
       if (response.status === 401) {
-        throw new Error('Anthropic API authentication failed. Please check your API key configuration.');
+        throw new Error(
+          'Anthropic API authentication failed. Please check your API key configuration.',
+        );
       } else if (response.status === 429) {
         throw new Error('Anthropic API rate limit exceeded. Please try again in a few moments.');
       } else if (response.status >= 500) {
-        throw new Error(`Anthropic API server error (${response.status}). This is a temporary issue - please try again later.`);
+        throw new Error(
+          `Anthropic API server error (${response.status}). This is a temporary issue - please try again later.`,
+        );
       } else {
         throw new Error(`Anthropic API error (${response.status}): ${errorText}`);
       }
     }
 
-    const result = await response.json() as {
+    const result = (await response.json()) as {
       content: Array<{ type: string; text?: string }>;
       usage?: { input_tokens: number; output_tokens: number };
     };
 
     // Parse JSON response
     const content = result.content
-      .map((block) => (block.type === 'text' ? block.text ?? '' : ''))
+      .map((block) => (block.type === 'text' ? (block.text ?? '') : ''))
       .join('');
 
     if (!content || content.trim().length === 0) {
@@ -137,7 +139,9 @@ Return ONLY valid JSON, no other text.`;
         jsonText = match[1];
       } else {
         logger.error({ content }, 'Failed to extract JSON from markdown code block');
-        throw new Error('Failed to parse LLM response: JSON was wrapped in markdown but extraction failed.');
+        throw new Error(
+          'Failed to parse LLM response: JSON was wrapped in markdown but extraction failed.',
+        );
       }
     }
 

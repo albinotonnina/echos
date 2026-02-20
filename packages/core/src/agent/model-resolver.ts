@@ -2,7 +2,7 @@
  * Resolves a user-supplied model spec string to a pi-ai Model object.
  *
  * Supported formats:
- *   "claude-3-5-haiku-20241022"        → inferred provider (anthropic)
+ *   "claude-haiku-4-5-20251001"        → inferred provider (anthropic)
  *   "gpt-4o"                           → inferred provider (openai)
  *   "anthropic/claude-sonnet-4-5"      → explicit provider
  *   "openai/gpt-4o"                    → explicit provider
@@ -48,7 +48,7 @@ export function resolveModel(spec: string): Model<any> {
 }
 
 export const MODEL_PRESETS = {
-  fast: 'claude-3-5-haiku-20241022',
+  fast: 'claude-haiku-4-5-20251001',
   balanced: 'claude-sonnet-4-5',
   deep: 'claude-opus-4-5',
 } as const;

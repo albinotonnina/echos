@@ -1,6 +1,12 @@
 import Database from 'better-sqlite3';
 import type { Logger } from 'pino';
-import type { ContentType, ContentStatus, NoteMetadata, ReminderEntry, MemoryEntry } from '@echos/shared';
+import type {
+  ContentType,
+  ContentStatus,
+  NoteMetadata,
+  ReminderEntry,
+  MemoryEntry,
+} from '@echos/shared';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
@@ -298,9 +304,11 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
     `),
     getMemory: db.prepare('SELECT * FROM memory WHERE id = ?'),
     listAllMemories: db.prepare('SELECT * FROM memory ORDER BY confidence DESC, updated DESC'),
-    listTopMemories: db.prepare('SELECT * FROM memory ORDER BY confidence DESC, updated DESC LIMIT ?'),
+    listTopMemories: db.prepare(
+      'SELECT * FROM memory ORDER BY confidence DESC, updated DESC LIMIT ?',
+    ),
     searchMemory: db.prepare(
-      "SELECT * FROM memory WHERE subject LIKE ? OR content LIKE ? ORDER BY confidence DESC",
+      'SELECT * FROM memory WHERE subject LIKE ? OR content LIKE ? ORDER BY confidence DESC',
     ),
     getPreference: db.prepare('SELECT value FROM user_preferences WHERE key = ?'),
     setPreference: db.prepare(`
@@ -360,10 +368,28 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       const conditions: string[] = [];
       const params: unknown[] = [];
 
-      if (opts.type) { conditions.push('type = ?'); params.push(opts.type); }
-      if (opts.status) { conditions.push('status = ?'); params.push(opts.status); }
-      if (opts.dateFrom) { conditions.push('created >= ?'); params.push(opts.dateFrom); }
-      if (opts.dateTo) { conditions.push('created <= ?'); params.push(opts.dateTo); }
+      if (opts.type) {
+        conditions.push('type = ?');
+        params.push(opts.type);
+      }
+      if (opts.status) {
+        conditions.push('status = ?');
+        params.push(opts.status);
+      }
+      if (opts.dateFrom) {
+        conditions.push('created >= ?');
+        params.push(opts.dateFrom);
+      }
+      if (opts.dateTo) {
+        conditions.push('created <= ?');
+        params.push(opts.dateTo);
+      }
+      if (opts.tags && opts.tags.length > 0) {
+        for (const tag of opts.tags) {
+          conditions.push("(',' || tags || ',') LIKE ?");
+          params.push(`%,${tag},%`);
+        }
+      }
 
       const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
       const sql = `SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText FROM notes ${where} ORDER BY created DESC LIMIT ? OFFSET ?`;

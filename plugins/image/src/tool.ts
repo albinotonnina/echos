@@ -23,7 +23,8 @@ const schema = Type.Object({
   ),
   processingMode: Type.Optional(
     Type.Union([Type.Literal('lightweight'), Type.Literal('full')], {
-      description: 'AI processing mode: "lightweight" (category+tags) or "full" (includes summary, gist, key points). Only used if autoCategorize is true.',
+      description:
+        'AI processing mode: "lightweight" (category+tags) or "full" (includes summary, gist, key points). Only used if autoCategorize is true.',
       default: 'lightweight',
     }),
   ),
@@ -91,6 +92,7 @@ export function createSaveImageTool(context: PluginContext): AgentTool<typeof sc
                 content: [{ type: 'text', text: message }],
                 details: { phase: 'categorizing' },
               }),
+            context.config.defaultModel as string,
           );
 
           category = result.category;
@@ -115,7 +117,12 @@ export function createSaveImageTool(context: PluginContext): AgentTool<typeof sc
       const imageDir = join(knowledgeDir, 'image', category);
       mkdirSync(imageDir, { recursive: true });
 
-      const imagePath = await saveImageToDisk(processed.buffer, knowledgeDir, category, processed.localPath);
+      const imagePath = await saveImageToDisk(
+        processed.buffer,
+        knowledgeDir,
+        category,
+        processed.localPath,
+      );
 
       // Append image reference to content
       const imageRef = `![${title}](../../image/${category}/${processed.localPath})`;

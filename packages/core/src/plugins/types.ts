@@ -18,6 +18,7 @@ export interface PluginContext {
     openaiApiKey?: string;
     anthropicApiKey?: string;
     knowledgeDir?: string;
+    defaultModel?: string;
   };
 }
 
