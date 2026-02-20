@@ -17,6 +17,7 @@ This document tracks configuration changes and fixes made to ensure the project 
 | `pnpm echos` (TTY) | Interactive REPL | Persistent session with history |
 
 **Interactive REPL features:**
+
 - History persisted to `~/.echos_history` (max 500 entries, restored on next run)
 - Ctrl+C cancels in-flight response, re-prompts (does not exit)
 - Tool calls shown in dim colour on TTY; plain text in pipe mode
@@ -27,6 +28,7 @@ This document tracks configuration changes and fixes made to ensure the project 
 **No daemon required.** Both `pnpm start` (daemon) and `pnpm echos` (CLI) read from the same `./data/` directory. SQLite WAL mode makes concurrent access safe.
 
 **Files changed:**
+
 - `packages/cli/src/index.ts` — three-mode standalone CLI
 - `packages/cli/package.json` — `"bin": { "echos": "./dist/index.js" }`
 - `package.json` — `"echos": "tsx --env-file=.env packages/cli/src/index.ts"` script
@@ -36,6 +38,7 @@ This document tracks configuration changes and fixes made to ensure the project 
 `claude-3-5-haiku-20241022` reached end-of-life on February 19, 2026. The Anthropic API returns empty responses for this model from today.
 
 **Files changed:**
+
 - `packages/shared/src/config/index.ts` — `defaultModel` default updated
 - `packages/core/src/agent/index.ts` — in-code fallback updated; type cast cleaned up to `Parameters<typeof getModel>[1]`
 
@@ -79,6 +82,7 @@ The Fastify server no longer listens on all interfaces. It is only reachable fro
 `ENABLE_WEB` in `--non-interactive` mode was defaulting to `true` unless explicitly set to `'false'`. Fixed to `false` unless explicitly set to `'true'`, matching the config schema default.
 
 **Files changed:**
+
 - `packages/shared/src/config/index.ts` — `webApiKey` field added
 - `packages/web/src/index.ts` — auth hook, localhost bind, restricted CORS
 - `packages/web/src/api/chat.ts` — `allowedUserIds` param, `403` on unknown userId
@@ -98,12 +102,14 @@ MODEL_DEEP=claude-opus-4-6           # default deep preset
 ```
 
 **Format**: plain model ID (provider inferred from prefix) or `provider/model-id` for explicit provider:
+
 ```bash
 MODEL_BALANCED=openai/gpt-4o         # cross-provider: OpenAI
 MODEL_DEEP=anthropic/claude-opus-4-6
 ```
 
 **Built-in defaults** (used when env vars are not set):
+
 | Preset | Default model |
 |---|---|
 | `fast` | `claude-3-5-haiku-20241022` |
@@ -111,10 +117,12 @@ MODEL_DEEP=anthropic/claude-opus-4-6
 | `deep` | `claude-opus-4-6` |
 
 **Switching mid-session** (conversation history is preserved across model switches; thinking blocks from Claude are automatically converted to `<thinking>` tagged text for cross-provider compatibility):
+
 - Telegram: `/model balanced`
 - Web API: `POST /api/chat/model { "preset": "balanced", "userId": 123 }`
 
 **Files changed:**
+
 - `packages/shared/src/config/index.ts` — `modelBalanced`, `modelDeep` fields
 - `packages/core/src/agent/model-resolver.ts` — `resolveModel(spec)`, `MODEL_PRESETS`, `ModelPreset`
 - `packages/core/src/agent/index.ts` — `modelPresets?` in `AgentDeps`
@@ -141,6 +149,7 @@ Valid values: `off` | `minimal` | `low` | `medium` | `high` | `xhigh`
 > **Note**: `xhigh` is only supported by OpenAI GPT-5.2/5.3 and Anthropic Opus 4.6 (where it maps to adaptive effort "max"). Setting it on an unsupported model will produce an error. Use `medium` or `high` as safe upgrades for Claude Haiku/Sonnet.
 
 **Files changed:**
+
 - `packages/shared/src/config/index.ts` — added `thinkingLevel` Zod enum field
 - `packages/core/src/agent/index.ts` — `thinkingLevel?` in `AgentDeps`; passed to `Agent` constructor; logged at startup
 - `src/index.ts` — passes `config.thinkingLevel` into `AgentDeps`
@@ -158,6 +167,7 @@ LOG_LLM_PAYLOADS=true pnpm start
 ```
 
 **Files changed:**
+
 - `packages/shared/src/config/index.ts` — added `logLlmPayloads` field
 - `packages/core/src/agent/index.ts` — wraps `agent.streamFn` with `onPayload` hook when enabled
 - `src/index.ts` — passes `config.logLlmPayloads` into `AgentDeps`
@@ -173,6 +183,7 @@ LOG_LLM_PAYLOADS=true pnpm start
 A new interactive setup wizard (`scripts/setup.ts`) replaces the manual `.env` editing workflow.
 
 **Usage:**
+
 ```bash
 pnpm wizard                        # full interactive wizard
 pnpm wizard:check                  # prerequisite check only
@@ -181,6 +192,7 @@ pnpm wizard --skip-validation      # skip live API key checks
 ```
 
 **What it does:**
+
 1. Checks Node 20+, pnpm 9+, Python 3 + youtube-transcript-api (soft warn), disk space
 2. Detects existing `.env` — offers update / replace / skip
 3. Collects and validates Anthropic key (required), OpenAI key (optional), Telegram token
@@ -192,6 +204,7 @@ pnpm wizard --skip-validation      # skip live API key checks
 9. Offers to run `pnpm build` if no dist found
 
 **Security properties:**
+
 - All keys entered via `password()` (masked `*`) — never visible in terminal
 - Keys are NOT accepted as CLI arguments (would appear in `ps aux`)
 - `.env` written with `chmod 0600` immediately
@@ -199,6 +212,7 @@ pnpm wizard --skip-validation      # skip live API key checks
 - API validation uses `fetch()` with `AbortSignal.timeout(10000)` — keys never logged
 
 **Non-interactive mode (CI/Ansible):**
+
 ```bash
 ANTHROPIC_API_KEY=sk-ant-... \
 ALLOWED_USER_IDS=123456789 \
@@ -216,6 +230,7 @@ pnpm wizard --non-interactive --skip-validation
 ### First-run detection in `src/index.ts`
 
 `src/index.ts` now exits with a helpful message if `.env` is missing:
+
 ```
 No .env file found. Run: pnpm wizard
 ```
@@ -332,7 +347,8 @@ The correct startup sequence is:
 
 **Cause**: Another instance of the bot is already running. Telegram allows only one instance to poll for updates.
 
-**Fix**: 
+**Fix**:
+
 ```bash
 pkill -f "tsx.*index.ts"
 pnpm start
@@ -350,11 +366,13 @@ pnpm start
 ### Environment Variables
 
 Required variables (must be set in `.env`):
+
 - `TELEGRAM_BOT_TOKEN` - From @BotFather
 - `ALLOWED_USER_IDS` - Comma-separated Telegram user IDs
 - `ANTHROPIC_API_KEY` - From Anthropic Console
 
 Optional but recommended:
+
 - `OPENAI_API_KEY` - For embeddings and Whisper
 
 See `.env.example` for full list with defaults.
@@ -385,18 +403,22 @@ See [docs/INTERFACES.md](./INTERFACES.md) for interface usage details.
 ### Platform-Specific Notes
 
 #### macOS (Intel)
+
 - Uses LanceDB 0.22.3 with darwin-x64 native bindings
 - Run `pnpm install --force` if native module errors occur
 
 #### macOS (Apple Silicon)
+
 - Could use newer LanceDB versions if needed
 - Current version (0.22.3) works on both architectures
 
 #### Linux
+
 - Should work with LanceDB 0.22.3 or newer
 - Native bindings auto-detected by platform
 
 #### Windows
+
 - Not extensively tested but should work
 - May need WSL for better compatibility
 
