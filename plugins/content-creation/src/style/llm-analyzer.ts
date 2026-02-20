@@ -68,28 +68,50 @@ Return ONLY valid JSON, no other text.`;
     );
 
     // Make direct API call to Anthropic
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': anthropicApiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
-        max_tokens: 4000,
-        messages: [
-          {
-            role: 'user',
-            content: analysisPrompt,
-          },
-        ],
-      }),
-    });
+    let response: Response;
+    try {
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': anthropicApiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-3-5-haiku-20241022',
+          max_tokens: 4000,
+          messages: [
+            {
+              role: 'user',
+              content: analysisPrompt,
+            },
+          ],
+        }),
+      });
+    } catch (fetchError) {
+      logger.error({ fetchError }, 'Network request to Anthropic API failed');
+      throw new Error(
+        `Failed to connect to Anthropic API: ${fetchError instanceof Error ? fetchError.message : 'Network error'}. Please check your internet connection.`,
+      );
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Anthropic API error: ${response.status} ${errorText}`);
+      logger.error(
+        { status: response.status, error: errorText },
+        'Anthropic API request failed',
+      );
+
+      // Provide specific error messages based on status code
+      if (response.status === 401) {
+        throw new Error('Anthropic API authentication failed. Please check your API key configuration.');
+      } else if (response.status === 429) {
+        throw new Error('Anthropic API rate limit exceeded. Please try again in a few moments.');
+      } else if (response.status >= 500) {
+        throw new Error(`Anthropic API server error (${response.status}). This is a temporary issue - please try again later.`);
+      } else {
+        throw new Error(`Anthropic API error (${response.status}): ${errorText}`);
+      }
     }
 
     const result = await response.json() as {
@@ -102,16 +124,35 @@ Return ONLY valid JSON, no other text.`;
       .map((block) => (block.type === 'text' ? block.text ?? '' : ''))
       .join('');
 
+    if (!content || content.trim().length === 0) {
+      logger.error({ result }, 'Anthropic API returned empty content');
+      throw new Error('Anthropic API returned empty response. Please try again.');
+    }
+
     // Extract JSON from potential markdown code blocks
     let jsonText = content.trim();
     if (jsonText.startsWith('```')) {
       const match = jsonText.match(/```(?:json)?\n([\s\S]*?)\n```/);
       if (match && match[1]) {
         jsonText = match[1];
+      } else {
+        logger.error({ content }, 'Failed to extract JSON from markdown code block');
+        throw new Error('Failed to parse LLM response: JSON was wrapped in markdown but extraction failed.');
       }
     }
 
-    const analysis = JSON.parse(jsonText) as LLMStyleAnalysis;
+    let analysis: LLMStyleAnalysis;
+    try {
+      analysis = JSON.parse(jsonText) as LLMStyleAnalysis;
+    } catch (parseError) {
+      logger.error(
+        { jsonText: jsonText.substring(0, 500), parseError },
+        'Failed to parse JSON response from LLM',
+      );
+      throw new Error(
+        `Failed to parse LLM response as JSON: ${parseError instanceof Error ? parseError.message : 'Invalid JSON format'}. This is likely a temporary issue - please try again.`,
+      );
+    }
 
     logger.info(
       {

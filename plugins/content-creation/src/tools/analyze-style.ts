@@ -168,10 +168,47 @@ Your style profile is ready! Use create_content to generate content in your voic
         };
       } catch (error) {
         logger.error({ error }, 'Style analysis failed');
-        const errorText = `❌ Style analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+
+        // Provide specific guidance based on error type
+        let errorText = '❌ Style analysis failed.\n\n';
+
+        if (error instanceof Error) {
+          const errorMsg = error.message;
+
+          // API authentication errors
+          if (errorMsg.includes('authentication') || errorMsg.includes('API key')) {
+            errorText += `**Authentication Error**\n${errorMsg}\n\nPlease verify your Anthropic API key is correctly configured in your environment.`;
+          }
+          // Rate limit errors
+          else if (errorMsg.includes('rate limit')) {
+            errorText += `**Rate Limit Error**\n${errorMsg}\n\nYour Anthropic API has hit its rate limit. Please wait a few minutes and try again.`;
+          }
+          // Network/connection errors
+          else if (errorMsg.includes('connect') || errorMsg.includes('network') || errorMsg.includes('internet')) {
+            errorText += `**Network Error**\n${errorMsg}\n\nPlease check your internet connection and try again.`;
+          }
+          // API server errors (5xx)
+          else if (errorMsg.includes('server error')) {
+            errorText += `**API Server Error**\n${errorMsg}\n\nThis is a temporary issue with Anthropic's API. Your voice examples are saved - just try running analyze_my_style again in a few minutes.`;
+          }
+          // JSON parsing errors
+          else if (errorMsg.includes('parse') || errorMsg.includes('JSON')) {
+            errorText += `**Response Parsing Error**\n${errorMsg}\n\nThe AI returned an unexpected response format. This is usually temporary - please try again.`;
+          }
+          // Generic error with message
+          else {
+            errorText += `**Error Details**\n${errorMsg}\n\nYour voice examples are still saved. Please try again or contact support if the issue persists.`;
+          }
+        } else {
+          errorText += 'An unknown error occurred. Please try again or contact support if the issue persists.';
+        }
+
         return {
           content: [{ type: 'text' as const, text: errorText }],
-          details: { error: error instanceof Error ? error.message : 'Unknown error' },
+          details: {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            errorType: error instanceof Error ? error.constructor.name : 'UnknownError',
+          },
         };
       }
     },
