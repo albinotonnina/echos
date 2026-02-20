@@ -180,6 +180,7 @@ async function runCli(): Promise<void> {
   process.on('SIGINT', () => {
     if (inFlight) {
       cancelled = true;
+      agent.abort();
       process.stdout.write('\n^C\n');
       rl.prompt();
     } else {
@@ -209,10 +210,15 @@ async function runCli(): Promise<void> {
     void send(trimmed)
       .then(() => {
         rl.resume();
-        rl.prompt();
+        if (!cancelled) {
+          rl.prompt();
+        } else {
+          cancelled = false;
+        }
       })
       .catch((err: unknown) => {
-        console.error('Error during prompt:', err);
+        logger.warn({ err }, 'send failed');
+        cancelled = false;
         rl.resume();
         rl.prompt();
       });
