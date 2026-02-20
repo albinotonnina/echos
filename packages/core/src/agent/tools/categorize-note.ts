@@ -12,6 +12,7 @@ export interface CategorizeNoteToolDeps {
   vectorDb: VectorStorage;
   generateEmbedding: (text: string) => Promise<number[]>;
   anthropicApiKey: string;
+  modelId?: string;
   logger: Logger;
 }
 
@@ -19,7 +20,8 @@ const schema = Type.Object({
   noteId: Type.String({ description: 'ID of the note to categorize' }),
   mode: Type.Optional(
     Type.Union([Type.Literal('lightweight'), Type.Literal('full')], {
-      description: 'Processing mode: "lightweight" (category+tags) or "full" (includes summary, gist, key points)',
+      description:
+        'Processing mode: "lightweight" (category+tags) or "full" (includes summary, gist, key points)',
       default: 'lightweight',
     }),
   ),
@@ -27,9 +29,7 @@ const schema = Type.Object({
 
 type Params = Static<typeof schema>;
 
-export function createCategorizeNoteTool(
-  deps: CategorizeNoteToolDeps,
-): AgentTool<typeof schema> {
+export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentTool<typeof schema> {
   return {
     name: 'categorize_note',
     label: 'Categorize Note',
@@ -54,6 +54,8 @@ export function createCategorizeNoteTool(
           mode,
           deps.anthropicApiKey,
           deps.logger,
+          undefined,
+          deps.modelId,
         );
 
         // Parse existing note - fall back to SQLite content if file is missing

@@ -28,7 +28,9 @@ export interface FullProcessingResult extends CategorizationResult {
  */
 export type ProcessingMode = 'lightweight' | 'full';
 
-const MODEL_ID = 'claude-haiku-4-5-20251001';
+import { MODEL_PRESETS } from './model-resolver.js';
+
+const MODEL_ID = MODEL_PRESETS.fast;
 export { MODEL_ID as DEFAULT_CATEGORIZATION_MODEL };
 
 /**
