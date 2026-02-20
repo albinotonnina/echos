@@ -779,7 +779,15 @@ async function main(): Promise<void> {
   // ── Build offer ──────────────────────────────────────────────────────────
 
   if (!NON_INTERACTIVE) {
-    const hasDist = fs.existsSync(path.resolve('packages/shared/dist'));
+    const distDirs = [
+      'packages/shared/dist',
+      'packages/core/dist',
+      'plugins/content-creation/dist',
+      'plugins/youtube/dist',
+      'plugins/article/dist',
+      'plugins/image/dist',
+    ];
+    const hasDist = distDirs.every((d) => fs.existsSync(path.resolve(d)));
     if (!hasDist) {
       const buildNow = await clack.confirm({
         message: 'No build found. Run pnpm build now?',

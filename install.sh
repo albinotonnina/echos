@@ -135,7 +135,10 @@ launch_wizard() {
     echo -e "  ${YELLOW}No TTY detected${RESET} (running in a pipe)"
     echo ""
     echo -e "  To complete setup, run:"
-    echo -e "    ${CYAN}cd $ECHOS_INSTALL_DIR && pnpm wizard${RESET}"
+    echo -e "    ${CYAN}cd $ECHOS_INSTALL_DIR${RESET}"
+    echo -e "    ${CYAN}pnpm wizard${RESET}        # configure API keys + interfaces"
+    echo -e "    ${CYAN}pnpm build${RESET}         # compile workspace packages"
+    echo -e "    ${CYAN}pnpm start${RESET}         # launch EchOS"
     echo ""
   fi
 }
