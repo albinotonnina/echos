@@ -5,40 +5,12 @@ on:
 
 jobs:
   deploy:
-    name: Build & Deploy
+    name: Deploy to VPS
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     steps:
-      # ── 1. Checkout ──────────────────────────────────────────────────────────
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      # ── 2. Set up Docker Buildx ───────────────────────────────────────────────
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      # ── 3. Build Docker image for VPS (x86_64 / amd64) ─────────────
-      #      GitHub Actions runners are also x86_64 — native build, no emulation
-      - name: Build Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: docker/Dockerfile
-          platforms: linux/amd64
-          push: false
-          load: true
-          tags: echos:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # ── 4. Save image to tar.gz ───────────────────────────────────────────────
-      - name: Save image
-        run: |
-          docker save echos:latest | gzip > /tmp/echos.tar.gz
-          echo "Image size: $(du -h /tmp/echos.tar.gz | cut -f1)"
-
-      # ── 5. Set up SSH ─────────────────────────────────────────────────────────
+      # ── 1. Set up SSH ─────────────────────────────────────────────────────────
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
@@ -46,7 +18,7 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "${{ secrets.ORACLE_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
-      # ── 6. Create remote directories ──────────────────────────────────────────
+      # ── 2. Create remote directories ──────────────────────────────────────────
       - name: Prepare remote directories
         run: |
           ssh -i ~/.ssh/deploy_key \
@@ -54,15 +26,7 @@ jobs:
             "${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}" \
             'mkdir -p echos/docker echos/data/{knowledge,db,sessions,logs} && sudo chown -R 1000:1000 echos/data/'
 
-      # ── 7. Upload image ───────────────────────────────────────────────────────
-      - name: Upload Docker image
-        run: |
-          scp -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            /tmp/echos.tar.gz \
-            "${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/tmp/echos.tar.gz"
-
-      # ── 8. Upload docker-compose.yml ──────────────────────────────────────────
+      # ── 3. Upload docker-compose.yml ──────────────────────────────────────────
       - name: Upload docker-compose.yml
         run: |
           scp -i ~/.ssh/deploy_key \
@@ -70,7 +34,7 @@ jobs:
             docker/docker-compose.yml \
             "${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:echos/docker/docker-compose.yml"
 
-      # ── 9. Upload .env ────────────────────────────────────────────────────────
+      # ── 4. Upload .env ─────────────────────────────────────────────────────────
       #      The ENV_FILE secret should contain your full .env file contents.
       #      It is written to a temp file and removed after upload — never logged.
       - name: Upload .env
@@ -83,7 +47,7 @@ jobs:
             "${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:echos/.env"
           rm /tmp/echos.env
 
-      # ── 10. Load image and restart ────────────────────────────────────────────
+      # ── 5. Pull latest image and restart ──────────────────────────────────────
       - name: Deploy on VPS
         run: |
           ssh -i ~/.ssh/deploy_key \
@@ -95,18 +59,13 @@ jobs:
             mkdir -p data/knowledge data/db data/sessions data/logs
             sudo chown -R 1000:1000 data/
 
-            echo "Pruning unused Docker data..."
-            docker system prune -f
-
-            echo "Loading Docker image..."
-            docker load < /tmp/echos.tar.gz
+            echo "Pulling latest image from ghcr.io..."
+            cd docker
+            docker compose pull
 
             echo "Restarting services..."
-            cd docker
             docker compose down
             docker compose up -d
-
-            rm /tmp/echos.tar.gz
 
             echo "Waiting for services..."
             sleep 5
@@ -117,7 +76,7 @@ jobs:
             docker compose logs --tail=20 echos
           ENDSSH
 
-      # ── 11. Smoke test ────────────────────────────────────────────────────────
+      # ── 6. Smoke test ─────────────────────────────────────────────────────────
       - name: Health check
         run: |
           sleep 10
