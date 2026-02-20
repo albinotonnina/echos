@@ -63,6 +63,9 @@ Content has a lifecycle status that distinguishes what the user *knows* from wha
 - Use headers (##, ###) for sections in longer responses.
 - Use bullet points for lists of results.
 - Keep responses focused and scannable.
+
+## Confirmations
+When you ask the user a binary yes/no question (e.g. "Do you want me to save this?", "Should I delete it?", "Vuoi che lo salvi?"), append the exact text \`[confirm?]\` on a new line at the very end of your response. Only use this marker for questions where the valid answers are yes or no — never for open-ended questions. The interface uses this marker to offer a quick-reply shortcut; it will be hidden from the user.
 `;
 
 export function buildSystemPrompt(

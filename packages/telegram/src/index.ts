@@ -5,7 +5,7 @@ import type { AgentDeps } from '@echos/core';
 import { computeSessionUsage, createUserMessage, resolveModel, MODEL_PRESETS, type ModelPreset } from '@echos/core';
 import { createAuthMiddleware, createRateLimitMiddleware, createErrorHandler } from './middleware/index.js';
 import { getOrCreateSession, getSession, clearAllSessions } from './session.js';
-import { streamAgentResponse } from './streaming.js';
+import { streamAgentResponse, CONFIRM_MARKER } from './streaming.js';
 import { createTelegramNotificationService } from './notification.js';
 import { handleVoiceMessage } from './voice.js';
 import { handlePhotoMessage } from './photo.js';
@@ -24,26 +24,8 @@ export interface TelegramAdapter extends InterfaceAdapter {
 // A 👍 reaction on that message is treated as answering "yes".
 const pendingYesNoMessages = new Map<number, number>();
 
-const YES_NO_PATTERNS = [
-  'do you want',
-  'would you like',
-  'should i',
-  'shall i',
-  'want me to',
-  'do you need',
-  'would you prefer',
-  'is that correct',
-  'is that right',
-  'are you sure',
-  'can i',
-  'may i',
-  'do you agree',
-] as const;
-
 function isYesNoQuestion(text: string): boolean {
-  if (!text.includes('?')) return false;
-  const lower = text.toLowerCase();
-  return YES_NO_PATTERNS.some((p) => lower.includes(p));
+  return text.includes(CONFIRM_MARKER);
 }
 
 export function createTelegramAdapter(options: TelegramAdapterOptions): TelegramAdapter {
