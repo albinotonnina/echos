@@ -61,7 +61,7 @@ async function runCli(): Promise<void> {
     search,
     generateEmbedding,
     anthropicApiKey,
-    modelId: process.env['DEFAULT_MODEL'],
+    ...(process.env['DEFAULT_MODEL'] ? { modelId: process.env['DEFAULT_MODEL'] } : {}),
     logger,
   });
   agent.sessionId = 'cli-local';
