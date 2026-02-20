@@ -231,12 +231,6 @@ sed "s/DOMAIN_NAME/yourdomain.com/g" docker/nginx.conf.template > docker/nginx.c
 docker compose --profile nginx up -d
 ```
 
-### Oracle Cloud — free tier
-
-Run EchOS on Oracle Cloud's Always Free tier (ARM instance with 24GB RAM). Configuration is more involved than a standard VPS, but your coding agent (or even EchOS itself) can help you through it.
-
-See [docs/ORACLE_CLOUD_VAULT.md](docs/ORACLE_CLOUD_VAULT.md) for secure secret management on Oracle Cloud instances.
-
 > [!TIP]
 > See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for systemd service setup, nginx SSL, and VPS deployment instructions.
 
