@@ -78,7 +78,7 @@ const CreateNoteTool = {
 ```
 
 ### Interface Adapters
-Each interface (Telegram, Web, CLI daemon adapter) implements `InterfaceAdapter`:
+Interface adapters (Telegram bot and Web UI) implement `InterfaceAdapter` as part of the long-running daemon lifecycle. The CLI (`packages/cli/src/index.ts`) is a separate, standalone entrypoint and does not implement this interface:
 ```typescript
 interface InterfaceAdapter {
   start(): Promise<void>;
