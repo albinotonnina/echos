@@ -2,8 +2,18 @@ import { Bot } from 'grammy';
 import type { Logger } from 'pino';
 import type { Config, InterfaceAdapter, NotificationService } from '@echos/shared';
 import type { AgentDeps } from '@echos/core';
-import { computeSessionUsage, createUserMessage, resolveModel, MODEL_PRESETS, type ModelPreset } from '@echos/core';
-import { createAuthMiddleware, createRateLimitMiddleware, createErrorHandler } from './middleware/index.js';
+import {
+  computeSessionUsage,
+  createUserMessage,
+  resolveModel,
+  MODEL_PRESETS,
+  type ModelPreset,
+} from '@echos/core';
+import {
+  createAuthMiddleware,
+  createRateLimitMiddleware,
+  createErrorHandler,
+} from './middleware/index.js';
 import { getOrCreateSession, getSession, clearAllSessions } from './session.js';
 import { streamAgentResponse } from './streaming.js';
 import { createTelegramNotificationService } from './notification.js';
@@ -41,15 +51,16 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
   // /start command
   bot.command('start', async (ctx) => {
     await ctx.reply(
-      'Welcome to EchOS! I\'m your personal knowledge assistant.\n\n' +
-      'Just send me a message and I\'ll help you manage your knowledge base.\n\n' +
-      'You can:\n' +
-      '- Send text to create notes\n' +
-      '- Send URLs to save articles\n' +
-      '- Send photos to save and categorize images\n' +
-      '- Ask questions about your knowledge\n' +
-      '- Send voice messages to transcribe and process them\n' +
-      '- Manage reminders and more',
+      "Welcome to EchOS! I'm your personal knowledge assistant.\n\n" +
+        "Start by telling me about yourself — what you do, what you're working on, what interests you. " +
+        'The more I know about you, the better I can organize your knowledge and create content in your voice.\n\n' +
+        'You can:\n' +
+        '- Send text to create notes\n' +
+        '- Send URLs to save articles\n' +
+        '- Send photos to save and categorize images\n' +
+        '- Ask questions about your knowledge\n' +
+        '- Send voice messages to transcribe and process them\n' +
+        '- Manage reminders and more',
     );
   });
 
@@ -75,19 +86,17 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
     }
 
     const usage = computeSessionUsage(agent);
-    const costStr = usage.totalCost < 0.01
-      ? `<$0.01`
-      : `$${usage.totalCost.toFixed(2)}`;
+    const costStr = usage.totalCost < 0.01 ? `<$0.01` : `$${usage.totalCost.toFixed(2)}`;
 
     await ctx.reply(
       `Session usage:\n` +
-      `Messages: ${usage.messageCount}\n` +
-      `Input tokens: ${usage.inputTokens.toLocaleString()}\n` +
-      `Output tokens: ${usage.outputTokens.toLocaleString()}\n` +
-      `Cache read: ${usage.cacheReadTokens.toLocaleString()}\n` +
-      `Cache write: ${usage.cacheWriteTokens.toLocaleString()}\n` +
-      `Cost: ${costStr}\n` +
-      `Context window: ${usage.contextWindowPercent.toFixed(1)}%`,
+        `Messages: ${usage.messageCount}\n` +
+        `Input tokens: ${usage.inputTokens.toLocaleString()}\n` +
+        `Output tokens: ${usage.outputTokens.toLocaleString()}\n` +
+        `Cache read: ${usage.cacheReadTokens.toLocaleString()}\n` +
+        `Cache write: ${usage.cacheWriteTokens.toLocaleString()}\n` +
+        `Cost: ${costStr}\n` +
+        `Context window: ${usage.contextWindowPercent.toFixed(1)}%`,
     );
   });
 
