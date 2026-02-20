@@ -20,6 +20,7 @@ export async function generateContent(
   relevantNotes: RelevantNote[],
   anthropicApiKey: string,
   logger: Logger,
+  modelId: string,
 ): Promise<GenerationResult> {
   try {
     logger.info(
@@ -45,7 +46,7 @@ export async function generateContent(
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
+        model: modelId,
         max_tokens: 4000,
         messages: [
           {
@@ -61,14 +62,14 @@ export async function generateContent(
       throw new Error(`Anthropic API error: ${response.status} ${errorText}`);
     }
 
-    const result = await response.json() as {
+    const result = (await response.json()) as {
       content: Array<{ type: string; text?: string }>;
       usage?: { input_tokens: number; output_tokens: number };
     };
 
     // Extract text content
     const generatedText = result.content
-      .map((block) => (block.type === 'text' ? block.text ?? '' : ''))
+      .map((block) => (block.type === 'text' ? (block.text ?? '') : ''))
       .join('')
       .trim();
 

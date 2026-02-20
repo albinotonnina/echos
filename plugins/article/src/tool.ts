@@ -18,7 +18,8 @@ const schema = Type.Object({
   ),
   processingMode: Type.Optional(
     Type.Union([Type.Literal('lightweight'), Type.Literal('full')], {
-      description: 'AI processing mode: "lightweight" (category+tags) or "full" (includes summary, gist, key points). Only used if autoCategorize is true.',
+      description:
+        'AI processing mode: "lightweight" (category+tags) or "full" (includes summary, gist, key points). Only used if autoCategorize is true.',
       default: 'full',
     }),
   ),
@@ -26,9 +27,7 @@ const schema = Type.Object({
 
 type Params = Static<typeof schema>;
 
-export function createSaveArticleTool(
-  context: PluginContext,
-): AgentTool<typeof schema> {
+export function createSaveArticleTool(context: PluginContext): AgentTool<typeof schema> {
   return {
     name: 'save_article',
     label: 'Save Article',
@@ -65,7 +64,12 @@ export function createSaveArticleTool(
             mode,
             context.config.anthropicApiKey as string,
             context.logger,
-            (message) => onUpdate?.({ content: [{ type: 'text', text: message }], details: { phase: 'categorizing' } }),
+            (message) =>
+              onUpdate?.({
+                content: [{ type: 'text', text: message }],
+                details: { phase: 'categorizing' },
+              }),
+            context.config.defaultModel as string,
           );
 
           category = result.category;
@@ -75,10 +79,7 @@ export function createSaveArticleTool(
             gist = result.gist;
           }
 
-          context.logger.info(
-            { category, tags, mode },
-            'Article auto-categorized',
-          );
+          context.logger.info({ category, tags, mode }, 'Article auto-categorized');
         } catch (error) {
           context.logger.error({ error }, 'Auto-categorization failed, using defaults');
         }

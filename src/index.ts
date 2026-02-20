@@ -6,7 +6,12 @@
  */
 
 import { join } from 'node:path';
-import { loadConfig, createLogger, type InterfaceAdapter, type NotificationService } from '@echos/shared';
+import {
+  loadConfig,
+  createLogger,
+  type InterfaceAdapter,
+  type NotificationService,
+} from '@echos/shared';
 import {
   createSqliteStorage,
   createMarkdownStorage,
@@ -55,10 +60,24 @@ async function main(): Promise<void> {
   };
 
   // Reconcile markdown files with SQLite and LanceDB on startup
-  await reconcileStorage({ baseDir: config.knowledgeDir, sqlite, vectorDb, markdown, generateEmbedding, logger });
+  await reconcileStorage({
+    baseDir: config.knowledgeDir,
+    sqlite,
+    vectorDb,
+    markdown,
+    generateEmbedding,
+    logger,
+  });
 
   // Watch for live changes to markdown files
-  const fileWatcher: FileWatcher = createFileWatcher({ baseDir: config.knowledgeDir, sqlite, vectorDb, markdown, generateEmbedding, logger });
+  const fileWatcher: FileWatcher = createFileWatcher({
+    baseDir: config.knowledgeDir,
+    sqlite,
+    vectorDb,
+    markdown,
+    generateEmbedding,
+    logger,
+  });
 
   // Initialize plugins
   const pluginRegistry = new PluginRegistry(logger);
@@ -79,6 +98,7 @@ async function main(): Promise<void> {
       webshareProxyUsername: config.webshareProxyUsername,
       webshareProxyPassword: config.webshareProxyPassword,
       knowledgeDir: config.knowledgeDir,
+      defaultModel: config.defaultModel,
     },
   });
 
@@ -183,7 +203,10 @@ async function main(): Promise<void> {
     await iface.start();
   }
 
-  logger.info({ interfaceCount: interfaces.length, schedulerEnabled: config.enableScheduler }, 'EchOS started');
+  logger.info(
+    { interfaceCount: interfaces.length, schedulerEnabled: config.enableScheduler },
+    'EchOS started',
+  );
 
   // Graceful shutdown
   const shutdown = async (): Promise<void> => {

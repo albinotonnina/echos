@@ -90,6 +90,7 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     createCategorizeNoteTool({
       ...storageDeps,
       anthropicApiKey: deps.anthropicApiKey,
+      ...(deps.modelId !== undefined ? { modelId: deps.modelId } : {}),
       logger: deps.logger,
     }),
     createSetAgentVoiceTool({
@@ -108,7 +109,16 @@ export function createEchosAgent(deps: AgentDeps): Agent {
   const systemPrompt = buildSystemPrompt(memories, hasMore, agentVoice);
 
   deps.logger.info(
-    { model: model.id, thinkingLevel: deps.thinkingLevel ?? 'off', coreTools: coreTools.length, pluginTools: (deps.pluginTools ?? []).length, totalTools: tools.length, memoriesLoaded: memories.length, memoriesTotal: hasMore ? `>${MEMORY_INJECT_LIMIT}` : memories.length, agentVoice: agentVoice ? 'custom' : 'default' },
+    {
+      model: model.id,
+      thinkingLevel: deps.thinkingLevel ?? 'off',
+      coreTools: coreTools.length,
+      pluginTools: (deps.pluginTools ?? []).length,
+      totalTools: tools.length,
+      memoriesLoaded: memories.length,
+      memoriesTotal: hasMore ? `>${MEMORY_INJECT_LIMIT}` : memories.length,
+      agentVoice: agentVoice ? 'custom' : 'default',
+    },
     'Creating EchOS agent',
   );
 
