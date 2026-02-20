@@ -26,8 +26,19 @@ export interface VectorStorage {
 }
 
 const TABLE_NAME = 'documents';
+const DEFAULT_DIMENSIONS = 1536;
 
-export async function createVectorStorage(dbPath: string, logger: Logger): Promise<VectorStorage> {
+export interface VectorStorageOptions {
+  /** Vector dimensions. Must match the embedding function output. Default: 1536 */
+  dimensions?: number;
+}
+
+export async function createVectorStorage(
+  dbPath: string,
+  logger: Logger,
+  options?: VectorStorageOptions,
+): Promise<VectorStorage> {
+  const dimensions = options?.dimensions ?? DEFAULT_DIMENSIONS;
   mkdirSync(dbPath, { recursive: true });
   const db = await lancedb.connect(dbPath);
 
@@ -36,20 +47,20 @@ export async function createVectorStorage(dbPath: string, logger: Logger): Promi
 
   if (tableNames.includes(TABLE_NAME)) {
     table = await db.openTable(TABLE_NAME);
-    logger.info({ dbPath }, 'LanceDB table opened');
+    logger.info({ dbPath, dimensions }, 'LanceDB table opened');
   } else {
     // Create with a dummy row to establish schema, then delete it
     table = await db.createTable(TABLE_NAME, [
       {
         id: '__init__',
         text: '',
-        vector: new Array(1536).fill(0),
+        vector: new Array(dimensions).fill(0),
         type: '',
         title: '',
       },
     ]);
     await table.delete('id = "__init__"');
-    logger.info({ dbPath }, 'LanceDB table created');
+    logger.info({ dbPath, dimensions }, 'LanceDB table created');
   }
 
   return {

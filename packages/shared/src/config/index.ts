@@ -27,6 +27,7 @@ export const configSchema = z.object({
   // LLM
   defaultModel: z.string().default('claude-haiku-4-5-20251001'),
   embeddingModel: z.string().default('text-embedding-3-small'),
+  embeddingDimensions: z.coerce.number().int().positive().default(1536),
 
   // Interfaces
   enableTelegram: z
@@ -56,9 +57,7 @@ export const configSchema = z.object({
   modelDeep: z.string().optional(),
 
   // LLM reasoning
-  thinkingLevel: z
-    .enum(['off', 'minimal', 'low', 'medium', 'high', 'xhigh'])
-    .default('off'),
+  thinkingLevel: z.enum(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']).default('off'),
 
   // Debug
   logLlmPayloads: z
@@ -91,6 +90,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     sessionDir: env['SESSION_DIR'],
     defaultModel: env['DEFAULT_MODEL'],
     embeddingModel: env['EMBEDDING_MODEL'],
+    embeddingDimensions: env['EMBEDDING_DIMENSIONS'],
     enableTelegram: env['ENABLE_TELEGRAM'],
     enableWeb: env['ENABLE_WEB'],
     webPort: env['WEB_PORT'],

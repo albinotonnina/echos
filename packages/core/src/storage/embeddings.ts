@@ -1,42 +1,47 @@
 import type { Logger } from 'pino';
 
-/** Supported embedding models and their vector dimensions */
-const SUPPORTED_MODELS: Record<string, number> = {
-  'text-embedding-3-small': 1536,
-  'text-embedding-3-large': 3072,
-  'text-embedding-ada-002': 1536,
-};
-
 const DEFAULT_MODEL = 'text-embedding-3-small';
-const REQUIRED_DIMENSION = 1536;
+const DEFAULT_DIMENSIONS = 1536;
 const FETCH_TIMEOUT_MS = 30_000;
+
+/** Models that support the OpenAI `dimensions` parameter for truncation */
+const DIMENSION_TRUNCATION_MODELS = new Set(['text-embedding-3-small', 'text-embedding-3-large']);
 
 export interface EmbeddingOptions {
   openaiApiKey: string | undefined;
   model?: string | undefined;
+  /** Output vector dimensions. Must match LanceDB schema. text-embedding-3-* models support truncation via the OpenAI API. */
+  dimensions?: number | undefined;
   logger: Logger;
 }
 
 /**
- * Create a real embedding function that calls the OpenAI embeddings API.
+ * Create an embedding function that calls the OpenAI embeddings API.
  * Falls back to a zero-vector stub if no API key is provided.
+ *
+ * Set `dimensions` to control the output size. For text-embedding-3-* models
+ * the OpenAI API truncates server-side. This value must match `createVectorStorage`.
  */
 export function createEmbeddingFn(
   options?: Partial<EmbeddingOptions>,
 ): (text: string) => Promise<number[]> {
+  const dimensions = options?.dimensions ?? DEFAULT_DIMENSIONS;
+
   if (!options?.openaiApiKey) {
     options?.logger?.warn('No OpenAI API key — embeddings disabled (zero-vector stub)');
-    return async (_text: string) => new Array(REQUIRED_DIMENSION).fill(0);
+    return async (_text: string) => new Array(dimensions).fill(0);
   }
 
   const { openaiApiKey, logger } = options;
   const model = options.model ?? DEFAULT_MODEL;
 
-  // Validate the model produces vectors matching our LanceDB schema (1536 dimensions)
-  const expectedDim = SUPPORTED_MODELS[model];
-  if (expectedDim !== undefined && expectedDim !== REQUIRED_DIMENSION) {
-    throw new Error(
-      `Embedding model "${model}" produces ${expectedDim}-dim vectors, but LanceDB requires ${REQUIRED_DIMENSION}. Use "${DEFAULT_MODEL}" or "text-embedding-ada-002".`,
+  // Build request body — include `dimensions` param for models that support truncation
+  const supportsTruncation = DIMENSION_TRUNCATION_MODELS.has(model);
+
+  if (!supportsTruncation && dimensions !== DEFAULT_DIMENSIONS) {
+    logger?.warn(
+      { model, dimensions },
+      `Model "${model}" does not support the dimensions parameter. Output dimension depends on the model itself. Ensure it matches EMBEDDING_DIMENSIONS.`,
     );
   }
 
@@ -44,16 +49,21 @@ export function createEmbeddingFn(
     // Truncate to avoid token limits (roughly 8191 tokens ~ 32k chars)
     const truncated = text.slice(0, 30_000);
 
+    const body: Record<string, unknown> = {
+      model,
+      input: truncated,
+    };
+    if (supportsTruncation) {
+      body['dimensions'] = dimensions;
+    }
+
     const response = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${openaiApiKey}`,
       },
-      body: JSON.stringify({
-        model,
-        input: truncated,
-      }),
+      body: JSON.stringify(body),
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
 
@@ -72,9 +82,9 @@ export function createEmbeddingFn(
       throw new Error('Empty embedding returned from OpenAI');
     }
 
-    if (embedding.length !== REQUIRED_DIMENSION) {
+    if (embedding.length !== dimensions) {
       throw new Error(
-        `Embedding dimension mismatch: got ${embedding.length}, expected ${REQUIRED_DIMENSION}`,
+        `Embedding dimension mismatch: got ${embedding.length}, expected ${dimensions}. Check EMBEDDING_DIMENSIONS matches your model.`,
       );
     }
 

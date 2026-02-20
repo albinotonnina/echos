@@ -12,6 +12,7 @@ export {
   type VectorStorage,
   type VectorDocument,
   type VectorSearchResult,
+  type VectorStorageOptions,
   type SearchService,
   type NoteRow,
   type ListNotesOptions,

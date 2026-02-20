@@ -11,6 +11,7 @@ export {
   type VectorStorage,
   type VectorDocument,
   type VectorSearchResult,
+  type VectorStorageOptions,
 } from './vectordb.js';
 export { createSearchService, type SearchService } from './search.js';
 export {

@@ -23,12 +23,16 @@ async function main(): Promise<void> {
 
   const sqlite = createSqliteStorage(join(DATA_DIR, 'db', 'echos.db'), logger);
   const markdown = createMarkdownStorage(join(DATA_DIR, 'knowledge'), logger);
-  const vectorDb = await createVectorStorage(join(DATA_DIR, 'db', 'vectors'), logger);
+  const embeddingDimensions = Number(process.env['EMBEDDING_DIMENSIONS']) || 1536;
+  const vectorDb = await createVectorStorage(join(DATA_DIR, 'db', 'vectors'), logger, {
+    dimensions: embeddingDimensions,
+  });
   const search = createSearchService(sqlite, vectorDb, markdown, logger);
 
   const { createEmbeddingFn } = await import('./storage/embeddings.js');
   const generateEmbedding = createEmbeddingFn({
     openaiApiKey: process.env['OPENAI_API_KEY'],
+    dimensions: embeddingDimensions,
     logger,
   });
 

@@ -52,12 +52,15 @@ async function main(): Promise<void> {
   // Initialize storage
   const sqlite = createSqliteStorage(join(config.dbPath, 'echos.db'), logger);
   const markdown = createMarkdownStorage(config.knowledgeDir, logger);
-  const vectorDb = await createVectorStorage(join(config.dbPath, 'vectors'), logger);
+  const vectorDb = await createVectorStorage(join(config.dbPath, 'vectors'), logger, {
+    dimensions: config.embeddingDimensions,
+  });
   const search = createSearchService(sqlite, vectorDb, markdown, logger);
 
   const generateEmbedding = createEmbeddingFn({
     openaiApiKey: config.openaiApiKey,
     model: config.embeddingModel,
+    dimensions: config.embeddingDimensions,
     logger,
   });
 
