@@ -26,7 +26,7 @@
       "@echos/core/*": ["./packages/core/src/*"],
       "@echos/telegram": ["./packages/telegram/src/index.ts"],
       "@echos/web": ["./packages/web/src/index.ts"],
-      "@echos/tui": ["./packages/tui/src/index.ts"],
+      "@echos/cli": ["./packages/cli/src/index.ts"],
       "@echos/scheduler": ["./packages/scheduler/src/index.ts"],
       "@echos/plugin-youtube": ["./plugins/youtube/src/index.ts"],
       "@echos/plugin-article": ["./plugins/article/src/index.ts"]

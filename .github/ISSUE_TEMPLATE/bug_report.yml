@@ -40,7 +40,7 @@ body:
       options:
         - Telegram
         - Web UI
-        - TUI
+        - CLI
         - All
     validations:
       required: true

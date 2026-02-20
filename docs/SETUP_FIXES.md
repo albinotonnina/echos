@@ -2,11 +2,52 @@
 
 This document tracks configuration changes and fixes made to ensure the project runs correctly.
 
+## February 19, 2026 — Standalone CLI & Model Deprecation Fix
+
+### `pnpm echos` — standalone three-mode CLI
+
+`packages/cli/src/index.ts` is a standalone CLI binary — no daemon required.
+
+**Three auto-detected modes:**
+
+| Invocation | Mode | Behaviour |
+|---|---|---|
+| `pnpm echos "query"` | One-shot | Boots agent, answers, exits |
+| `echo "msg" \| pnpm echos` | Pipe | Reads stdin, answers in plain text, exits |
+| `pnpm echos` (TTY) | Interactive REPL | Persistent session with history |
+
+**Interactive REPL features:**
+- History persisted to `~/.echos_history` (max 500 entries, restored on next run)
+- Ctrl+C cancels in-flight response, re-prompts (does not exit)
+- Tool calls shown in dim colour on TTY; plain text in pipe mode
+- `exit` / `quit` / Ctrl+D exits cleanly
+
+**Logging:** CLI defaults to `warn` log level — startup logs are suppressed. Override with `LOG_LEVEL=info pnpm echos`.
+
+**No daemon required.** Both `pnpm start` (daemon) and `pnpm echos` (CLI) read from the same `./data/` directory. SQLite WAL mode makes concurrent access safe.
+
+**Files changed:**
+- `packages/cli/src/index.ts` — three-mode standalone CLI
+- `packages/cli/package.json` — `"bin": { "echos": "./dist/index.js" }`
+- `package.json` — `"echos": "tsx --env-file=.env packages/cli/src/index.ts"` script
+
+### Default model updated — `claude-3-5-haiku-20241022` → `claude-haiku-4-5-20251001`
+
+`claude-3-5-haiku-20241022` reached end-of-life on February 19, 2026. The Anthropic API returns empty responses for this model from today.
+
+**Files changed:**
+- `packages/shared/src/config/index.ts` — `defaultModel` default updated
+- `packages/core/src/agent/index.ts` — in-code fallback updated; type cast cleaned up to `Parameters<typeof getModel>[1]`
+
+**Action required if you have `DEFAULT_MODEL=claude-3-5-haiku-20241022` in `.env`:** update it to `claude-haiku-4-5-20251001`.
+
+---
+
 ## February 19, 2026 — Web API Security & Experimental Interface Defaults
 
-### Web and TUI marked experimental, disabled by default
+### Web marked experimental, disabled by default
 
-Web UI and TUI are now clearly marked as experimental in the setup wizard with a warning before the interface selection step. Both default to **off** (they were already off in the config schema, but the wizard was pre-selecting Web UI if no existing `.env` was found).
+Web UI is now clearly marked as experimental in the setup wizard with a warning before the interface selection step. It defaults to **off** (it was already off in the config schema, but the wizard was pre-selecting Web UI if no existing `.env` was found).
 
 ### New env var: `WEB_API_KEY`
 
@@ -143,7 +184,7 @@ pnpm wizard --skip-validation      # skip live API key checks
 1. Checks Node 20+, pnpm 9+, Python 3 + youtube-transcript-api (soft warn), disk space
 2. Detects existing `.env` — offers update / replace / skip
 3. Collects and validates Anthropic key (required), OpenAI key (optional), Telegram token
-4. Configures interfaces (Telegram, Web UI, TUI) and ports
+4. Configures interfaces (Telegram, Web UI) and ports
 5. Configures Redis scheduler with cron schedules
 6. Shows masked summary before writing
 7. Writes `.env` (mode 0600), backs up old `.env` as `.env.backup.{timestamp}`
@@ -170,7 +211,7 @@ pnpm wizard --non-interactive --skip-validation
 
 `packages/shared/src/config/index.ts`: `telegramBotToken` changed from `z.string().min(1)` to `z.string().optional()`.
 
-**Why**: Web-only and TUI-only deployments were blocked by a required `TELEGRAM_BOT_TOKEN` even when `ENABLE_TELEGRAM=false`. The token is still validated at runtime in `src/index.ts` before the Telegram adapter is created.
+**Why**: Web-only deployments were blocked by a required `TELEGRAM_BOT_TOKEN` even when `ENABLE_TELEGRAM=false`. The token is still validated at runtime in `src/index.ts` before the Telegram adapter is created.
 
 ### First-run detection in `src/index.ts`
 
@@ -237,7 +278,7 @@ Added path mappings for workspace packages:
       "@echos/core/*": ["./packages/core/src/*"],
       "@echos/telegram": ["./packages/telegram/src/index.ts"],
       "@echos/web": ["./packages/web/src/index.ts"],
-      "@echos/tui": ["./packages/tui/src/index.ts"],
+      "@echos/cli": ["./packages/cli/src/index.ts"],
       "@echos/scheduler": ["./packages/scheduler/src/index.ts"]
     }
   }
@@ -331,10 +372,10 @@ To verify the setup is working:
 
 ### Available Commands
 
-- `pnpm start` - Start all enabled interfaces (Telegram + Web + TUI if enabled)
+- `pnpm start` - Start daemon (Telegram + Web if enabled)
 - `pnpm start:web-only` - Start only the Web API (port 3000)
-- `pnpm start:tui-only` - Start only the Terminal UI (interactive prompt)
-- `pnpm cli` - Run the standalone CLI tool for testing
+- `pnpm echos` - Standalone CLI (interactive REPL, no daemon needed)
+- `pnpm echos "query"` - One-shot CLI query
 - `pnpm dev` - Watch mode for development (rebuilds on changes)
 - `pnpm test` - Run all tests
 - `pnpm build` - Build all workspace packages

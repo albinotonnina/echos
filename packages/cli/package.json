@@ -1,10 +1,13 @@
 {
-  "name": "@echos/tui",
+  "name": "@echos/cli",
   "version": "0.3.1",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "echos": "./dist/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

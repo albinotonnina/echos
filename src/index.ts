@@ -20,7 +20,6 @@ import {
 } from '@echos/core';
 import { createTelegramAdapter, type TelegramAdapter } from '@echos/telegram';
 import { createWebAdapter } from '@echos/web';
-import { createTuiAdapter } from '@echos/tui';
 import {
   createQueue,
   createWorker,
@@ -111,10 +110,6 @@ async function main(): Promise<void> {
 
   if (config.enableWeb) {
     interfaces.push(createWebAdapter({ config, agentDeps, logger }));
-  }
-
-  if (config.enableTui) {
-    interfaces.push(createTuiAdapter({ agentDeps, logger }));
   }
 
   // Scheduler setup (requires Redis, opt-in via ENABLE_SCHEDULER=true)

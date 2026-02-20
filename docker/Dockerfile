@@ -9,7 +9,7 @@ COPY packages/shared/package.json packages/shared/
 COPY packages/core/package.json packages/core/
 COPY packages/telegram/package.json packages/telegram/
 COPY packages/web/package.json packages/web/
-COPY packages/tui/package.json packages/tui/
+COPY packages/cli/package.json packages/cli/
 COPY packages/scheduler/package.json packages/scheduler/
 COPY plugins/article/package.json plugins/article/
 COPY plugins/youtube/package.json plugins/youtube/
@@ -37,7 +37,7 @@ COPY --from=deps /app/packages/shared/package.json packages/shared/
 COPY --from=deps /app/packages/core/package.json packages/core/
 COPY --from=deps /app/packages/telegram/package.json packages/telegram/
 COPY --from=deps /app/packages/web/package.json packages/web/
-COPY --from=deps /app/packages/tui/package.json packages/tui/
+COPY --from=deps /app/packages/cli/package.json packages/cli/
 COPY --from=deps /app/packages/scheduler/package.json packages/scheduler/
 COPY --from=deps /app/plugins/article/package.json plugins/article/
 COPY --from=deps /app/plugins/youtube/package.json plugins/youtube/

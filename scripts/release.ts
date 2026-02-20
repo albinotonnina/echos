@@ -71,7 +71,7 @@ console.log(`\nBumping ${bump}: ${currentVersion} → ${nextVersion}\n`);
 // Collect all package.json files to update
 const packageJsonPaths: string[] = [
   rootPkgPath,
-  ...['packages/core', 'packages/scheduler', 'packages/shared', 'packages/tui', 'packages/web', 'packages/telegram'].map(
+  ...['packages/cli', 'packages/core', 'packages/scheduler', 'packages/shared', 'packages/web', 'packages/telegram'].map(
     (p) => resolve(ROOT, p, 'package.json'),
   ),
   ...['plugins/article', 'plugins/content-creation', 'plugins/youtube'].map(

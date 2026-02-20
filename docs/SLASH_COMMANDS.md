@@ -47,16 +47,16 @@ Displays detailed usage statistics for your current session:
 - **Cost**: Estimated cost in USD
 - **Context window**: Percentage of context window used
 
-## TUI Commands
+## CLI Commands
 
-The Terminal User Interface (TUI) does not support slash commands but has the following built-in commands:
+The CLI (`pnpm echos`) does not support slash commands but has the following built-in commands:
 
 | Command | Description |
 |---------|-------------|
-| `exit` | Exit the TUI session |
-| `quit` | Exit the TUI session |
+| `exit` | Exit the CLI session |
+| `quit` | Exit the CLI session |
 
-These commands are case-insensitive and can be typed at the prompt to terminate the session.
+These commands are typed at the `>` prompt in interactive mode. `Ctrl+D` also exits. `Ctrl+C` cancels the current in-flight response without exiting.
 
 ## Agent Tools
 

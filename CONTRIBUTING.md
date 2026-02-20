@@ -36,7 +36,7 @@ packages/shared/     — types, config (Zod), security utils, logging
 packages/core/       — agent, tools, storage, search, plugin system
 packages/telegram/   — Telegram bot adapter (grammY)
 packages/web/        — Web UI adapter (Fastify + SSE)
-packages/tui/        — Terminal UI adapter
+packages/cli/        — CLI binary (`pnpm echos`) — standalone terminal interface
 packages/scheduler/  — Background jobs (BullMQ)
 plugins/youtube/     — YouTube transcript plugin
 plugins/article/     — Web article plugin

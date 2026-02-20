@@ -8,7 +8,7 @@ User Input (any interface)
     ▼
 ┌─────────────────────────────┐
 │  Interface Adapter           │
-│  (Telegram / Web / TUI)      │
+│  (Telegram / Web / CLI)      │
 │  - Auth verification         │
 │  - Message normalization     │
 │  - Response streaming        │
@@ -49,7 +49,7 @@ User Input (any interface)
 @echos/core            ← shared (storage, agent, plugin system)
 @echos/telegram        ← shared, core (grammY bot, notification service)
 @echos/web             ← shared, core (Fastify server)
-@echos/tui             ← shared, core (terminal UI)
+@echos/cli             ← shared, core (CLI binary — standalone terminal interface)
 @echos/scheduler       ← shared, core, plugin-article, plugin-youtube (BullMQ workers)
 @echos/plugin-youtube  ← shared, core (YouTube transcript extraction)
 @echos/plugin-article  ← shared, core (web article extraction)
@@ -168,7 +168,7 @@ await agent.prompt([
 ]);
 ```
 
-All three interfaces (Telegram, Web, TUI) use this pattern.
+All interfaces (Telegram, Web, CLI) use this pattern.
 
 ## AI Categorization — Streaming with Progressive JSON
 
@@ -207,7 +207,7 @@ Each agent instance is assigned a `sessionId` at creation time, forwarded to LLM
 |---|---|
 | Telegram | `telegram-{userId}` |
 | Web | `web-{userId}` |
-| TUI | `tui-local` |
+| CLI (`pnpm echos`) | `cli-local` |
 
 **Effect by provider:**
 

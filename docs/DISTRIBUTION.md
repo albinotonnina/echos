@@ -65,7 +65,7 @@ To adopt this approach, EchOS would need:
 |-----------|----------|----------|
 | Native dependencies (`better-sqlite3`, `lancedb`) | High | Use prebuild binaries, or switch to pure JS alternatives |
 | Environment configuration | Medium | Interactive CLI wizard or defaults |
-| Multiple interfaces (Telegram, Web, TUI) | Medium | Allow selecting interfaces via flags |
+| Multiple interfaces (Telegram, Web, CLI) | Medium | Allow selecting interfaces via flags |
 | Redis dependency for scheduler | Low | Make optional, graceful degradation |
 | pnpm workspace structure | High | Restructure as single package or use workspaces properly |
 

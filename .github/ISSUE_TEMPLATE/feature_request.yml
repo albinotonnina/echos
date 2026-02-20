@@ -33,7 +33,7 @@ body:
         - Plugin system
         - Telegram interface
         - Web UI
-        - TUI
+        - CLI
         - Search
         - Storage / Sync
         - Scheduler / Background jobs

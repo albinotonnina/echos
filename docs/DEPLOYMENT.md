@@ -1,7 +1,7 @@
 # Deployment
 
 > **Troubleshooting?** See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for common issues and solutions.
-> **Interface Usage?** See [INTERFACES.md](./INTERFACES.md) for accessing Telegram, Web API, and TUI.
+> **Interface Usage?** See [INTERFACES.md](./INTERFACES.md) for accessing Telegram, Web API, and CLI.
 
 ## Quick Start
 
@@ -159,6 +159,25 @@ sudo systemctl enable --now echos
 sudo journalctl -u echos -f   # follow logs
 ```
 
+## SSH / VPS CLI Access
+
+The daemon runs via systemd or Docker as normal. When you SSH in, run queries directly against the live data without interrupting the daemon:
+
+```bash
+ssh user@your-server
+cd ~/echos
+
+# One-shot query
+pnpm echos "what are my reminders for this week?"
+
+# Interactive session
+pnpm echos
+```
+
+SQLite WAL mode allows concurrent reads (and occasional writes) alongside the running daemon. This is safe for single-user personal use.
+
+---
+
 ## Oracle Cloud Deployment
 
 ```bash
@@ -226,11 +245,16 @@ See [SCHEDULER.md](./SCHEDULER.md) for details.
 ### Development
 
 ```bash
-# Start (foreground)
+# Start daemon (foreground)
 pnpm start
 
 # Stop (Ctrl+C or from another terminal)
 pkill -f "tsx.*index.ts"
+
+# CLI — no daemon needed, works alongside or independently
+pnpm echos "query"           # one-shot
+pnpm echos                   # interactive REPL
+echo "msg" | pnpm echos      # pipe mode
 ```
 
 ### Production

@@ -33,7 +33,6 @@ interface WizardState {
   enableTelegram: boolean;
   telegramBotToken: string;
   enableWeb: boolean;
-  enableTui: boolean;
   webPort: number;
   webApiKey: string;
   enableScheduler: boolean;
@@ -239,7 +238,6 @@ function stateToEnv(state: WizardState): string {
     '# ── Interfaces ───────────────────────────────────────────────────────────────',
     `ENABLE_TELEGRAM=${state.enableTelegram}`,
     `ENABLE_WEB=${state.enableWeb}`,
-    `ENABLE_TUI=${state.enableTui}`,
     `WEB_PORT=${state.webPort}`,
     state.webApiKey ? `WEB_API_KEY=${state.webApiKey}` : '# WEB_API_KEY=',
     '',
@@ -300,7 +298,6 @@ function runNonInteractive(): WizardState {
     enableTelegram: e['ENABLE_TELEGRAM'] === 'true',
     telegramBotToken: e['TELEGRAM_BOT_TOKEN'] ?? '',
     enableWeb: e['ENABLE_WEB'] === 'true',
-    enableTui: e['ENABLE_TUI'] === 'true',
     webPort: parseInt(e['WEB_PORT'] ?? '3000', 10),
     webApiKey: e['ENABLE_WEB'] === 'true'
       ? (e['WEB_API_KEY'] ?? randomBytes(32).toString('hex'))
@@ -314,7 +311,7 @@ function runNonInteractive(): WizardState {
     knowledgeDir: e['KNOWLEDGE_DIR'] ?? './data/knowledge',
     dbPath: e['DB_PATH'] ?? './data/db',
     sessionDir: e['SESSION_DIR'] ?? './data/sessions',
-    defaultModel: e['DEFAULT_MODEL'] ?? 'claude-3-5-haiku-20241022',
+    defaultModel: e['DEFAULT_MODEL'] ?? 'claude-haiku-4-5-20251001',
     embeddingModel: e['EMBEDDING_MODEL'] ?? 'text-embedding-3-small',
     webshareProxyUsername: e['WEBSHARE_PROXY_USERNAME'] ?? '',
     webshareProxyPassword: e['WEBSHARE_PROXY_PASSWORD'] ?? '',
@@ -429,26 +426,23 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
 
   clack.log.step('Additional Interfaces');
   clack.log.warn(
-    pc.yellow('Web UI and TUI are') + pc.bold(pc.yellow(' experimental')) + pc.yellow(' and disabled by default.\n') +
-    pc.dim('  Telegram is the recommended and most stable interface.'),
+    pc.yellow('Web UI is') + pc.bold(pc.yellow(' experimental')) + pc.yellow(' and disabled by default.\n') +
+    pc.dim('  Telegram is the recommended interface. Use `pnpm echos` for CLI/terminal access.'),
   );
 
   const interfaceChoices = await clack.multiselect<string, string>({
     message: 'Enable interfaces (optional)',
     options: [
       { value: 'web', label: 'Web UI', hint: 'experimental — REST API + web interface (requires API key auth)' },
-      { value: 'tui', label: 'TUI', hint: 'experimental — terminal user interface' },
     ],
     initialValues: [
       ...(existing['ENABLE_WEB'] === 'true' ? ['web'] : []),
-      ...(existing['ENABLE_TUI'] === 'true' ? ['tui'] : []),
     ],
     required: false,
   });
   if (clack.isCancel(interfaceChoices)) cancel();
   const ifaces = interfaceChoices as string[];
   const enableWeb = ifaces.includes('web');
-  const enableTui = ifaces.includes('tui');
 
   // Generate or reuse API key for web interface
   const webApiKey = enableWeb
@@ -602,7 +596,6 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
     enableTelegram,
     telegramBotToken,
     enableWeb,
-    enableTui,
     webPort,
     webApiKey,
     enableScheduler,
@@ -614,7 +607,7 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
     knowledgeDir,
     dbPath,
     sessionDir,
-    defaultModel: existing['DEFAULT_MODEL'] ?? 'claude-3-5-haiku-20241022',
+    defaultModel: existing['DEFAULT_MODEL'] ?? 'claude-haiku-4-5-20251001',
     embeddingModel: existing['EMBEDDING_MODEL'] ?? 'text-embedding-3-small',
     webshareProxyUsername: existing['WEBSHARE_PROXY_USERNAME'] ?? '',
     webshareProxyPassword: existing['WEBSHARE_PROXY_PASSWORD'] ?? '',
@@ -758,7 +751,7 @@ async function main(): Promise<void> {
       `Allowed user IDs : ${state.allowedUserIds}`,
       `Telegram         : ${state.enableTelegram ? pc.green('enabled') : pc.dim('disabled')}${state.telegramBotToken ? ` (${maskKey(state.telegramBotToken)})` : ''}`,
       `Web UI           : ${state.enableWeb ? pc.green(`enabled :${state.webPort}`) + pc.dim(` (key: ${state.webApiKey.slice(0, 8)}…)`) : pc.dim('disabled (experimental)')}`,
-      `TUI              : ${state.enableTui ? pc.green('enabled') : pc.dim('disabled (experimental)')}`,
+      `CLI              : ${pc.green('always available')} ${pc.dim('— run `pnpm echos` anytime')}`,
       `Scheduler        : ${state.enableScheduler ? pc.green(`enabled — ${state.redisUrl}`) : pc.dim('disabled')}`,
       `Storage          : ${state.knowledgeDir}, ${state.dbPath}, ${state.sessionDir}`,
     ].join('\n  ');
