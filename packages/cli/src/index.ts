@@ -204,10 +204,16 @@ async function runCli(): Promise<void> {
       return;
     }
     rl.pause();
-    void send(trimmed).then(() => {
-      rl.resume();
-      rl.prompt();
-    });
+    void send(trimmed)
+      .then(() => {
+        rl.resume();
+        rl.prompt();
+      })
+      .catch((err: unknown) => {
+        console.error('Error during prompt:', err);
+        rl.resume();
+        rl.prompt();
+      });
   });
 
   rl.on('close', () => {
