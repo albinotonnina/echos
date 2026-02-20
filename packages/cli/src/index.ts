@@ -178,6 +178,7 @@ async function runCli(): Promise<void> {
   process.on('SIGINT', () => {
     if (inFlight) {
       cancelled = true;
+      agent.abort();
       process.stdout.write('\n^C\n');
       rl.prompt();
     } else {
@@ -204,10 +205,21 @@ async function runCli(): Promise<void> {
       return;
     }
     rl.pause();
-    void send(trimmed).then(() => {
-      rl.resume();
-      rl.prompt();
-    });
+    void send(trimmed)
+      .then(() => {
+        rl.resume();
+        if (!cancelled) {
+          rl.prompt();
+        } else {
+          cancelled = false;
+        }
+      })
+      .catch((err: unknown) => {
+        logger.warn({ err }, 'send failed');
+        cancelled = false;
+        rl.resume();
+        rl.prompt();
+      });
   });
 
   rl.on('close', () => {
