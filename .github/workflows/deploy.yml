@@ -67,6 +67,8 @@ jobs:
             docker compose down
             docker compose up -d
 
+            echo "Cleaning up unused Docker images..."
+            docker image prune -f
             echo "Waiting for services..."
             sleep 5
 
