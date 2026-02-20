@@ -10,6 +10,10 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      # ── 0. Checkout repository ─────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       # ── 1. Set up SSH ─────────────────────────────────────────────────────────
       - name: Set up SSH
         run: |
