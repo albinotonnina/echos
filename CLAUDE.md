@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-EchOS is a secure, self-hosted, agent-driven personal knowledge management system. It uses an LLM agent with tools (not rigid command routing) to interact naturally across Telegram, Web, and TUI interfaces.
+EchOS is a secure, self-hosted, agent-driven personal knowledge management system. It uses an LLM agent with tools (not rigid command routing) to interact naturally across Telegram, Web, and CLI interfaces.
 
 **Key Principle**: Security-first. Every feature must consider security implications.
 
@@ -28,7 +28,7 @@ echos/
 │   ├── core/         # Agent, tools, storage, search, plugin system
 │   ├── telegram/     # Telegram bot interface (grammY)
 │   ├── web/          # Web UI interface (Fastify + pi-web-ui)
-│   ├── tui/          # Terminal UI interface (pi-tui)
+│   ├── cli/          # CLI binary (pnpm echos) — standalone terminal interface
 │   └── scheduler/    # Background jobs (BullMQ) and cron tasks
 ├── plugins/
 │   ├── youtube/      # YouTube transcript extraction plugin
@@ -78,7 +78,7 @@ const CreateNoteTool = {
 ```
 
 ### Interface Adapters
-Each interface (Telegram, Web, TUI) implements `InterfaceAdapter`:
+Each interface (Telegram, Web, CLI daemon adapter) implements `InterfaceAdapter`:
 ```typescript
 interface InterfaceAdapter {
   start(): Promise<void>;

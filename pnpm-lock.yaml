@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@echos/cli':
+        specifier: workspace:*
+        version: link:packages/cli
       '@echos/core':
         specifier: workspace:*
         version: link:packages/core
@@ -32,9 +35,6 @@ importers:
       '@echos/telegram':
         specifier: workspace:*
         version: link:packages/telegram
-      '@echos/tui':
-        specifier: workspace:*
-        version: link:packages/tui
       '@echos/web':
         specifier: workspace:*
         version: link:packages/web
@@ -78,6 +78,28 @@ importers:
       vitest:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.2.3)(jsdom@28.1.0)(tsx@4.21.0)
+
+  packages/cli:
+    dependencies:
+      '@echos/core':
+        specifier: workspace:*
+        version: link:../core
+      '@echos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@mariozechner/pi-agent-core':
+        specifier: ^0.53.0
+        version: 0.53.0
+      pino:
+        specifier: ^10.3.1
+        version: 10.3.1
+    devDependencies:
+      '@types/node':
+        specifier: ^25.2.3
+        version: 25.2.3
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
 
   packages/core:
     dependencies:
@@ -198,28 +220,6 @@ importers:
       openai:
         specifier: ^4.0.0
         version: 4.104.0(ws@8.19.0)(zod@3.25.76)
-      pino:
-        specifier: ^10.3.1
-        version: 10.3.1
-    devDependencies:
-      '@types/node':
-        specifier: ^25.2.3
-        version: 25.2.3
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
-  packages/tui:
-    dependencies:
-      '@echos/core':
-        specifier: workspace:*
-        version: link:../core
-      '@echos/shared':
-        specifier: workspace:*
-        version: link:../shared
-      '@mariozechner/pi-agent-core':
-        specifier: ^0.53.0
-        version: 0.53.0
       pino:
         specifier: ^10.3.1
         version: 10.3.1

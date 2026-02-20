@@ -48,7 +48,7 @@ export interface AgentDeps {
 export function createEchosAgent(deps: AgentDeps): Agent {
   const model = getModel(
     'anthropic',
-    (deps.modelId ?? 'claude-3-5-haiku-20241022') as 'claude-3-5-haiku-20241022',
+    (deps.modelId ?? 'claude-haiku-4-5-20251001') as Parameters<typeof getModel>[1],
   );
 
   const storageDeps = {

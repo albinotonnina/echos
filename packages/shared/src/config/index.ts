@@ -25,7 +25,7 @@ export const configSchema = z.object({
   sessionDir: z.string().default('./data/sessions'),
 
   // LLM
-  defaultModel: z.string().default('claude-3-5-haiku-20241022'),
+  defaultModel: z.string().default('claude-haiku-4-5-20251001'),
   embeddingModel: z.string().default('text-embedding-3-small'),
 
   // Interfaces
@@ -37,11 +37,6 @@ export const configSchema = z.object({
     .string()
     .default('false')
     .transform((s) => s === 'true'),
-  enableTui: z
-    .string()
-    .default('false')
-    .transform((s) => s === 'true'),
-
   // Web
   webPort: z.coerce.number().int().positive().default(3000),
   webApiKey: z.string().optional(),
@@ -98,7 +93,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     embeddingModel: env['EMBEDDING_MODEL'],
     enableTelegram: env['ENABLE_TELEGRAM'],
     enableWeb: env['ENABLE_WEB'],
-    enableTui: env['ENABLE_TUI'],
     webPort: env['WEB_PORT'],
     webApiKey: env['WEB_API_KEY'],
     enableScheduler: env['ENABLE_SCHEDULER'],

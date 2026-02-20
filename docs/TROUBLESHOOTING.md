@@ -557,6 +557,45 @@ If the issue persists after restarting the app, check that the file has a valid 
 - `save_conversation` is only called when you explicitly ask ("save this conversation" or "save what we discussed about X")
 - It is never called automatically
 
+## CLI Issues (`pnpm echos`)
+
+### Empty response — agent runs but prints nothing
+
+**Most likely cause**: The configured model is deprecated and the API returns an empty response.
+
+**Check**: Look for a deprecation warning in the output. If you see `The model '...' is deprecated`, update `DEFAULT_MODEL` in `.env` to a current model (e.g. `claude-haiku-4-5-20251001`).
+
+**Debug**: Run with logging enabled to see what happens:
+```bash
+LOG_LEVEL=info pnpm echos "hello"
+```
+
+### Startup logs cluttering the output
+
+By default the CLI suppresses all logs below `warn`. If you're seeing INFO logs:
+1. Check whether `LOG_LEVEL` is exported in your shell: `echo $LOG_LEVEL`
+2. Unset it or set it to `warn`: `unset LOG_LEVEL`
+
+### Shell parse errors (`zsh: parse error near '\n'`)
+
+Special characters (`?`, `>`, `*`, `!`, `&`) in arguments are interpreted by the shell before `echos` sees them. Always quote arguments:
+
+```bash
+# Wrong — zsh interprets `?` and `>`
+pnpm echos what notes do I have about TypeScript?
+
+# Correct
+pnpm echos "what notes do I have about TypeScript?"
+```
+
+### History not persisting between sessions
+
+The history file is `~/.echos_history`. If it doesn't persist:
+- Check write permissions: `ls -la ~/.echos_history`
+- The file is created on the first clean exit (`exit` / `quit` / Ctrl+D). Kills via `kill -9` skip the save.
+
+---
+
 ## YouTube Transcript Issues
 
 ### "Unable to save this video" / YouTube transcript fails

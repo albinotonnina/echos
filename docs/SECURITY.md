@@ -20,7 +20,7 @@ These are hard guarantees about what EchOS will never do to your system:
 |---|---|
 | Telegram | User ID whitelist (`ALLOWED_USER_IDS`) enforced in middleware before every message |
 | Web API | Bearer token (`WEB_API_KEY`) on every request + `userId` validated against `ALLOWED_USER_IDS` |
-| TUI | Local only — no network, no auth |
+| CLI (`pnpm echos`) | Local only — no network, no auth |
 
 The Web API also binds to `127.0.0.1` and enforces localhost-only CORS, so it is not reachable from the network even if the firewall is misconfigured.
 

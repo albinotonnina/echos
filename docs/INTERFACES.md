@@ -10,7 +10,6 @@ Edit `.env` to control which interfaces are active:
 # Enable/disable interfaces
 ENABLE_TELEGRAM=true   # Telegram bot (stable, recommended)
 ENABLE_WEB=false       # Web API server (experimental, disabled by default)
-ENABLE_TUI=false       # Terminal UI (experimental, disabled by default)
 
 # Web server port (only used when ENABLE_WEB=true)
 WEB_PORT=3000
@@ -20,7 +19,7 @@ WEB_PORT=3000
 WEB_API_KEY=your_secret_key_here
 ```
 
-> **Note**: Web UI and TUI are experimental interfaces. Telegram is the recommended interface for daily use. The setup wizard (`pnpm wizard`) generates a `WEB_API_KEY` automatically when you enable the web interface.
+> **Note**: The Web UI is experimental. The CLI (`pnpm echos`) is stable and requires no daemon. Telegram is the recommended interface for daily use. The setup wizard (`pnpm wizard`) generates a `WEB_API_KEY` automatically when you enable the web interface.
 
 **Start the application:**
 ```bash
@@ -292,119 +291,141 @@ console.log(result.response);
 
 ---
 
-## 3. Terminal UI (TUI) Interface
+## 3. CLI / Terminal Interface
 
-**Default**: Disabled — **experimental**
+The CLI is a standalone binary that runs directly against your data — no daemon required. It auto-detects how it's being used and switches modes accordingly.
 
-### Setup
+### Three Modes
 
-Configure in `.env`:
+**One-shot** — pass a query as an argument, get an answer, exit:
 ```bash
-ENABLE_TUI=true
+pnpm echos "find my notes on TypeScript"
+pnpm echos "what reminders do I have this week?"
 ```
 
-### Usage
+**Pipe** — pipe text in, get plain text out, exit:
+```bash
+echo "summarise my last 5 notes" | pnpm echos
+cat meeting-notes.md | pnpm echos "extract the action items from this"
+pnpm echos "list my notes" | grep TypeScript
+```
 
-1. Start EchOS: `pnpm start`
-2. The terminal will show an interactive prompt
-3. Type your questions/commands
-4. Press Enter to send
-5. See streaming responses in real-time
-6. Type `exit` or `quit` to close
+**Interactive REPL** — no args, TTY detected, persistent session:
+```bash
+pnpm echos
+```
+
+### No Daemon Needed
+
+`pnpm echos` boots its own agent in-process and connects directly to the same `./data/` directory the daemon uses. SQLite WAL mode makes concurrent access safe — run the CLI over SSH while the daemon is serving Telegram and Web without conflicts.
+
+```
+pnpm start          → Telegram bot + Web API (daemon, 24/7)
+pnpm echos "query"  → one-shot, boots and exits
+pnpm echos          → interactive REPL, boots and exits when done
+```
+
+### Interactive REPL Features
+
+- Persistent readline history at `~/.echos_history` (survives between sessions, max 500 lines)
+- Streaming responses with tool call indicators dimmed in grey
+- `Ctrl+C` cancels the in-flight response and re-prompts (does not exit)
+- `Ctrl+D` or typing `exit` / `quit` exits cleanly
 
 ### Example Session
 
 ```
-EchOS Terminal (type "exit" to quit)
+$ pnpm echos
+EchOS (Ctrl+C cancels response, Ctrl+D or "exit" to quit)
 
 > What notes do I have about TypeScript?
 
-[search_knowledge] 
+[search_knowledge]
 I found 3 notes about TypeScript:
 
 1. "TypeScript Best Practices" (created 2026-02-10)
-   - Covers strict mode, type inference, and utility types
-   
 2. "Setting up TypeScript in Node.js" (created 2026-02-08)
-   - Guide for configuring tsconfig.json
-   
 3. "TypeScript vs JavaScript" (created 2026-01-15)
-   - Comparison and when to use each
-
-> Create a note about React hooks
-
-[create_note] 
-Created note "React Hooks Overview"
-
-I've created a note about React hooks. Would you like me to add specific 
-information about useState, useEffect, or other hooks?
-
+────────────────────────────────────────
 > exit
+```
+
+### Output
+
+- **TTY**: colored tool indicators, separator line after each response
+- **Non-TTY** (pipe/redirect): plain text only, no ANSI codes — safe to pipe into other tools
+
+### Logging
+
+Startup logs are suppressed by default (log level `warn`). To see initialization details:
+```bash
+LOG_LEVEL=info pnpm echos "query"
+```
+
+### VPS / SSH Workflow
+
+```bash
+ssh user@vps
+cd ~/echos
+pnpm echos "what are my reminders for this week?"
 ```
 
 ### Features
 
-- ✅ Interactive readline-based interface
-- ✅ Streaming responses (see AI "think" in real-time)
-- ✅ Tool execution visibility
-- ✅ Simple text-only interface
-- ✅ Runs in current terminal session
-
-### Use Cases
-
-- **Quick Testing**: Test agent behavior without Telegram
-- **Development**: Debug tools and agent responses
-- **Local Use**: Access your knowledge base from the command line
-- **Scripting**: Can be integrated with shell scripts (stdin/stdout)
+- ✅ Standalone — no daemon or Redis required
+- ✅ Three auto-detected modes (one-shot, pipe, interactive)
+- ✅ Streaming responses
+- ✅ Persistent readline history
+- ✅ Ctrl+C cancels mid-response without killing the process
+- ✅ Plain output in pipe mode (scriptable)
+- ✅ Safe concurrent access alongside running daemon (SQLite WAL)
 
 ### Limitations
 
 - Single user session (no multi-user support)
 - No authentication (runs with local user permissions)
-- No file upload support
-- Text-only (no images, voice, etc.)
+- Text-only (no images, voice)
+- Plugin tools (YouTube, article) not loaded — core knowledge tools only
 
 ---
 
 ## Choosing the Right Interface
 
-| Feature | Telegram | Web API | TUI |
+| Feature | Telegram | Web API | CLI (`pnpm echos`) |
 |---------|----------|---------|-----|
-| **Status** | ✅ Stable | ⚠️ Experimental | ⚠️ Experimental |
-| **Default** | On | Off | Off |
+| **Status** | ✅ Stable | ⚠️ Experimental | ✅ Stable |
+| **Requires daemon** | ✅ Yes | ✅ Yes | ❌ No |
 | **Multi-user** | ✅ Yes | ✅ Yes | ❌ No |
 | **Authentication** | ✅ User IDs | ✅ API key + user IDs | ❌ Local only |
 | **Network exposure** | Telegram servers | localhost only | None |
 | **Streaming** | ✅ Yes | ❌ No | ✅ Yes |
 | **Mobile Access** | ✅ Yes | ✅ Yes (localhost) | ❌ No |
 | **Voice Input** | ✅ Yes | ❌ No | ❌ No |
-| **Best For** | Daily use | Local integration | Dev/testing |
+| **Scriptable** | ❌ No | ✅ Yes (curl) | ✅ Yes (pipe) |
+| **SSH-friendly** | ❌ No | ❌ No | ✅ Yes |
+| **Best For** | Daily use | Local integration | Terminal / SSH |
 
 **Recommendations:**
 
 - **Primary use**: Telegram (most features, best UX, stable)
 - **Local automation/integration**: Web API (requires `WEB_API_KEY`)
-- **Development/testing**: TUI (instant feedback, no network)
+- **Terminal / SSH / scripting**: CLI (`pnpm echos`)
 
 ---
 
 ## Multiple Interfaces
 
-You can run **all interfaces simultaneously**:
+You can run Telegram and Web simultaneously:
 
 ```bash
 # .env
 ENABLE_TELEGRAM=true
 ENABLE_WEB=true
-ENABLE_TUI=true
 ```
 
-This allows you to:
-- Message the bot on Telegram while traveling
-- Query via API from a custom dashboard
-- Test commands in the terminal during development
+The CLI (`pnpm echos`) is always available independently — no `.env` flag needed, just run it.
 
-**Note**: Each interface maintains its own session state, so conversations don't carry across interfaces unless you implement shared session storage.
+**Note**: Each interface maintains its own session state, so conversations don't carry across interfaces.
 
 ---
 
@@ -424,11 +445,10 @@ This allows you to:
 - ⚠️ Experimental — not recommended as the primary interface
 - ⚠️ If `WEB_API_KEY` is missing, the server **refuses to start** (exits with an error)
 
-### TUI
+### CLI (`pnpm echos`)
 - ⚠️ **No authentication** — runs with local user permissions
 - ✅ No network exposure (stdin/stdout only)
-- ✅ Safe for development/testing
-- ⚠️ Experimental
+- ✅ Safe for local/SSH use
 
 ---
 
@@ -451,33 +471,33 @@ curl -X POST http://localhost:3000/api/chat \
   -d '{"userId": 123, "message": "Hello!"}'
 ```
 
-### Test Terminal UI
+### Use the CLI
 ```bash
-# Start TUI only
-pnpm start:tui-only
+# One-shot
+pnpm echos "list my notes"
 
-# You'll see:
-# EchOS Terminal (type "exit" to quit)
-# 
-# > 
+# Interactive REPL (no daemon needed)
+pnpm echos
+# > list my notes
+# > exit
 
-# Type: list my notes
-# Type: exit (when done)
+# Pipe
+echo "summarise my recent notes" | pnpm echos
 ```
 
-### Test All Interfaces
+### Test Telegram + Web
 ```bash
 # Configure .env
 ENABLE_TELEGRAM=true
 ENABLE_WEB=true
-ENABLE_TUI=false  # Can't use with Telegram/Web in same terminal
 
-# Start all
+# Start daemon
 pnpm start
 
 # Access:
 # - Telegram: Message your bot
 # - Web: curl http://localhost:3000/health
+# - CLI: pnpm echos "query"  (no daemon config needed)
 ```
 
 ---
@@ -496,10 +516,14 @@ WEB_PORT=3001
 lsof -ti:3000 | xargs kill
 ```
 
-### TUI: Not Seeing Prompt
-- Ensure `ENABLE_TUI=true` in `.env`
-- Check logs for errors: `pnpm start 2>&1 | tee echos.log`
-- Only one TUI can run per terminal session
+### CLI: No output / empty response
+- The model may have changed. Check `DEFAULT_MODEL` in `.env` — ensure it's not a deprecated model
+- Run with `LOG_LEVEL=info pnpm echos "query"` to see startup and agent creation logs
+- Ensure `ANTHROPIC_API_KEY` is set in `.env`
+
+### CLI: Startup logs cluttering output
+- By default the CLI runs at log level `warn` — you should only see agent responses
+- If you're seeing logs, check if `LOG_LEVEL` is set in your shell environment
 
 ### Interface Not Starting
 Check the startup logs:
@@ -510,7 +534,6 @@ pnpm start | pnpm exec pino-pretty
 Look for messages like:
 - `Telegram bot started`
 - `Web server started` (with port number)
-- `TUI started`
 
 ---
 
@@ -518,5 +541,5 @@ Look for messages like:
 
 - **Telegram**: See examples in the [main README](../README.md)
 - **Web API**: Build a frontend with React/Vue/etc.
-- **TUI**: Use for quick local queries and testing
+- **CLI**: Terminal queries, SSH access, scripting
 - **Deploy**: See [DEPLOYMENT.md](./DEPLOYMENT.md) for production setup

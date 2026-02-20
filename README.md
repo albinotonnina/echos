@@ -93,7 +93,7 @@ No app to open. No form to fill. No note to clean up later.
 
 - **Telegram bot** — message it from your phone like a chat; send voice messages (Whisper transcription) or just text
 - **Web UI + REST API** — stream responses over SSE from any client *(work in progress)*
-- **Terminal UI** — live in your terminal, never leave the keyboard *(work in progress)*
+- **CLI** — `pnpm echos "query"` from your terminal or over SSH; no daemon required
 
 ### 🗃️ Markdown-first, Obsidian-compatible
 
@@ -292,16 +292,17 @@ Responses stream over SSE. `GET /health` for healthcheck.
 </details>
 
 <details>
-<summary><strong>Terminal UI</strong> — <em>work in progress</em></summary>
+<summary><strong>CLI</strong></summary>
 
-> [!WARNING]
-> The Terminal UI is not yet complete and is under active development.
+No daemon required. Runs directly against your data. Three auto-detected modes:
 
 ```bash
-pnpm start:tui-only
+pnpm echos "find my notes on TypeScript"   # one-shot, exits after answer
+pnpm echos                                  # interactive REPL with history
+echo "summarise my last 5 notes" | pnpm echos  # pipe mode, plain text output
 ```
 
-Inline streaming responses in your terminal. Type `exit` to quit.
+Works over SSH too — just `cd ~/echos && pnpm echos "query"` while the daemon keeps running.
 
 </details>
 
@@ -320,7 +321,7 @@ Pulls latest, reinstalls deps if lockfile changed, rebuilds, and warns if the co
 ## Architecture
 
 ```
-User (Telegram / Web / TUI)
+User (Telegram / Web / CLI)
     ↓
 Interface Adapter  — auth · normalize · stream
     ↓
@@ -354,7 +355,7 @@ EchOS is designed to be safe to self-host. Here is exactly what it does and does
 
 ### Authentication
 
-EchOS is a **single-user system**. Access is gated by a Telegram user ID allowlist that you configure. Only your Telegram account can interact with the bot. The Web UI uses the same identity via the Telegram Login Widget. The TUI is local-only and requires no auth.
+EchOS is a **single-user system**. Access is gated by a Telegram user ID allowlist that you configure. Only your Telegram account can interact with the bot. The Web UI uses the same identity. The CLI is local-only and requires no auth.
 
 ### SSRF Prevention
 
@@ -408,7 +409,7 @@ See [docs/SECURITY.md](docs/SECURITY.md) for the full threat model and implement
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Data flow, storage sync, search, memory system |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | VPS, Docker, nginx, systemd |
 | [PLUGINS.md](docs/PLUGINS.md) | Building custom content processors |
-| [INTERFACES.md](docs/INTERFACES.md) | Telegram, Web API, TUI reference |
+| [INTERFACES.md](docs/INTERFACES.md) | Telegram, Web API, CLI reference |
 | [SCHEDULER.md](docs/SCHEDULER.md) | Background jobs, digests, reminders |
 | [SECURITY.md](docs/SECURITY.md) | Security model and threat mitigations |
 | [KNOWLEDGE_IMPORT.md](docs/KNOWLEDGE_IMPORT.md) | Obsidian vault opening, Notion import, frontmatter reference |
