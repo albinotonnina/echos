@@ -6,6 +6,7 @@ export {
   reconcileStorage,
   computeContentHash,
   createFileWatcher,
+  createEmbeddingFn,
   type SqliteStorage,
   type MarkdownStorage,
   type VectorStorage,
@@ -19,6 +20,7 @@ export {
   type ReconcileStats,
   type WatcherOptions,
   type FileWatcher,
+  type EmbeddingOptions,
 } from './storage/index.js';
 
 export { createEchosAgent, SYSTEM_PROMPT, buildSystemPrompt, type AgentDeps } from './agent/index.js';

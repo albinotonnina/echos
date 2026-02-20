@@ -4,3 +4,4 @@ export { createVectorStorage, type VectorStorage, type VectorDocument, type Vect
 export { createSearchService, type SearchService } from './search.js';
 export { reconcileStorage, computeContentHash, type ReconcileOptions, type ReconcileStats } from './reconciler.js';
 export { createFileWatcher, type WatcherOptions, type FileWatcher } from './watcher.js';
+export { createEmbeddingFn, type EmbeddingOptions } from './embeddings.js';

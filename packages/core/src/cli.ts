@@ -26,11 +26,11 @@ async function main(): Promise<void> {
   const vectorDb = await createVectorStorage(join(DATA_DIR, 'db', 'vectors'), logger);
   const search = createSearchService(sqlite, vectorDb, markdown, logger);
 
-  // Stub embedding function (returns zero vector if no OpenAI key)
-  const generateEmbedding = async (text: string): Promise<number[]> => {
-    logger.debug({ textLength: text.length }, 'Generating embedding (stub)');
-    return new Array(1536).fill(0);
-  };
+  const { createEmbeddingFn } = await import('./storage/embeddings.js');
+  const generateEmbedding = createEmbeddingFn({
+    openaiApiKey: process.env['OPENAI_API_KEY'],
+    logger,
+  });
 
   const agent = createEchosAgent({
     sqlite,
