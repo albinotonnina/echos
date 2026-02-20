@@ -122,7 +122,7 @@ export async function streamAgentResponse(
   agent: Agent,
   prompt: string,
   ctx: Context,
-): Promise<void> {
+): Promise<{ botMessageId: number | undefined; finalText: string }> {
   let messageId: number | undefined;
   let textBuffer = '';        // AI response text only — never contains tool indicators
   let statusLine = '💭' + ZWS; // shown only while textBuffer is still empty
@@ -258,4 +258,6 @@ export async function streamAgentResponse(
       [{ type: 'emoji', emoji: agentError ? '😱' : '👌' }],
     ).catch(() => undefined);
   }
+
+  return { botMessageId: messageId, finalText: textBuffer };
 }
