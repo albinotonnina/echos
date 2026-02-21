@@ -294,3 +294,80 @@ describe('SQLite Memory', () => {
     expect(results[0]!.id).toBe('m1');
   });
 });
+
+describe('SQLite Job Schedules', () => {
+  it('should upsert and retrieve a schedule', () => {
+    storage.upsertSchedule({
+      id: 'digest',
+      jobType: 'digest',
+      cron: '0 8 * * *',
+      enabled: true,
+      description: 'Morning digest',
+      config: { lookback: 24 },
+      created: '2024-01-01T00:00:00Z',
+      updated: '2024-01-01T00:00:00Z',
+    });
+
+    const result = storage.getSchedule('digest');
+    expect(result).toBeDefined();
+    expect(result!.jobType).toBe('digest');
+    expect(result!.cron).toBe('0 8 * * *');
+    expect(result!.enabled).toBe(true);
+    expect(result!.config).toEqual({ lookback: 24 });
+  });
+
+  it('should list schedules and filter by enabled', () => {
+    storage.upsertSchedule({
+      id: 's1',
+      jobType: 'type1',
+      cron: '* * * * *',
+      enabled: true,
+      description: '',
+      config: {},
+      created: '2024-01-01',
+      updated: '2024-01-01',
+    });
+    storage.upsertSchedule({
+      id: 's2',
+      jobType: 'type2',
+      cron: '* * * * *',
+      enabled: false,
+      description: '',
+      config: {},
+      created: '2024-01-01',
+      updated: '2024-01-01',
+    });
+
+    const all = storage.listSchedules();
+    expect(all).toHaveLength(2);
+
+    const enabledOnly = storage.listSchedules(true);
+    expect(enabledOnly).toHaveLength(1);
+    expect(enabledOnly[0]!.id).toBe('s1');
+
+    const disabledOnly = storage.listSchedules(false);
+    expect(disabledOnly).toHaveLength(1);
+    expect(disabledOnly[0]!.id).toBe('s2');
+  });
+
+  it('should delete a schedule', () => {
+    storage.upsertSchedule({
+      id: 's1',
+      jobType: 'type1',
+      cron: '* * * * *',
+      enabled: true,
+      description: '',
+      config: {},
+      created: '2024-01-01',
+      updated: '2024-01-01',
+    });
+
+    expect(storage.getSchedule('s1')).toBeDefined();
+    const deleted = storage.deleteSchedule('s1');
+    expect(deleted).toBe(true);
+    expect(storage.getSchedule('s1')).toBeUndefined();
+
+    // Deleting non-existent schedule returns false
+    expect(storage.deleteSchedule('missing')).toBe(false);
+  });
+});

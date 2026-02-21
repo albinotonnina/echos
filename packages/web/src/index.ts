@@ -4,15 +4,18 @@ import type { Logger } from 'pino';
 import type { Config, InterfaceAdapter } from '@echos/shared';
 import type { AgentDeps } from '@echos/core';
 import { registerChatRoutes } from './api/chat.js';
+import { registerScheduleRoutes } from './api/schedules.js';
 
 export interface WebAdapterOptions {
   config: Config;
   agentDeps: AgentDeps;
+  syncSchedule?: (id: string) => Promise<void>;
+  deleteSchedule?: (id: string) => Promise<boolean>;
   logger: Logger;
 }
 
 export function createWebAdapter(options: WebAdapterOptions): InterfaceAdapter {
-  const { config, agentDeps, logger } = options;
+  const { config, agentDeps, syncSchedule, deleteSchedule, logger } = options;
 
   const app = Fastify({ logger: false });
 
@@ -53,6 +56,9 @@ export function createWebAdapter(options: WebAdapterOptions): InterfaceAdapter {
 
       // Chat API
       registerChatRoutes(app, agentDeps, config.allowedUserIds, logger);
+
+      // Schedules API
+      registerScheduleRoutes(app, agentDeps, logger, syncSchedule, deleteSchedule);
 
       await app.listen({ port: config.webPort, host: '127.0.0.1' });
       logger.info({ port: config.webPort }, 'Web server started (localhost only)');

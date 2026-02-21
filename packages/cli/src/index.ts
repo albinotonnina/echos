@@ -29,8 +29,9 @@ import {
 
 function makeContextMessage() {
   const now = new Date();
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return createContextMessage(
-    `Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: 'UTC' })} UTC)`,
+    `Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: tz })} ${tz})`,
   );
 }
 

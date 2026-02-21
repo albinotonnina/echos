@@ -20,10 +20,12 @@ export type {
   SearchOptions,
   MemoryEntry,
   ReminderEntry,
+  ScheduleEntry,
   ProcessedContent,
   InterfaceAdapter,
   NotificationService,
 } from './types/index.js';
+export { RESERVED_SCHEDULE_IDS } from './types/index.js';
 export {
   validateUrl,
   isPrivateIp,
@@ -32,3 +34,4 @@ export {
   createRateLimiter,
   type RateLimiter,
 } from './security/index.js';
+export { isValidCron, isValidCronField } from './cron.js';

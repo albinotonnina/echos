@@ -16,7 +16,7 @@
     "@echos/shared": "workspace:*",
     "@mariozechner/pi-agent-core": "^0.53.0",
     "grammy": "^1.40.0",
-    "openai": "^4.0.0",
+    "openai": "^4.104.0",
     "pino": "^10.3.1"
   },
   "devDependencies": {

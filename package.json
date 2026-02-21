@@ -52,6 +52,7 @@
     "@echos/plugin-article": "workspace:*",
     "@echos/plugin-content-creation": "workspace:*",
     "@echos/plugin-image": "workspace:*",
+    "@echos/plugin-digest": "workspace:*",
     "tsx": "^4.21.0"
   },
   "devDependencies": {

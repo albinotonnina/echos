@@ -53,7 +53,7 @@ const contentCreationPlugin: EchosPlugin = {
 
     logger.info({ toolCount: tools.length }, 'Content creation plugin initialized');
 
-    return tools;
+    return { tools };
   },
 };
 

@@ -29,11 +29,11 @@ import { createWebAdapter } from '@echos/web';
 import {
   createQueue,
   createWorker,
-  registerScheduledJobs,
+  ScheduleManager,
   createContentProcessor,
-  createDigestProcessor,
   createReminderCheckProcessor,
   createJobRouter,
+  createManageScheduleTool,
   type QueueService,
 } from '@echos/scheduler';
 
@@ -42,6 +42,7 @@ import youtubePlugin from '@echos/plugin-youtube';
 import articlePlugin from '@echos/plugin-article';
 import contentCreationPlugin from '@echos/plugin-content-creation';
 import imagePlugin from '@echos/plugin-image';
+import digestPlugin from '@echos/plugin-digest';
 
 const logger = createLogger('echos');
 
@@ -90,6 +91,10 @@ async function main(): Promise<void> {
   pluginRegistry.register(youtubePlugin);
   pluginRegistry.register(contentCreationPlugin);
   pluginRegistry.register(imagePlugin);
+  pluginRegistry.register(digestPlugin);
+
+  let agentDeps: AgentDeps;
+  let notificationService: import('@echos/shared').NotificationService;
 
   await pluginRegistry.setupAll({
     sqlite,
@@ -97,17 +102,21 @@ async function main(): Promise<void> {
     vectorDb,
     generateEmbedding,
     logger,
+    getAgentDeps: () => agentDeps,
+    getNotificationService: () => notificationService,
     config: {
-      openaiApiKey: config.openaiApiKey,
-      anthropicApiKey: config.anthropicApiKey,
-      webshareProxyUsername: config.webshareProxyUsername,
-      webshareProxyPassword: config.webshareProxyPassword,
+      ...(config.openaiApiKey ? { openaiApiKey: config.openaiApiKey } : {}),
+      ...(config.anthropicApiKey ? { anthropicApiKey: config.anthropicApiKey } : {}),
+      ...(config.webshareProxyUsername ? { webshareProxyUsername: config.webshareProxyUsername } : {}),
+      ...(config.webshareProxyPassword ? { webshareProxyPassword: config.webshareProxyPassword } : {}),
       knowledgeDir: config.knowledgeDir,
       defaultModel: config.defaultModel,
     },
   });
 
-  const agentDeps: AgentDeps = {
+  const manageScheduleTool = createManageScheduleTool({ sqlite });
+
+  agentDeps = {
     sqlite,
     markdown,
     vectorDb,
@@ -116,13 +125,13 @@ async function main(): Promise<void> {
     anthropicApiKey: config.anthropicApiKey,
     modelId: config.defaultModel,
     modelPresets: {
-      balanced: config.modelBalanced,
-      deep: config.modelDeep,
+      ...(config.modelBalanced ? { balanced: config.modelBalanced } : {}),
+      ...(config.modelDeep ? { deep: config.modelDeep } : {}),
     },
     thinkingLevel: config.thinkingLevel,
     logLlmPayloads: config.logLlmPayloads,
     logger,
-    pluginTools: pluginRegistry.getTools(),
+    pluginTools: [...pluginRegistry.getTools(), manageScheduleTool],
   };
 
   const interfaces: InterfaceAdapter[] = [];
@@ -133,9 +142,8 @@ async function main(): Promise<void> {
     interfaces.push(telegramAdapter);
   }
 
-  if (config.enableWeb) {
-    interfaces.push(createWebAdapter({ config, agentDeps, logger }));
-  }
+  let webAdapterSyncSchedule: ((id: string) => Promise<void>) | undefined = undefined;
+  let webAdapterDeleteSchedule: ((id: string) => Promise<boolean>) | undefined = undefined;
 
   // Scheduler setup (requires Redis, opt-in via ENABLE_SCHEDULER=true)
   let queueService: QueueService | undefined;
@@ -145,7 +153,7 @@ async function main(): Promise<void> {
     logger.info('Initializing scheduler...');
 
     // Get notification service from Telegram or use log-only fallback
-    const notificationService: NotificationService = telegramAdapter?.notificationService ?? {
+    notificationService = telegramAdapter?.notificationService ?? {
       async sendMessage(userId: number, text: string): Promise<void> {
         logger.info({ userId, text }, 'Notification (no delivery channel)');
       },
@@ -163,13 +171,7 @@ async function main(): Promise<void> {
         vectorDb,
         generateEmbedding,
         logger,
-        openaiApiKey: config.openaiApiKey,
-      });
-
-      const digestProcessor = createDigestProcessor({
-        agentDeps,
-        notificationService,
-        logger,
+        ...(config.openaiApiKey ? { openaiApiKey: config.openaiApiKey } : {}),
       });
 
       const reminderProcessor = createReminderCheckProcessor({
@@ -178,9 +180,20 @@ async function main(): Promise<void> {
         logger,
       });
 
+      const scheduleManager = new ScheduleManager(
+        queueService.queue,
+        sqlite,
+        pluginRegistry.getJobs(),
+        logger,
+      );
+      manageScheduleTool.setScheduleManager(scheduleManager);
+
+      webAdapterSyncSchedule = (id: string) => scheduleManager.syncSchedule(id);
+      webAdapterDeleteSchedule = (id: string) => scheduleManager.deleteSchedule(id);
+
       const jobRouter = createJobRouter({
+        scheduleManager,
         contentProcessor,
-        digestProcessor,
         reminderProcessor,
         logger,
       });
@@ -192,7 +205,7 @@ async function main(): Promise<void> {
         concurrency: 2,
       });
 
-      await registerScheduledJobs(queueService.queue, config, logger);
+      await scheduleManager.syncAll();
       logger.info('Scheduler initialized');
     } catch (err) {
       logger.warn(
@@ -202,6 +215,18 @@ async function main(): Promise<void> {
       queueService = undefined;
       worker = undefined;
     }
+  }
+
+  if (config.enableWeb) {
+    const webOptions: import('@echos/web').WebAdapterOptions = {
+      config,
+      agentDeps,
+      logger,
+    };
+    if (webAdapterSyncSchedule) webOptions.syncSchedule = webAdapterSyncSchedule;
+    if (webAdapterDeleteSchedule) webOptions.deleteSchedule = webAdapterDeleteSchedule;
+
+    interfaces.push(createWebAdapter(webOptions));
   }
 
   for (const iface of interfaces) {

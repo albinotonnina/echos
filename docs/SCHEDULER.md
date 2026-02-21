@@ -1,10 +1,10 @@
 # Scheduler
 
-Background job processing for digests, reminder notifications, and content processing.
+Background job processing for digests, reminder notifications, and content processing. The scheduling system is fully dynamic, storing cron patterns and job configurations in the SQLite database rather than using static environment variables.
 
 ## Overview
 
-The scheduler uses BullMQ with Redis to run periodic jobs. It is **disabled by default** and opt-in via the `ENABLE_SCHEDULER=true` environment variable. When disabled, the app starts normally without requiring Redis.
+The scheduler uses BullMQ with Redis to run periodic jobs. It is **disabled by default** and opt-in via the `ENABLE_SCHEDULER=true` environment variable. When disabled, the app starts normally without requiring Redis, and you can still manage schedules in the database for later use.
 
 ## Prerequisites
 
@@ -13,84 +13,69 @@ The scheduler uses BullMQ with Redis to run periodic jobs. It is **disabled by d
 
 ## Configuration
 
+Scheduling relies on the database and dynamic APIs. Only the enablement and connection variables are maintained in `.env`:
+
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
 | `ENABLE_SCHEDULER` | Enable background job processing | `false` | `true` |
 | `REDIS_URL` | Redis connection URL | `redis://localhost:6379` | `redis://myhost:6379` |
-| `DIGEST_SCHEDULE` | Cron for AI daily digest | (disabled) | `0 8 * * *` |
-| `REMINDER_CHECK_SCHEDULE` | Cron for due reminder checks | (disabled) | `*/15 * * * *` |
-| `NEWSLETTER_SCHEDULE` | Cron for newsletter scraping | (disabled) | Not yet implemented |
-| `TRENDING_SCHEDULE` | Cron for trending monitor | (disabled) | Not yet implemented |
 
-All schedule fields use standard cron expressions. Leave empty to disable a specific job.
+### Managing Schedules
+
+You can create, update, and delete schedules dynamically without restarting the application. EchOS provides two ways to do this:
+
+1. **Agent Tool**: The `manage_schedule` tool allows the AI assistant to manage background jobs on your behalf.
+2. **Web API**: The `@echos/web` plugin exposes RESTful CRUD endpoints under `/api/schedules` (requires `WEB_API_KEY`).
+
+Every schedule contains a JSON `config` field designed to pass custom arguments to its plugin's job processor (e.g., custom prompts or categorization rules).
 
 ## Jobs
 
-### Daily Digest
+### Daily Digest (`digest`)
 
-Creates a temporary AI agent that reviews recent notes and upcoming reminders, then composes a summary and sends it via Telegram.
+The Digest Plugin generates summaries of your latest notes, memories, and upcoming reminders.
 
-```
-DIGEST_SCHEDULE=0 8 * * *    # Every day at 8:00 AM
-```
+- **Type**: `digest`
+- **Config options**: `prompt` (varies the tone), `lookbackDays` (how far back to summarize), `categories` (filters notes by tags).
+- **Default behavior**: Creates a temporary AI agent and sends the summary via Notification Service.
 
-**Note**: Each digest invocation makes Claude API calls. Set the schedule accordingly to manage costs.
+### Reminder Check (`reminder-check`)
 
-### Reminder Check
+Queries the SQLite database for pending reminders with a due date in the past. Due reminders are sorted by priority (high first) and sent as a notification. 
 
-Queries the SQLite database for pending reminders with a due date in the past. Due reminders are sorted by priority (high first) and sent as a notification.
+*Note: The system internally schedules a quick check every minute to dispatch due reminders, distinct from customizable user schedules.*
 
-```
-REMINDER_CHECK_SCHEDULE=*/15 * * * *    # Every 15 minutes
-```
+### Content Processing (`process_article`, `process_youtube`)
 
-**Important**: Once a reminder is shown in a "Reminder Check" notification, it is automatically marked as completed and will not appear in future checks. This prevents the same reminder from being shown repeatedly.
-
-This job does not use AI and has no API cost.
-
-### Content Processing
-
-Processes article and YouTube URLs queued by the agent during conversations. This runs automatically when URLs are submitted; no cron schedule is needed.
+Processes long-form article and YouTube URLs queued by the agent during conversations. This runs automatically when URLs are submitted; no manual schedule creation is needed.
 
 ## Architecture
 
 ```
 src/index.ts
     │
+    ├── Database (SQLite `job_schedules` table)
     ├── NotificationService (from @echos/telegram or log-only fallback)
     │
     └── @echos/scheduler
          ├── Queue (BullMQ)
-         ├── Job Scheduler (cron → queue)
+         ├── ScheduleManager (Syncs Database ↔ BullMQ)
          └── Worker
-              └── Job Router
-                   ├── digest     → DigestProcessor (creates AI agent)
-                   ├── reminder   → ReminderProcessor (SQLite query)
-                   └── content    → ContentProcessor (article/youtube)
+              └── Job Router (Plugin-aware routing)
+                   ├── digest     → DigestPlugin Processor
+                   ├── reminder   → Built-in Reminder Processor
+                   └── content    → Built-in Content Processor
 ```
 
-The scheduler never imports `@echos/telegram` directly. Notification delivery is injected via the `NotificationService` interface defined in `@echos/shared`. When Telegram is disabled, notifications are logged instead of sent.
+The `ScheduleManager` listens for changes made through the tools and Web API, applying them instantly to the running BullMQ scheduler. 
 
 ## Graceful Shutdown
 
 On SIGINT/SIGTERM, the worker and queue are closed before interfaces and storage. In-progress jobs will complete before the worker shuts down.
 
-## Example Setup
+## Example Usage
 
-```bash
-# .env
-ENABLE_SCHEDULER=true
-REDIS_URL=redis://localhost:6379
-DIGEST_SCHEDULE=0 8 * * *
-REMINDER_CHECK_SCHEDULE=*/15 * * * *
-```
+With the scheduler running, you can ask the agent:
+> *"Create a daily digest at 8am that looks back 3 days and focuses on 'business' and 'music' categories, using a professional tone."*
 
-```bash
-# Start Redis (if not using Docker)
-redis-server
-
-# Start EchOS
-pnpm start
-```
-
-With Docker Compose, Redis is included automatically.
+The agent will use `manage_schedule` (action: `upsert`) to build and inject the exact JSON configuration and cron expression `0 8 * * *`.

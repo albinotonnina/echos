@@ -70,6 +70,23 @@ export interface ReminderEntry {
   updated: string;
 }
 
+export interface ScheduleEntry {
+  id: string;
+  jobType: string;
+  cron: string;
+  enabled: boolean;
+  description: string;
+  config: Record<string, unknown>;
+  created: string;
+  updated: string;
+}
+
+/**
+ * Schedule IDs reserved for internal system use.
+ * User-created schedules must not use these IDs.
+ */
+export const RESERVED_SCHEDULE_IDS = new Set(['reminder-check']);
+
 export interface ProcessedContent {
   title: string;
   content: string;
