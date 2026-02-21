@@ -19,7 +19,7 @@ If there is no recent activity, say so briefly.`;
 const plugin: EchosPlugin = {
   name: 'digest',
   description: 'Generates an AI digest of recent notes and reminders',
-  version: '0.1.0',
+  version: '0.4.0',
 
   setup(context: PluginContext) {
     return {
