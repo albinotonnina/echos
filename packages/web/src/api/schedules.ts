@@ -90,7 +90,17 @@ export function registerScheduleRoutes(
 
       agentDeps.sqlite.upsertSchedule(entry);
       if (syncSchedule) {
-        await syncSchedule(entry.id);
+          try {
+              await syncSchedule(entry.id);
+          } catch (syncErr) {
+              // Roll back the DB change to keep SQLite and BullMQ in sync
+              if (existing) {
+                  agentDeps.sqlite.upsertSchedule(existing);
+              } else {
+                  agentDeps.sqlite.deleteSchedule(entry.id);
+              }
+              throw syncErr;
+          }
       }
 
       return reply.send({ schedule: entry });
