@@ -64,6 +64,7 @@ export class ScheduleManager {
         { id: schedule.id, jobType: schedule.jobType },
         'Skipping schedule for unknown job type (no plugin registered)',
       );
+      await this.removeSchedule(schedule.id);
       return;
     }
 
@@ -102,7 +103,7 @@ export class ScheduleManager {
       await this.queue.removeJobScheduler(id);
       this.logger.info({ id }, 'Schedule removed from queue');
     } catch (err) {
-      // Ignored if it doesn't exist
+      this.logger.error({ err, id }, 'Failed to remove schedule from queue');
     }
   }
 
