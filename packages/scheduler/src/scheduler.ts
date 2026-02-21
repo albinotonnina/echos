@@ -64,6 +64,7 @@ export class ScheduleManager {
         { id: schedule.id, jobType: schedule.jobType },
         'Skipping schedule for unknown job type (no plugin registered)',
       );
+      await this.removeSchedule(schedule.id);
       return;
     }
 
