@@ -79,8 +79,19 @@ export class ScheduleManager {
    * Upserts a schedule in DB and syncs to BullMQ.
    */
   async upsertSchedule(schedule: import('@echos/shared').ScheduleEntry): Promise<void> {
+    const existing = this.sqlite.getSchedule(schedule.id);
     this.sqlite.upsertSchedule(schedule);
-    await this.syncSchedule(schedule.id);
+    try {
+      await this.syncSchedule(schedule.id);
+    } catch (err) {
+      // Roll back the DB change to keep SQLite and BullMQ in sync
+      if (existing) {
+        this.sqlite.upsertSchedule(existing);
+      } else {
+        this.sqlite.deleteSchedule(schedule.id);
+      }
+      throw err;
+    }
   }
 
   /**
