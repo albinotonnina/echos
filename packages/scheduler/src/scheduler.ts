@@ -102,7 +102,7 @@ export class ScheduleManager {
       await this.queue.removeJobScheduler(id);
       this.logger.info({ id }, 'Schedule removed from queue');
     } catch (err) {
-      // Ignored if it doesn't exist
+      this.logger.error({ err, id }, 'Failed to remove schedule from queue');
     }
   }
 
