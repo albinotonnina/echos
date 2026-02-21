@@ -12,15 +12,15 @@ export function isValidCronField(field: string, min: number, max: number): boole
   if (field.includes('/')) {
     const [range, step] = field.split('/');
     if (!step || !/^\d+$/.test(step) || parseInt(step, 10) < 1) return false;
-    return range === '*' || isValidCronField(range, min, max);
+    return range === '*' || isValidCronField(range!, min, max);
   }
   if (field.includes('-')) {
     const parts = field.split('-');
     if (parts.length !== 2) return false;
     const [start, end] = parts;
-    if (!/^\d+$/.test(start) || !/^\d+$/.test(end)) return false;
-    const s = parseInt(start, 10);
-    const e = parseInt(end, 10);
+    if (!/^\d+$/.test(start!) || !/^\d+$/.test(end!)) return false;
+    const s = parseInt(start!, 10);
+    const e = parseInt(end!, 10);
     return s >= min && e <= max && s <= e;
   }
   if (field === '*') return true;
@@ -39,11 +39,11 @@ export function isValidCron(cron: string): boolean {
   if (fields.length !== 5) return false;
   const [minute, hour, dayOfMonth, month, dayOfWeek] = fields;
   return (
-    isValidCronField(minute, 0, 59) &&
-    isValidCronField(hour, 0, 23) &&
-    isValidCronField(dayOfMonth, 1, 31) &&
-    isValidCronField(month, 1, 12) &&
-    isValidCronField(dayOfWeek, 0, 7)
+    isValidCronField(minute!, 0, 59) &&
+    isValidCronField(hour!, 0, 23) &&
+    isValidCronField(dayOfMonth!, 1, 31) &&
+    isValidCronField(month!, 1, 12) &&
+    isValidCronField(dayOfWeek!, 0, 7)
   );
 }
 
@@ -79,88 +79,97 @@ export function registerScheduleRoutes(
   });
 
   app.post<{
-      Body: {
-          id?: string;
-          jobType: string;
-          cron: string;
-          enabled?: boolean;
-          description?: string;
-          config?: Record<string, unknown>;
-      };
+    Body: {
+      id?: string;
+      jobType: string;
+      cron: string;
+      enabled?: boolean;
+      description?: string;
+      config?: Record<string, unknown>;
+    };
   }>(
-      '/api/schedules',
-      {
-          schema: {
-              body: {
-                  type: 'object',
-                  required: ['jobType', 'cron'],
-                  properties: {
-                      id: { type: 'string', minLength: 1 },
-                      jobType: { type: 'string', minLength: 1 },
-                      cron: { type: 'string', minLength: 1 },
-                      enabled: { type: 'boolean' },
-                      description: { type: 'string' },
-                      config: { type: 'object' },
-                  },
-                  additionalProperties: false,
-              },
+    '/api/schedules',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['jobType', 'cron'],
+          properties: {
+            id: { type: 'string', minLength: 1 },
+            jobType: { type: 'string', minLength: 1 },
+            cron: { type: 'string', minLength: 1 },
+            enabled: { type: 'boolean' },
+            description: { type: 'string' },
+            config: { type: 'object' },
           },
+          additionalProperties: false,
+        },
       },
-      async (request, reply) => {
+    },
+    async (request, reply) => {
       const body = request.body;
       try {
-          let existingId = body.id;
-          if (!existingId) existingId = randomUUID();
+        let existingId = body.id;
+        if (!existingId) existingId = randomUUID();
 
-      if (RESERVED_SCHEDULE_IDS.has(existingId)) {
-        return reply.status(400).send({ error: `Schedule ID "${existingId}" is reserved for system use` });
-      }
+        if (RESERVED_SCHEDULE_IDS.has(existingId)) {
+          return reply
+            .status(400)
+            .send({ error: `Schedule ID "${existingId}" is reserved for system use` });
+        }
 
-      if (!isValidCron(body.cron)) {
-        return reply.status(400).send({ error: `Invalid cron expression: "${body.cron}". Expected 5-field format: minute hour day-of-month month day-of-week (e.g. "0 8 * * *")` });
-      }
+        if (!isValidCron(body.cron)) {
+          return reply
+            .status(400)
+            .send({
+              error: `Invalid cron expression: "${body.cron}". Expected 5-field format: minute hour day-of-month month day-of-week (e.g. "0 8 * * *")`,
+            });
+        }
 
-      const now = new Date().toISOString();
-      const existing = agentDeps.sqlite.getSchedule(existingId);
+        const now = new Date().toISOString();
+        const existing = agentDeps.sqlite.getSchedule(existingId);
 
-      const entry: ScheduleEntry = {
-        id: existingId,
-        jobType: body.jobType,
-        cron: body.cron,
-        enabled: body.enabled ?? (existing ? existing.enabled : true),
-        description: body.description ?? (existing ? existing.description : ''),
-        config: body.config ?? (existing ? existing.config : {}),
-        created: existing ? existing.created : now,
-        updated: now,
-      };
+        const entry: ScheduleEntry = {
+          id: existingId,
+          jobType: body.jobType,
+          cron: body.cron,
+          enabled: body.enabled ?? (existing ? existing.enabled : true),
+          description: body.description ?? (existing ? existing.description : ''),
+          config: body.config ?? (existing ? existing.config : {}),
+          created: existing ? existing.created : now,
+          updated: now,
+        };
 
-      agentDeps.sqlite.upsertSchedule(entry);
-      if (syncSchedule) {
+        agentDeps.sqlite.upsertSchedule(entry);
+        if (syncSchedule) {
           try {
-              await syncSchedule(entry.id);
+            await syncSchedule(entry.id);
           } catch (syncErr) {
-              // Roll back the DB change to keep SQLite and BullMQ in sync
-              if (existing) {
-                  agentDeps.sqlite.upsertSchedule(existing);
-              } else {
-                  agentDeps.sqlite.deleteSchedule(entry.id);
-              }
-              throw syncErr;
+            // Roll back the DB change to keep SQLite and BullMQ in sync
+            if (existing) {
+              agentDeps.sqlite.upsertSchedule(existing);
+            } else {
+              agentDeps.sqlite.deleteSchedule(entry.id);
+            }
+            throw syncErr;
           }
-      }
+        }
 
-      return reply.send({ schedule: entry });
-    } catch (err) {
-      logger.error({ err }, 'Failed to upsert schedule');
-      return reply.status(500).send({ error: 'Failed to upsert schedule' });
-    }
-  });
+        return reply.send({ schedule: entry });
+      } catch (err) {
+        logger.error({ err }, 'Failed to upsert schedule');
+        return reply.status(500).send({ error: 'Failed to upsert schedule' });
+      }
+    },
+  );
 
   app.delete('/api/schedules/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     try {
       if (RESERVED_SCHEDULE_IDS.has(id)) {
-        return reply.status(400).send({ error: `Schedule ID "${id}" is reserved for system use and cannot be deleted` });
+        return reply
+          .status(400)
+          .send({ error: `Schedule ID "${id}" is reserved for system use and cannot be deleted` });
       }
       let deleted = false;
       if (deleteSchedule) {
