@@ -25,6 +25,7 @@ export type {
   InterfaceAdapter,
   NotificationService,
 } from './types/index.js';
+export { RESERVED_SCHEDULE_IDS } from './types/index.js';
 export {
   validateUrl,
   isPrivateIp,
