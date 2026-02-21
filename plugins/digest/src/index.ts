@@ -16,8 +16,9 @@ function buildDigestPrompt(config?: Record<string, unknown>): string {
       ? rawLookback
       : DEFAULT_LOOKBACK_DAYS;
 
-  const categories: string[] =
-    Array.isArray(config?.['categories']) ? (config['categories'] as unknown[]).map(String).filter(Boolean) : [];
+  const categories: string[] = Array.isArray(config?.['categories'])
+    ? (config['categories'] as unknown[]).map(String).filter(Boolean)
+    : [];
 
   const dateFrom = new Date();
   dateFrom.setDate(dateFrom.getDate() - lookbackDays);
@@ -25,9 +26,7 @@ function buildDigestPrompt(config?: Record<string, unknown>): string {
 
   const lookbackLabel = lookbackDays === 1 ? 'last day' : `last ${lookbackDays} days`;
   const categoriesClause =
-    categories.length > 0
-      ? ` Only include notes tagged with: ${categories.join(', ')}.`
-      : '';
+    categories.length > 0 ? ` Only include notes tagged with: ${categories.join(', ')}.` : '';
 
   return `Generate a daily digest summary for today.
 
@@ -64,12 +63,20 @@ const plugin: EchosPlugin = {
             const notificationService = getNotificationService();
 
             let textBuffer = '';
+            let toolExecuted = false;
             const unsubscribe = agent.subscribe((event: AgentEvent) => {
               if (event.type === 'message_update' && 'assistantMessageEvent' in event) {
                 const ame = event.assistantMessageEvent;
                 if (ame.type === 'text_delta') {
+                  if (toolExecuted) {
+                    textBuffer = '';
+                    toolExecuted = false;
+                  }
                   textBuffer += ame.delta;
                 }
+              }
+              if (event.type === 'tool_execution_start') {
+                toolExecuted = true;
               }
             });
 
