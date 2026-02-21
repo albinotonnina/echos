@@ -29,9 +29,10 @@ export function createTelegramNotificationService(
     },
 
     async broadcast(text: string): Promise<void> {
+      const html = markdownToHtml(text);
       for (const userId of allowedUserIds) {
         try {
-          await bot.api.sendMessage(userId, markdownToHtml(text), { parse_mode: 'HTML' });
+          await bot.api.sendMessage(userId, html, { parse_mode: 'HTML' });
         } catch (err) {
           logger.error({ err, userId }, 'Failed to broadcast Telegram notification');
         }
