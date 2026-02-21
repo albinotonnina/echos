@@ -32,6 +32,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          token: ${{ secrets.RELEASE_PAT || github.token }}
 
       - name: Set up Git branch
         run: git checkout ${{ github.ref_name }}
