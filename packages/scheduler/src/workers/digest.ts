@@ -40,7 +40,7 @@ export function createDigestProcessor(deps: DigestWorkerDeps) {
       if (event.type === 'message_update' && 'assistantMessageEvent' in event) {
         const ame = event.assistantMessageEvent;
         if (ame.type === 'text_delta') {
-          if (toolExecuted && textBuffer.length > 0) {
+          if (toolExecuted) {
             textBuffer = '';
             toolExecuted = false;
           }
