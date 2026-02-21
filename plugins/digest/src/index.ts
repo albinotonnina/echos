@@ -32,10 +32,8 @@ function buildDigestPrompt(config?: Record<string, unknown>): string {
 
 Instructions:
 1. Use list_notes with dateFrom="${dateFromStr}" to find notes created or updated in the ${lookbackLabel}.${categoriesClause}
-2. Use listReminders to check for upcoming or overdue reminders
-3. Compose a concise, well-formatted digest with sections for:
+2. Compose a concise, well-formatted digest with sections for:
    - New/updated notes summary
-   - Upcoming reminders and overdue items
    - Any patterns or connections you notice
 
 Keep the digest brief and actionable. Use Markdown formatting.
@@ -87,7 +85,7 @@ const plugin: EchosPlugin = {
             }
 
             if (textBuffer.trim()) {
-              const message = `*Daily Digest*\n\n${textBuffer.trim()}`;
+              const message = textBuffer.trim();
               await notificationService.broadcast(message);
               logger.info({ length: textBuffer.length }, 'Digest sent');
             } else {

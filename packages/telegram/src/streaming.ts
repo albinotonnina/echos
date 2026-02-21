@@ -49,7 +49,7 @@ function getToolEmoji(toolName: string): string {
  *   3. Convert markdown syntax (headers, bold, italic) to HTML tags.
  *   4. Restore code blocks.
  */
-function markdownToHtml(text: string): string {
+export function markdownToHtml(text: string): string {
   // Sentinel chars unlikely to appear in normal text
   const BLOCK = '\x02B';
   const INLINE = '\x02I';
@@ -94,8 +94,15 @@ function markdownToHtml(text: string): string {
     .replace(/_([^_\n]+)_/g, '<i>$1</i>')
     // Strikethrough
     .replace(/~~(.+?)~~/gs, '<s>$1</s>')
-    // Links — keep label, drop URL (Telegram validates hrefs strictly)
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Links → Telegram-safe anchor tags (only http/https to prevent javascript: injection)
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label: string, url: string) => {
+      const decodedUrl = url.replace(/&amp;/g, '&');
+      if (!/^https?:\/\//i.test(decodedUrl)) {
+        return label;
+      }
+      const safeHref = url.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      return `<a href="${safeHref}">${label}</a>`;
+    })
     // Horizontal rules — remove
     .replace(/^---+$/gm, '');
 

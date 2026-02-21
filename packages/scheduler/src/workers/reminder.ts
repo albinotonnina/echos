@@ -16,7 +16,7 @@ function formatReminder(r: ReminderEntry): string {
   const priorityIcon = r.priority === 'high' ? '!' : r.priority === 'medium' ? '-' : '.';
   const due = r.dueDate ? ` (due: ${r.dueDate})` : '';
   const desc = r.description ? `\n  ${r.description}` : '';
-  return `[${priorityIcon}] *${r.title}*${due}${desc}`;
+  return `[${priorityIcon}] **${r.title}**${due}${desc}`;
 }
 
 export function createReminderCheckProcessor(deps: ReminderWorkerDeps) {
@@ -46,7 +46,7 @@ export function createReminderCheckProcessor(deps: ReminderWorkerDeps) {
     }
 
     const lines = due.map(formatReminder);
-    const message = `*Reminder Check*\n\nYou have ${due.length} due reminder${due.length > 1 ? 's' : ''}:\n\n${lines.join('\n\n')}`;
+    const message = `**Reminder Check**\n\nYou have ${due.length} due reminder${due.length > 1 ? 's' : ''}:\n\n${lines.join('\n\n')}`;
 
     await notificationService.broadcast(message);
 
