@@ -5,7 +5,7 @@ import type { ScheduleEntry } from '@echos/shared';
 import { RESERVED_SCHEDULE_IDS } from '@echos/shared';
 import { randomUUID } from 'node:crypto';
 
-function isValidCronField(field: string, min: number, max: number): boolean {
+export function isValidCronField(field: string, min: number, max: number): boolean {
   if (field.includes(',')) {
     return field.split(',').every((f) => isValidCronField(f, min, max));
   }
@@ -34,7 +34,7 @@ function isValidCronField(field: string, min: number, max: number): boolean {
 // Validates a standard 5-field cron expression: minute hour day-of-month month day-of-week
 // Does not support 6-field (with seconds) expressions.
 // Day-of-week accepts 0-7 where both 0 and 7 represent Sunday.
-function isValidCron(cron: string): boolean {
+export function isValidCron(cron: string): boolean {
   const fields = cron.trim().split(/\s+/);
   if (fields.length !== 5) return false;
   const [minute, hour, dayOfMonth, month, dayOfWeek] = fields;
