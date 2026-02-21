@@ -363,7 +363,7 @@ importers:
         specifier: ^0.53.0
         version: 0.53.0
       bullmq:
-        specifier: ^5.2.0
+        specifier: ^5.69.3
         version: 5.69.3
     devDependencies:
       '@types/node':
