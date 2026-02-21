@@ -366,15 +366,9 @@ importers:
         specifier: ^5.2.0
         version: 5.69.3
     devDependencies:
-      '@types/jsdom':
-        specifier: ^27.0.0
-        version: 27.0.0
       '@types/node':
         specifier: ^25.2.3
         version: 25.2.3
-      '@types/uuid':
-        specifier: ^11.0.0
-        version: 11.0.0
       typescript:
         specifier: ^5.7.0
         version: 5.9.3

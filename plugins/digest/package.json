@@ -18,9 +18,7 @@
     "bullmq": "^5.2.0"
   },
   "devDependencies": {
-    "@types/jsdom": "^27.0.0",
     "@types/node": "^25.2.3",
-    "@types/uuid": "^11.0.0",
     "typescript": "^5.7.0"
   }
 }
