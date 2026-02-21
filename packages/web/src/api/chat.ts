@@ -54,7 +54,7 @@ export function registerChatRoutes(
       if (event.type === 'message_update' && 'assistantMessageEvent' in event) {
         const ame = event.assistantMessageEvent;
         if (ame.type === 'text_delta') {
-          if (toolExecuted && responseText.length > 0) {
+          if (toolExecuted) {
             responseText = '';
             toolExecuted = false;
           }
