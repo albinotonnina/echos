@@ -130,6 +130,8 @@ export async function streamAgentResponse(
   let editTimeout: ReturnType<typeof setTimeout> | undefined;
   let lastAssistantMessage: AgentMessage | undefined;
 
+  let toolExecuted = false;
+
   /**
    * Send an edit with the current content.
    * While no AI text has arrived yet, shows the status line (e.g. an emoji).
@@ -193,6 +195,10 @@ export async function streamAgentResponse(
     if (event.type === 'message_update' && 'assistantMessageEvent' in event) {
       const ame = event.assistantMessageEvent;
       if (ame.type === 'text_delta') {
+        if (toolExecuted) {
+          textBuffer = '';
+          toolExecuted = false;
+        }
         textBuffer += ame.delta;
         if (messageId) scheduleUpdate();
       }
@@ -203,6 +209,7 @@ export async function streamAgentResponse(
     }
 
     if (event.type === 'tool_execution_start') {
+      toolExecuted = true;
       const emoji = getToolEmoji(event.toolName);
       // Update status indicator only — never pollutes the AI text buffer
       statusLine = emoji;

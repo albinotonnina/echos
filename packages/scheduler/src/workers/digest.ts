@@ -34,12 +34,21 @@ export function createDigestProcessor(deps: DigestWorkerDeps) {
     const agent = createEchosAgent(agentDeps);
 
     let textBuffer = '';
+    let toolExecuted = false;
+
     const unsubscribe = agent.subscribe((event: AgentEvent) => {
       if (event.type === 'message_update' && 'assistantMessageEvent' in event) {
         const ame = event.assistantMessageEvent;
         if (ame.type === 'text_delta') {
+          if (toolExecuted) {
+            textBuffer = '';
+            toolExecuted = false;
+          }
           textBuffer += ame.delta;
         }
+      }
+      if (event.type === 'tool_execution_start') {
+        toolExecuted = true;
       }
     });
 
