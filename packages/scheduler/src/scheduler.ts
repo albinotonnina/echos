@@ -1,6 +1,7 @@
 import type { Queue } from 'bullmq';
 import type { Logger } from 'pino';
 import type { SqliteStorage, ScheduledJob } from '@echos/core';
+import { RESERVED_SCHEDULE_IDS } from '@echos/shared';
 
 export class ScheduleManager {
   constructor(
@@ -64,6 +65,7 @@ export class ScheduleManager {
         { id: schedule.id, jobType: schedule.jobType },
         'Skipping schedule for unknown job type (no plugin registered)',
       );
+      await this.removeSchedule(schedule.id);
       return;
     }
 

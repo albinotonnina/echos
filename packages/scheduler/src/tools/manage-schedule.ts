@@ -3,6 +3,7 @@ import type { AgentTool } from '@mariozechner/pi-agent-core';
 import type { ScheduleManager } from '../scheduler.js';
 import type { SqliteStorage } from '@echos/core';
 import type { ScheduleEntry } from '@echos/shared';
+import { RESERVED_SCHEDULE_IDS } from '@echos/shared';
 import { randomUUID } from 'node:crypto';
 
 export interface ManageScheduleToolDeps {
@@ -64,6 +65,8 @@ export function createManageScheduleTool(deps: ManageScheduleToolDeps) {
 
       if (action === 'delete') {
         if (!id) return formatResponse('Error: id is required for delete.');
+        if (RESERVED_SCHEDULE_IDS.has(id))
+          return formatResponse(`Error: Schedule ID "${id}" is reserved for system use and cannot be deleted.`);
         if (deps.scheduleManager) {
           const deleted = await deps.scheduleManager.deleteSchedule(id);
           if (deleted) return formatResponse(`Schedule ${id} deleted successfully.`);
@@ -82,6 +85,9 @@ export function createManageScheduleTool(deps: ManageScheduleToolDeps) {
         if (!existingId) {
           existingId = randomUUID();
         }
+
+        if (RESERVED_SCHEDULE_IDS.has(existingId))
+          return formatResponse(`Error: Schedule ID "${existingId}" is reserved for system use and cannot be created or updated.`);
 
         const now = new Date().toISOString();
         const existing = deps.sqlite.getSchedule(existingId);
