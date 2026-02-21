@@ -7,14 +7,15 @@ const MAX_TELEGRAM_LENGTH = 4096;
 const ELLIPSIS = '...';
 
 /**
- * Split an HTML string into chunks that each fit within Telegram's 4096-character limit.
+ * Split a raw markdown string into chunks that each fit within Telegram's 4096-character limit.
  * Splits on double-newline paragraph boundaries where possible; truncates oversized paragraphs.
+ * Operates on raw markdown (before HTML conversion) to prevent slicing inside HTML tags or entities.
  */
-export function chunkMessage(html: string): string[] {
-  if (html.length <= MAX_TELEGRAM_LENGTH) return [html];
+export function chunkMessage(markdown: string): string[] {
+  if (markdown.length <= MAX_TELEGRAM_LENGTH) return [markdown];
 
   const chunks: string[] = [];
-  const paragraphs = html.split('\n\n');
+  const paragraphs = markdown.split('\n\n');
   let current = '';
 
   for (const para of paragraphs) {
@@ -38,6 +39,29 @@ export function chunkMessage(html: string): string[] {
   return chunks;
 }
 
+async function sendMarkdownChunks(
+  bot: Bot,
+  userId: number,
+  chunks: string[],
+  logger: Logger,
+  errorMsg: string,
+): Promise<void> {
+  for (const chunk of chunks) {
+    const html = markdownToHtml(chunk);
+    try {
+      await bot.api.sendMessage(userId, html, { parse_mode: 'HTML' });
+    } catch (htmlErr) {
+      // Fallback: retry as plain text without parse_mode to avoid silently losing notifications
+      logger.warn({ err: htmlErr, userId }, 'HTML send failed, retrying as plain text');
+      try {
+        await bot.api.sendMessage(userId, chunk);
+      } catch (fallbackErr) {
+        logger.error({ err: fallbackErr, userId }, errorMsg);
+      }
+    }
+  }
+}
+
 export interface TelegramNotificationOptions {
   bot: Bot;
   allowedUserIds: number[];
@@ -56,26 +80,20 @@ export function createTelegramNotificationService(
         return;
       }
 
-      const chunks = chunkMessage(markdownToHtml(text));
-      for (const chunk of chunks) {
-        try {
-          await bot.api.sendMessage(userId, chunk, { parse_mode: 'HTML' });
-        } catch (err) {
-          logger.error({ err, userId }, 'Failed to send Telegram notification');
-        }
-      }
+      const chunks = chunkMessage(text);
+      await sendMarkdownChunks(bot, userId, chunks, logger, 'Failed to send Telegram notification');
     },
 
     async broadcast(text: string): Promise<void> {
-      const chunks = chunkMessage(markdownToHtml(text));
+      const chunks = chunkMessage(text);
       for (const userId of allowedUserIds) {
-        for (const chunk of chunks) {
-          try {
-            await bot.api.sendMessage(userId, chunk, { parse_mode: 'HTML' });
-          } catch (err) {
-            logger.error({ err, userId }, 'Failed to broadcast Telegram notification');
-          }
-        }
+        await sendMarkdownChunks(
+          bot,
+          userId,
+          chunks,
+          logger,
+          'Failed to broadcast Telegram notification',
+        );
       }
     },
   };
