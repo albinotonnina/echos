@@ -15,7 +15,7 @@ import {
   createErrorHandler,
 } from './middleware/index.js';
 import { getOrCreateSession, getSession, clearAllSessions } from './session.js';
-import { streamAgentResponse } from './streaming.js';
+import { streamAgentResponse, CONFIRM_MARKER } from './streaming.js';
 import { createTelegramNotificationService } from './notification.js';
 import { handleVoiceMessage } from './voice.js';
 import { handlePhotoMessage } from './photo.js';
@@ -28,6 +28,14 @@ export interface TelegramAdapterOptions {
 
 export interface TelegramAdapter extends InterfaceAdapter {
   notificationService: NotificationService;
+}
+
+// Track the last bot message ID that contained a yes/no question, per user.
+// A 👍 reaction on that message is treated as answering "yes".
+const pendingYesNoMessages = new Map<number, number>();
+
+function isYesNoQuestion(text: string): boolean {
+  return text.includes(CONFIRM_MARKER);
 }
 
 export function createTelegramAdapter(options: TelegramAdapterOptions): TelegramAdapter {
@@ -181,7 +189,12 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
     }
 
     await ctx.react('👀').catch(() => undefined);
-    await streamAgentResponse(agent, ctx.message.text, ctx);
+    const { botMessageId, finalText } = await streamAgentResponse(agent, ctx.message.text, ctx);
+    if (botMessageId !== undefined && isYesNoQuestion(finalText)) {
+      pendingYesNoMessages.set(userId, botMessageId);
+    } else {
+      pendingYesNoMessages.delete(userId);
+    }
   });
 
   // Handle voice messages via Whisper transcription
@@ -196,7 +209,12 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
 
     await ctx.react('🤗').catch(() => undefined);
     const agent = getOrCreateSession(userId, agentDeps);
-    await handleVoiceMessage(ctx, agent, config.openaiApiKey, logger);
+    const { botMessageId, finalText } = await handleVoiceMessage(ctx, agent, config.openaiApiKey, logger);
+    if (botMessageId !== undefined && isYesNoQuestion(finalText)) {
+      pendingYesNoMessages.set(userId, botMessageId);
+    } else {
+      pendingYesNoMessages.delete(userId);
+    }
   });
 
   // Handle photo messages
@@ -206,7 +224,42 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
 
     await ctx.react('👀').catch(() => undefined);
     const agent = getOrCreateSession(userId, agentDeps);
-    await handlePhotoMessage(ctx, agent, logger);
+    const { botMessageId, finalText } = await handlePhotoMessage(ctx, agent, logger);
+    if (botMessageId !== undefined && isYesNoQuestion(finalText)) {
+      pendingYesNoMessages.set(userId, botMessageId);
+    } else {
+      pendingYesNoMessages.delete(userId);
+    }
+  });
+
+  // Handle 👍 reaction on an agent yes/no question message as answering "yes"
+  bot.on('message_reaction', async (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    const reaction = ctx.messageReaction;
+    const addedThumbsUp =
+      reaction.new_reaction.some((r) => r.type === 'emoji' && r.emoji === '👍') &&
+      !reaction.old_reaction.some((r) => r.type === 'emoji' && r.emoji === '👍');
+
+    if (!addedThumbsUp) return;
+
+    const pendingMessageId = pendingYesNoMessages.get(userId);
+    if (pendingMessageId !== reaction.message_id) return;
+
+    pendingYesNoMessages.delete(userId);
+
+    const agent = getSession(userId);
+    if (!agent) return;
+
+    if (agent.state.isStreaming) {
+      agent.steer(createUserMessage('yes'));
+    } else {
+      const { botMessageId, finalText } = await streamAgentResponse(agent, 'yes', ctx);
+      if (botMessageId !== undefined && isYesNoQuestion(finalText)) {
+        pendingYesNoMessages.set(userId, botMessageId);
+      }
+    }
   });
 
   return {

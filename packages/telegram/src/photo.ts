@@ -13,17 +13,17 @@ export async function handlePhotoMessage(
   ctx: Context,
   agent: Agent,
   logger: Logger,
-): Promise<void> {
+): Promise<{ botMessageId: number | undefined; finalText: string }> {
   const photos = ctx.message?.photo;
-  if (!photos || photos.length === 0) return;
+  if (!photos || photos.length === 0) return { botMessageId: undefined, finalText: '' };
 
   // Get the largest photo (last in array)
   const photo = photos[photos.length - 1];
-  if (!photo) return;
+  if (!photo) return { botMessageId: undefined, finalText: '' };
 
   if (photo.file_size !== undefined && photo.file_size > MAX_PHOTO_SIZE_BYTES) {
     await ctx.reply('Photo is too large. Maximum size is 20MB.');
-    return;
+    return { botMessageId: undefined, finalText: '' };
   }
 
   const caption = ctx.message?.caption || '';
@@ -35,7 +35,7 @@ export async function handlePhotoMessage(
     const filePath = file.file_path;
     if (!filePath) {
       await ctx.api.editMessageText(ctx.chat!.id, statusMsg.message_id, '❌ Failed to retrieve photo.');
-      return;
+      return { botMessageId: undefined, finalText: '' };
     }
 
     const token = ctx.api.token;
@@ -73,7 +73,7 @@ export async function handlePhotoMessage(
     }
     instruction += `, and autoCategorize set to true.`;
 
-    await streamAgentResponse(agent, instruction, ctx);
+    return await streamAgentResponse(agent, instruction, ctx);
 
   } catch (err) {
     logger.error({ err }, 'Failed to process photo message');
@@ -87,6 +87,7 @@ export async function handlePhotoMessage(
       statusMsg.message_id,
       '❌ Failed to process your photo. Please try again.',
     );
+    return { botMessageId: undefined, finalText: '' };
   } finally {
     await unlink(tempFilePath).catch(() => undefined);
   }

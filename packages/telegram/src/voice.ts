@@ -17,18 +17,18 @@ export async function handleVoiceMessage(
   agent: Agent,
   openaiApiKey: string,
   logger: Logger,
-): Promise<void> {
+): Promise<{ botMessageId: number | undefined; finalText: string }> {
   const voice = ctx.message?.voice;
-  if (!voice) return;
+  if (!voice) return { botMessageId: undefined, finalText: '' };
 
   if (voice.duration > MAX_VOICE_DURATION_SECONDS) {
     await ctx.reply('Voice message is too long. Maximum duration is 10 minutes.');
-    return;
+    return { botMessageId: undefined, finalText: '' };
   }
 
   if (voice.file_size !== undefined && voice.file_size > MAX_FILE_SIZE_BYTES) {
     await ctx.reply('Voice message file is too large. Maximum size is 25MB.');
-    return;
+    return { botMessageId: undefined, finalText: '' };
   }
 
   const statusMsg = await ctx.reply('🎤 Transcribing your voice message...');
@@ -39,7 +39,7 @@ export async function handleVoiceMessage(
     const filePath = file.file_path;
     if (!filePath) {
       await ctx.api.editMessageText(ctx.chat!.id, statusMsg.message_id, '❌ Failed to retrieve voice file.');
-      return;
+      return { botMessageId: undefined, finalText: '' };
     }
 
     const token = ctx.api.token;
@@ -81,7 +81,7 @@ export async function handleVoiceMessage(
         statusMsg.message_id,
         '🎤 Could not transcribe the voice message. Please try again.',
       );
-      return;
+      return { botMessageId: undefined, finalText: '' };
     }
 
     const preview = transcribedText.length > 200 ? `${transcribedText.slice(0, 200)}...` : transcribedText;
@@ -93,7 +93,7 @@ export async function handleVoiceMessage(
       `🎤 "${preview}"\n\nProcessing...`,
     );
 
-    await streamAgentResponse(agent, transcribedText, ctx);
+    return await streamAgentResponse(agent, transcribedText, ctx);
   } catch (err) {
     logger.error({ err }, 'Failed to process voice message');
     await ctx.api.setMessageReaction(
@@ -106,6 +106,7 @@ export async function handleVoiceMessage(
       statusMsg.message_id,
       '❌ Failed to process your voice message. Please try again.',
     );
+    return { botMessageId: undefined, finalText: '' };
   } finally {
     await unlink(tempFilePath).catch(() => undefined);
   }
