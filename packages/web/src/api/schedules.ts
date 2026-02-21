@@ -35,13 +35,37 @@ export function registerScheduleRoutes(
         }
     });
 
-    app.post('/api/schedules', async (request, reply) => {
-        const body = request.body as Partial<ScheduleEntry>;
+    app.post<{
+        Body: {
+            id?: string;
+            jobType: string;
+            cron: string;
+            enabled?: boolean;
+            description?: string;
+            config?: Record<string, unknown>;
+        };
+    }>(
+        '/api/schedules',
+        {
+            schema: {
+                body: {
+                    type: 'object',
+                    required: ['jobType', 'cron'],
+                    properties: {
+                        id: { type: 'string', minLength: 1 },
+                        jobType: { type: 'string', minLength: 1 },
+                        cron: { type: 'string', minLength: 1 },
+                        enabled: { type: 'boolean' },
+                        description: { type: 'string' },
+                        config: { type: 'object' },
+                    },
+                    additionalProperties: false,
+                },
+            },
+        },
+        async (request, reply) => {
+        const body = request.body;
         try {
-            if (!body.jobType || !body.cron) {
-                return reply.status(400).send({ error: 'jobType and cron are required' });
-            }
-
             let existingId = body.id;
             if (!existingId) existingId = randomUUID();
 
