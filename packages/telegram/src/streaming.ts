@@ -49,7 +49,7 @@ function getToolEmoji(toolName: string): string {
  *   3. Convert markdown syntax (headers, bold, italic) to HTML tags.
  *   4. Restore code blocks.
  */
-function markdownToHtml(text: string): string {
+export function markdownToHtml(text: string): string {
   // Sentinel chars unlikely to appear in normal text
   const BLOCK = '\x02B';
   const INLINE = '\x02I';
