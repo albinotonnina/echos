@@ -87,21 +87,5 @@ for (const pkgPath of packageJsonPaths) {
   }
 }
 
-// Commit version bumps
-const relativePackagePaths = packageJsonPaths
-  .map((p) => p.replace(ROOT + '/', ''))
-  .join(' ');
-run(`git add ${relativePackagePaths}`);
-run(`git commit -m "chore: release v${nextVersion}"`);
-console.log(`Committed version bumps.`);
-
-run(`git push`);
-console.log(`Pushed commit.`);
-
-// Tag and push
-const tag = `v${nextVersion}`;
-run(`git tag ${tag}`);
-console.log(`Tagged: ${tag}`);
-
-run(`git push origin ${tag}`);
-console.log(`Pushed: ${tag}\n`);
+// Git operations have been removed in favor of GitHub Actions PR flow.
+console.log(`\n✅ Versions updated to v${nextVersion} across packages.`);
