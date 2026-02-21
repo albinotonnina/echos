@@ -9,7 +9,7 @@ const youtubePlugin: EchosPlugin = {
   version: '0.1.0',
 
   setup(context: PluginContext) {
-    return [createSaveYoutubeTool(context)];
+    return { tools: [createSaveYoutubeTool(context)] };
   },
 };
 

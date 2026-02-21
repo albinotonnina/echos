@@ -20,6 +20,9 @@ importers:
       '@echos/plugin-content-creation':
         specifier: workspace:*
         version: link:plugins/content-creation
+      '@echos/plugin-digest':
+        specifier: workspace:*
+        version: link:plugins/digest
       '@echos/plugin-image':
         specifier: workspace:*
         version: link:plugins/image
@@ -164,6 +167,9 @@ importers:
       '@mariozechner/pi-agent-core':
         specifier: ^0.53.0
         version: 0.53.0
+      '@sinclair/typebox':
+        specifier: ^0.34.48
+        version: 0.34.48
       bullmq:
         specifier: ^5.69.3
         version: 5.69.3
@@ -218,7 +224,7 @@ importers:
         specifier: ^1.40.0
         version: 1.40.0
       openai:
-        specifier: ^4.0.0
+        specifier: ^4.104.0
         version: 4.104.0(ws@8.19.0)(zod@3.25.76)
       pino:
         specifier: ^10.3.1
@@ -345,6 +351,34 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  plugins/digest:
+    dependencies:
+      '@echos/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@echos/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@mariozechner/pi-agent-core':
+        specifier: ^0.53.0
+        version: 0.53.0
+      bullmq:
+        specifier: ^5.2.0
+        version: 5.69.3
+    devDependencies:
+      '@types/jsdom':
+        specifier: ^27.0.0
+        version: 27.0.0
+      '@types/node':
+        specifier: ^25.2.3
+        version: 25.2.3
+      '@types/uuid':
+        specifier: ^11.0.0
+        version: 11.0.0
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   plugins/image:
     dependencies:
       '@echos/core':
@@ -406,7 +440,7 @@ importers:
         specifier: ^7.0.6
         version: 7.0.6
       openai:
-        specifier: ^4.77.3
+        specifier: ^4.104.0
         version: 4.104.0(ws@8.19.0)(zod@4.3.6)
       pino:
         specifier: ^10.3.1

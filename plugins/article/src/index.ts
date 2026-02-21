@@ -9,7 +9,7 @@ const articlePlugin: EchosPlugin = {
   version: '0.1.0',
 
   setup(context: PluginContext) {
-    return [createSaveArticleTool(context)];
+    return { tools: [createSaveArticleTool(context)] };
   },
 };
 

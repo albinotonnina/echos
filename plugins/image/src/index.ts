@@ -9,7 +9,7 @@ const imagePlugin: EchosPlugin = {
   version: '0.1.0',
 
   setup(context: PluginContext) {
-    return [createSaveImageTool(context)];
+    return { tools: [createSaveImageTool(context)] };
   },
 };
 

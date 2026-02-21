@@ -6,15 +6,14 @@ export interface QueueConfig {
   logger: Logger;
 }
 
-export type JobType = 'process_article' | 'process_youtube' | 'digest' | 'newsletter' | 'trending' | 'reminder_check';
-
 export interface JobData {
-  type: JobType;
+  type: string;
   url?: string;
   userId?: number;
   chatId?: number;
   tags?: string[];
   category?: string;
+  config?: Record<string, unknown>;
 }
 
 export interface QueueService {

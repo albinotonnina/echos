@@ -68,9 +68,10 @@ export function registerChatRoutes(
     });
 
     const now = new Date();
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     try {
       await agent.prompt([
-        createContextMessage(`Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: 'UTC' })} UTC)`),
+        createContextMessage(`Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: tz })} ${tz})`),
         createUserMessage(message),
       ]);
     } finally {

@@ -5,7 +5,7 @@ const commaSeparatedNumbers = z
   .transform((s) => s.split(',').map((id) => parseInt(id.trim(), 10)))
   .pipe(z.array(z.number().int().positive()));
 
-const optionalCron = z.string().optional().default('');
+
 
 export const configSchema = z.object({
   // Required
@@ -64,12 +64,6 @@ export const configSchema = z.object({
     .string()
     .default('false')
     .transform((s) => s === 'true'),
-
-  // Schedules
-  digestSchedule: optionalCron,
-  newsletterSchedule: optionalCron,
-  trendingSchedule: optionalCron,
-  reminderCheckSchedule: optionalCron,
 });
 
 export type Config = z.infer<typeof configSchema>;
@@ -102,10 +96,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     modelDeep: env['MODEL_DEEP'],
     thinkingLevel: env['THINKING_LEVEL'],
     logLlmPayloads: env['LOG_LLM_PAYLOADS'],
-    digestSchedule: env['DIGEST_SCHEDULE'],
-    newsletterSchedule: env['NEWSLETTER_SCHEDULE'],
-    trendingSchedule: env['TRENDING_SCHEDULE'],
-    reminderCheckSchedule: env['REMINDER_CHECK_SCHEDULE'],
   });
 
   if (!result.success) {

@@ -1,6 +1,6 @@
 import type { AgentTool } from '@mariozechner/pi-agent-core';
 import type { Logger } from 'pino';
-import type { EchosPlugin, PluginContext } from './types.js';
+import type { EchosPlugin, PluginContext, ScheduledJob } from './types.js';
 
 /**
  * Manages plugin lifecycle: registration, setup, teardown.
@@ -9,6 +9,7 @@ export class PluginRegistry {
   private readonly plugins: Map<string, EchosPlugin> = new Map();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly tools: AgentTool<any>[] = [];
+  private readonly jobs: Map<string, ScheduledJob> = new Map();
   private readonly logger: Logger;
   private initialized = false;
 
@@ -33,7 +34,7 @@ export class PluginRegistry {
   }
 
   /**
-   * Initialize all registered plugins and collect their tools.
+   * Initialize all registered plugins and collect their tools and jobs.
    */
   async setupAll(context: PluginContext): Promise<void> {
     if (this.initialized) {
@@ -42,10 +43,22 @@ export class PluginRegistry {
 
     for (const [name, plugin] of this.plugins) {
       try {
-        const pluginTools = await plugin.setup(context);
-        this.tools.push(...pluginTools);
+        const result = await plugin.setup(context);
+        this.tools.push(...result.tools);
+
+        if (result.jobs) {
+          for (const job of result.jobs) {
+            if (this.jobs.has(job.type)) {
+              throw new Error(
+                `Plugin "${name}" registers job type "${job.type}" which is already registered`,
+              );
+            }
+            this.jobs.set(job.type, job);
+          }
+        }
+
         this.logger.info(
-          { plugin: name, toolCount: pluginTools.length },
+          { plugin: name, toolCount: result.tools.length, jobCount: result.jobs?.length ?? 0 },
           'Plugin initialized',
         );
       } catch (error) {
@@ -56,7 +69,7 @@ export class PluginRegistry {
 
     this.initialized = true;
     this.logger.info(
-      { pluginCount: this.plugins.size, totalTools: this.tools.length },
+      { pluginCount: this.plugins.size, totalTools: this.tools.length, totalJobs: this.jobs.size },
       'All plugins initialized',
     );
   }
@@ -67,6 +80,13 @@ export class PluginRegistry {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getTools(): AgentTool<any>[] {
     return [...this.tools];
+  }
+
+  /**
+   * Get all scheduled jobs registered by plugins, keyed by job type.
+   */
+  getJobs(): Map<string, ScheduledJob> {
+    return new Map(this.jobs);
   }
 
   /**
@@ -88,6 +108,7 @@ export class PluginRegistry {
 
     this.plugins.clear();
     this.tools.length = 0;
+    this.jobs.clear();
     this.initialized = false;
   }
 }

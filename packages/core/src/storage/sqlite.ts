@@ -6,6 +6,7 @@ import type {
   NoteMetadata,
   ReminderEntry,
   MemoryEntry,
+  ScheduleEntry,
 } from '@echos/shared';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -24,6 +25,11 @@ export interface SqliteStorage {
   upsertReminder(reminder: ReminderEntry): void;
   getReminder(id: string): ReminderEntry | undefined;
   listReminders(completed?: boolean): ReminderEntry[];
+  // Schedules
+  upsertSchedule(schedule: ScheduleEntry): void;
+  getSchedule(id: string): ScheduleEntry | undefined;
+  listSchedules(enabledOnly?: boolean): ScheduleEntry[];
+  deleteSchedule(id: string): boolean;
   // Memory
   upsertMemory(entry: MemoryEntry): void;
   getMemory(id: string): MemoryEntry | undefined;
@@ -159,6 +165,17 @@ const SCHEMA = `
     value TEXT NOT NULL,
     updated TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS job_schedules (
+    id TEXT PRIMARY KEY,
+    job_type TEXT NOT NULL,
+    cron TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    description TEXT NOT NULL DEFAULT '',
+    config TEXT NOT NULL DEFAULT '{}',
+    created TEXT NOT NULL,
+    updated TEXT NOT NULL
+  );
 `;
 
 function rowToReminder(row: Record<string, unknown>): ReminderEntry {
@@ -190,6 +207,19 @@ function rowToMemory(row: Record<string, unknown>): MemoryEntry {
   };
 }
 
+function rowToScheduleEntry(row: Record<string, unknown>): ScheduleEntry {
+  return {
+    id: row['id'] as string,
+    jobType: row['job_type'] as string,
+    cron: row['cron'] as string,
+    enabled: row['enabled'] === 1,
+    description: row['description'] as string,
+    config: JSON.parse(row['config'] as string) as Record<string, unknown>,
+    created: row['created'] as string,
+    updated: row['updated'] as string,
+  };
+}
+
 export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStorage {
   mkdirSync(dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -203,6 +233,22 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
     db.exec(`CREATE TABLE IF NOT EXISTS user_preferences (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,
+      updated TEXT NOT NULL
+    )`);
+  } catch {
+    // Table already exists — that's fine
+  }
+
+  // Migration: add job_schedules table for existing databases
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS job_schedules (
+      id TEXT PRIMARY KEY,
+      job_type TEXT NOT NULL,
+      cron TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      description TEXT NOT NULL DEFAULT '',
+      config TEXT NOT NULL DEFAULT '{}',
+      created TEXT NOT NULL,
       updated TEXT NOT NULL
     )`);
   } catch {
@@ -296,6 +342,16 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
     getReminder: db.prepare('SELECT * FROM reminders WHERE id = ?'),
     listReminders: db.prepare('SELECT * FROM reminders WHERE completed = ? ORDER BY due_date ASC'),
     listAllReminders: db.prepare('SELECT * FROM reminders ORDER BY due_date ASC'),
+    upsertSchedule: db.prepare(`
+      INSERT INTO job_schedules (id, job_type, cron, enabled, description, config, created, updated)
+      VALUES (@id, @jobType, @cron, @enabled, @description, @config, @created, @updated)
+      ON CONFLICT(id) DO UPDATE SET
+        job_type=@jobType, cron=@cron, enabled=@enabled, description=@description, config=@config, updated=@updated
+    `),
+    getSchedule: db.prepare('SELECT * FROM job_schedules WHERE id = ?'),
+    listSchedules: db.prepare('SELECT * FROM job_schedules WHERE enabled = ? ORDER BY id ASC'),
+    listAllSchedules: db.prepare('SELECT * FROM job_schedules ORDER BY id ASC'),
+    deleteSchedule: db.prepare('DELETE FROM job_schedules WHERE id = ?'),
     upsertMemory: db.prepare(`
       INSERT INTO memory (id, kind, subject, content, confidence, source, created, updated)
       VALUES (@id, @kind, @subject, @content, @confidence, @source, @created, @updated)
@@ -439,6 +495,38 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
           ? (stmts.listAllReminders.all() as Record<string, unknown>[])
           : (stmts.listReminders.all(completed ? 1 : 0) as Record<string, unknown>[]);
       return rows.map(rowToReminder);
+    },
+
+    upsertSchedule(schedule: ScheduleEntry): void {
+      stmts.upsertSchedule.run({
+        id: schedule.id,
+        jobType: schedule.jobType,
+        cron: schedule.cron,
+        enabled: schedule.enabled ? 1 : 0,
+        description: schedule.description,
+        config: JSON.stringify(schedule.config),
+        created: schedule.created,
+        updated: schedule.updated,
+      });
+    },
+
+    getSchedule(id: string): ScheduleEntry | undefined {
+      const row = stmts.getSchedule.get(id) as Record<string, unknown> | undefined;
+      if (!row) return undefined;
+      return rowToScheduleEntry(row);
+    },
+
+    listSchedules(enabledOnly?: boolean): ScheduleEntry[] {
+      const rows =
+        enabledOnly === undefined
+          ? (stmts.listAllSchedules.all() as Record<string, unknown>[])
+          : (stmts.listSchedules.all(enabledOnly ? 1 : 0) as Record<string, unknown>[]);
+      return rows.map(rowToScheduleEntry);
+    },
+
+    deleteSchedule(id: string): boolean {
+      const info = stmts.deleteSchedule.run(id);
+      return info.changes > 0;
     },
 
     upsertMemory(entry: MemoryEntry): void {

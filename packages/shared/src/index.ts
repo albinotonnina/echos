@@ -20,6 +20,7 @@ export type {
   SearchOptions,
   MemoryEntry,
   ReminderEntry,
+  ScheduleEntry,
   ProcessedContent,
   InterfaceAdapter,
   NotificationService,
