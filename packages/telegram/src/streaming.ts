@@ -94,8 +94,11 @@ export function markdownToHtml(text: string): string {
     .replace(/_([^_\n]+)_/g, '<i>$1</i>')
     // Strikethrough
     .replace(/~~(.+?)~~/gs, '<s>$1</s>')
-    // Links — keep label, drop URL (Telegram validates hrefs strictly)
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Links → Telegram-safe anchor tags (only http/https to prevent javascript: injection)
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label: string, url: string) => {
+      const decodedUrl = url.replace(/&amp;/g, '&');
+      return /^https?:\/\//i.test(decodedUrl) ? `<a href="${url}">${label}</a>` : label;
+    })
     // Horizontal rules — remove
     .replace(/^---+$/gm, '');
 
