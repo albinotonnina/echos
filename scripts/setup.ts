@@ -71,8 +71,8 @@ function checkPnpm(): PrereqResult {
   try {
     const out = execSync('pnpm --version', { stdio: 'pipe' }).toString().trim();
     const major = parseInt(out.split('.')[0]!, 10);
-    if (major < 9) {
-      return { ok: false, message: `pnpm ${out} detected — requires 9+`, fatal: true };
+    if (major < 10) {
+      return { ok: false, message: `pnpm ${out} detected — requires 10+`, fatal: true };
     }
     return { ok: true, message: `pnpm ${out}`, fatal: false };
   } catch {
@@ -435,9 +435,9 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
   clack.log.step('Additional Interfaces');
   clack.log.warn(
     pc.yellow('Web UI is') +
-      pc.bold(pc.yellow(' experimental')) +
-      pc.yellow(' and disabled by default.\n') +
-      pc.dim('  Telegram is the recommended interface. Use `pnpm echos` for CLI/terminal access.'),
+    pc.bold(pc.yellow(' experimental')) +
+    pc.yellow(' and disabled by default.\n') +
+    pc.dim('  Telegram is the recommended interface. Use `pnpm echos` for CLI/terminal access.'),
   );
 
   const interfaceChoices = await clack.multiselect<string, string>({
@@ -462,10 +462,10 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
   if (enableWeb) {
     clack.log.info(
       pc.dim('Web API key (') +
-        pc.bold('keep this secret') +
-        pc.dim(', stored in .env):') +
-        '\n  ' +
-        pc.cyan(webApiKey),
+      pc.bold('keep this secret') +
+      pc.dim(', stored in .env):') +
+      '\n  ' +
+      pc.cyan(webApiKey),
     );
   }
 
@@ -503,15 +503,15 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
   if (enableScheduler) {
     clack.log.info(
       pc.dim('Redis install commands (if not already running):') +
-        '\n  ' +
-        pc.cyan('macOS :') +
-        '  brew install redis && brew services start redis' +
-        '\n  ' +
-        pc.cyan('Ubuntu:') +
-        '  sudo apt install redis-server && sudo systemctl enable --now redis' +
-        '\n  ' +
-        pc.cyan('Docker:') +
-        '  docker run -d -p 6379:6379 --name redis redis:7-alpine',
+      '\n  ' +
+      pc.cyan('macOS :') +
+      '  brew install redis && brew services start redis' +
+      '\n  ' +
+      pc.cyan('Ubuntu:') +
+      '  sudo apt install redis-server && sudo systemctl enable --now redis' +
+      '\n  ' +
+      pc.cyan('Docker:') +
+      '  docker run -d -p 6379:6379 --name redis redis:7-alpine',
     );
     const redisRaw = await clack.text({
       message: 'Redis URL',
@@ -825,12 +825,12 @@ async function main(): Promise<void> {
 
     clack.outro(
       pc.green('Setup complete!') +
-        '\n\n' +
-        '  Next steps:\n' +
-        pc.cyan('    pnpm start') +
-        '                  — start EchOS\n' +
-        pc.cyan('    pnpm start | pnpm exec pino-pretty') +
-        '  — start with pretty logs\n',
+      '\n\n' +
+      '  Next steps:\n' +
+      pc.cyan('    pnpm start') +
+      '                  — start EchOS\n' +
+      pc.cyan('    pnpm start | pnpm exec pino-pretty') +
+      '  — start with pretty logs\n',
     );
   }
 }
