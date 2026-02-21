@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { AgentDeps } from '@echos/core';
 import type { Logger } from 'pino';
 import type { ScheduleEntry } from '@echos/shared';
+import { RESERVED_SCHEDULE_IDS } from '@echos/shared';
 import { randomUUID } from 'node:crypto';
 
 export function registerScheduleRoutes(
@@ -45,6 +46,10 @@ export function registerScheduleRoutes(
       let existingId = body.id;
       if (!existingId) existingId = randomUUID();
 
+      if (RESERVED_SCHEDULE_IDS.has(existingId)) {
+        return reply.status(400).send({ error: `Schedule ID "${existingId}" is reserved for system use` });
+      }
+
       const now = new Date().toISOString();
       const existing = agentDeps.sqlite.getSchedule(existingId);
 
@@ -74,6 +79,9 @@ export function registerScheduleRoutes(
   app.delete('/api/schedules/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     try {
+      if (RESERVED_SCHEDULE_IDS.has(id)) {
+        return reply.status(400).send({ error: `Schedule ID "${id}" is reserved for system use and cannot be deleted` });
+      }
       let deleted = false;
       if (deleteSchedule) {
         deleted = await deleteSchedule(id);
