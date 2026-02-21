@@ -196,7 +196,7 @@ export async function streamAgentResponse(
       const ame = event.assistantMessageEvent;
       if (ame.type === 'text_delta') {
         if (toolExecuted && textBuffer.length > 0) {
-          textBuffer = textBuffer.trimEnd() + '\n\n';
+          textBuffer = '';
           toolExecuted = false;
         }
         textBuffer += ame.delta;
