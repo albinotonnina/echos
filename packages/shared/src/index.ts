@@ -34,3 +34,4 @@ export {
   createRateLimiter,
   type RateLimiter,
 } from './security/index.js';
+export { isValidCron, isValidCronField } from './cron.js';

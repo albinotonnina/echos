@@ -3,7 +3,7 @@ import type { AgentTool } from '@mariozechner/pi-agent-core';
 import type { ScheduleManager } from '../scheduler.js';
 import type { SqliteStorage } from '@echos/core';
 import type { ScheduleEntry } from '@echos/shared';
-import { RESERVED_SCHEDULE_IDS } from '@echos/shared';
+import { RESERVED_SCHEDULE_IDS, isValidCron } from '@echos/shared';
 import { randomUUID } from 'node:crypto';
 
 export interface ManageScheduleToolDeps {
@@ -80,6 +80,11 @@ export function createManageScheduleTool(deps: ManageScheduleToolDeps) {
       if (action === 'upsert') {
         if (!jobType || !cron)
           return formatResponse('Error: jobType and cron are required for upsert.');
+
+        if (!isValidCron(cron))
+          return formatResponse(
+            `Error: Invalid cron expression: "${cron}". Expected 5-field format: minute hour day-of-month month day-of-week (e.g. "0 8 * * *")`,
+          );
 
         let existingId = id;
         if (!existingId) {
