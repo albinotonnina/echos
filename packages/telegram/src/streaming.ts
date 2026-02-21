@@ -97,7 +97,11 @@ export function markdownToHtml(text: string): string {
     // Links → Telegram-safe anchor tags (only http/https to prevent javascript: injection)
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label: string, url: string) => {
       const decodedUrl = url.replace(/&amp;/g, '&');
-      return /^https?:\/\//i.test(decodedUrl) ? `<a href="${url}">${label}</a>` : label;
+      if (!/^https?:\/\//i.test(decodedUrl)) {
+        return label;
+      }
+      const safeHref = url.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      return `<a href="${safeHref}">${label}</a>`;
     })
     // Horizontal rules — remove
     .replace(/^---+$/gm, '');
