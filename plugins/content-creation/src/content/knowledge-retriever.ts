@@ -103,7 +103,6 @@ export async function retrieveRelevantKnowledge(
       let excerpt: string | undefined = undefined;
       if (fullContent.length > 1000) {
         // Try to find the most relevant excerpt by looking for topic keywords
-        const lowerContent = fullContent.toLowerCase();
         const lowerTopic = topic.toLowerCase();
         const topicWords = lowerTopic.split(/\s+/).filter((w) => w.length > 3);
 

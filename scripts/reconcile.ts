@@ -19,6 +19,7 @@ import {
   createMarkdownStorage,
   createVectorStorage,
   reconcileStorage,
+  createEmbeddingFn,
 } from '@echos/core';
 
 const logger = createLogger('reconcile');
@@ -26,15 +27,23 @@ const logger = createLogger('reconcile');
 async function main(): Promise<void> {
   const config = loadConfig();
 
-  logger.info({ knowledgeDir: config.knowledgeDir, dbPath: config.dbPath }, 'Initializing storage...');
+  logger.info(
+    { knowledgeDir: config.knowledgeDir, dbPath: config.dbPath },
+    'Initializing storage...',
+  );
 
   const sqlite = createSqliteStorage(join(config.dbPath, 'echos.db'), logger);
   const markdown = createMarkdownStorage(config.knowledgeDir, logger);
-  const vectorDb = await createVectorStorage(join(config.dbPath, 'vectors'), logger);
+  const vectorDb = await createVectorStorage(join(config.dbPath, 'vectors'), logger, {
+    dimensions: config.embeddingDimensions,
+  });
 
-  // Embeddings are not generated in the standalone reconciler — SQLite/FTS5 is still fully indexed.
-  // Real embeddings (for semantic search) are generated when content is saved or updated via the agent.
-  const generateEmbedding = async (_text: string): Promise<number[]> => new Array(1536).fill(0);
+  const generateEmbedding = createEmbeddingFn({
+    openaiApiKey: config.openaiApiKey,
+    model: config.embeddingModel,
+    dimensions: config.embeddingDimensions,
+    logger,
+  });
 
   const stats = await reconcileStorage({
     baseDir: config.knowledgeDir,

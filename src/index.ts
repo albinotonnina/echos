@@ -19,6 +19,7 @@ import {
   createSearchService,
   reconcileStorage,
   createFileWatcher,
+  createEmbeddingFn,
   PluginRegistry,
   type AgentDeps,
   type FileWatcher,
@@ -51,13 +52,17 @@ async function main(): Promise<void> {
   // Initialize storage
   const sqlite = createSqliteStorage(join(config.dbPath, 'echos.db'), logger);
   const markdown = createMarkdownStorage(config.knowledgeDir, logger);
-  const vectorDb = await createVectorStorage(join(config.dbPath, 'vectors'), logger);
+  const vectorDb = await createVectorStorage(join(config.dbPath, 'vectors'), logger, {
+    dimensions: config.embeddingDimensions,
+  });
   const search = createSearchService(sqlite, vectorDb, markdown, logger);
 
-  // Stub embedding (real implementation requires OpenAI key)
-  const generateEmbedding = async (_text: string): Promise<number[]> => {
-    return new Array(1536).fill(0);
-  };
+  const generateEmbedding = createEmbeddingFn({
+    openaiApiKey: config.openaiApiKey,
+    model: config.embeddingModel,
+    dimensions: config.embeddingDimensions,
+    logger,
+  });
 
   // Reconcile markdown files with SQLite and LanceDB on startup
   await reconcileStorage({

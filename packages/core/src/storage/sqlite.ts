@@ -400,10 +400,18 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
 
     searchFts(query: string, opts: FtsOptions = {}): NoteRow[] {
       const limit = opts.limit ?? 20;
+      // Sanitize for FTS5: strip special syntax characters and quote each term
+      const sanitized = query
+        .replace(/[""*(){}[\]:^~!@#$%&\\|/<>]/g, ' ')
+        .split(/\s+/)
+        .filter((w) => w.length > 0)
+        .map((w) => `"${w.replace(/"/g, '')}"`)
+        .join(' ');
+      if (!sanitized) return [];
       if (opts.type) {
-        return stmts.searchFtsWithType.all(query, opts.type, limit) as NoteRow[];
+        return stmts.searchFtsWithType.all(sanitized, opts.type, limit) as NoteRow[];
       }
-      return stmts.searchFts.all(query, limit) as NoteRow[];
+      return stmts.searchFts.all(sanitized, limit) as NoteRow[];
     },
 
     upsertReminder(reminder: ReminderEntry): void {
