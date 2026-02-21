@@ -48,16 +48,24 @@ export function registerChatRoutes(
     let responseText = '';
     let lastAssistantMessage: AgentMessage | undefined;
     const toolCalls: Array<{ name: string; result: string }> = [];
+    let toolExecuted = false;
 
     const unsubscribe = agent.subscribe((event) => {
       if (event.type === 'message_update' && 'assistantMessageEvent' in event) {
         const ame = event.assistantMessageEvent;
         if (ame.type === 'text_delta') {
+          if (toolExecuted && responseText.length > 0) {
+            responseText = responseText.trimEnd() + '\n\n';
+            toolExecuted = false;
+          }
           responseText += ame.delta;
         }
       }
       if (event.type === 'message_end' && 'message' in event) {
         lastAssistantMessage = event.message;
+      }
+      if (event.type === 'tool_execution_start') {
+        toolExecuted = true;
       }
       if (event.type === 'tool_execution_end') {
         toolCalls.push({
