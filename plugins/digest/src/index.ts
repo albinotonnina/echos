@@ -3,10 +3,36 @@ import { createEchosAgent } from '@echos/core';
 import type { AgentEvent } from '@mariozechner/pi-agent-core';
 import type { Job } from 'bullmq';
 
-const DIGEST_PROMPT = `Generate a daily digest summary for today.
+const DEFAULT_LOOKBACK_DAYS = 1;
+
+function buildDigestPrompt(config?: Record<string, unknown>): string {
+  if (config?.['prompt']) {
+    return String(config['prompt']);
+  }
+
+  const rawLookback = Number(config?.['lookbackDays']);
+  const lookbackDays =
+    config?.['lookbackDays'] != null && Number.isFinite(rawLookback) && rawLookback > 0
+      ? rawLookback
+      : DEFAULT_LOOKBACK_DAYS;
+
+  const categories: string[] =
+    Array.isArray(config?.['categories']) ? (config['categories'] as unknown[]).map(String).filter(Boolean) : [];
+
+  const dateFrom = new Date();
+  dateFrom.setDate(dateFrom.getDate() - lookbackDays);
+  const dateFromStr = dateFrom.toISOString();
+
+  const lookbackLabel = lookbackDays === 1 ? 'last day' : `last ${lookbackDays} days`;
+  const categoriesClause =
+    categories.length > 0
+      ? ` Only include notes tagged with: ${categories.join(', ')}.`
+      : '';
+
+  return `Generate a daily digest summary for today.
 
 Instructions:
-1. Use list_notes to find notes created or updated recently (last 24 hours)
+1. Use list_notes with dateFrom="${dateFromStr}" to find notes created or updated in the ${lookbackLabel}.${categoriesClause}
 2. Use listReminders to check for upcoming or overdue reminders
 3. Compose a concise, well-formatted digest with sections for:
    - New/updated notes summary
@@ -15,6 +41,7 @@ Instructions:
 
 Keep the digest brief and actionable. Use Markdown formatting.
 If there is no recent activity, say so briefly.`;
+}
 
 const plugin: EchosPlugin = {
   name: 'digest',
@@ -47,8 +74,7 @@ const plugin: EchosPlugin = {
             });
 
             try {
-              const customPrompt = config?.['prompt'] ? String(config['prompt']) : DIGEST_PROMPT;
-              await agent.prompt(customPrompt);
+              await agent.prompt(buildDigestPrompt(config));
             } finally {
               unsubscribe();
             }
