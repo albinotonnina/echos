@@ -1,6 +1,6 @@
 {
   "name": "echos",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "private": true,
   "description": "Agent-driven personal knowledge management system",
   "type": "module",
