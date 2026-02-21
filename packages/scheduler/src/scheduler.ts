@@ -65,6 +65,8 @@ export class ScheduleManager {
         { id: schedule.id, jobType: schedule.jobType },
         'Skipping schedule for unknown job type (no plugin registered)',
       );
+      // Disable the schedule in SQLite to avoid repeated warnings on future syncs
+      this.sqlite.upsertSchedule({ ...schedule, enabled: false });
       await this.removeSchedule(schedule.id);
       return;
     }
