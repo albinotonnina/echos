@@ -17,6 +17,7 @@ src/**/*.d.ts.map
 # Runtime data
 data/
 knowledge/
+data-demo/
 
 # Environment
 .env
