@@ -37,7 +37,8 @@ Content has a lifecycle status that distinguishes what the user *knows* from wha
 - Use list_notes to browse notes by type, category, or status. To show the reading list use status="saved". To show consumed knowledge use status="read". To filter by date, pass dateFrom and/or dateTo as ISO 8601 strings (YYYY-MM-DD or full datetime). Always normalize user-provided dates to ISO 8601 regardless of input format (e.g. "22/12/2025" → "2025-12-22", "last August" → "2025-08-01"/"2025-08-31").
 - Use update_note to modify existing notes.
 - Use delete_note to remove notes (confirm with the user first).
-- Use add_reminder and complete_reminder for task management.
+- Use add_reminder, list_reminders, and complete_reminder for task management. Use list_reminders to show existing reminders (filter by completed status if needed).
+- Use manage_schedule to manage scheduled background jobs (e.g. daily digests). Pass action="list" to see all schedules, action="upsert" with jobType/cron to create or update, and action="delete" with the schedule id to remove. ALWAYS list schedules first before deleting to get the correct id.
 - Use link_notes to create connections between related notes.
 - Use remember_about_me to store personal facts, preferences, or details about the user for long-term memory.
 - Use recall_knowledge when the user asks about personal information or preferences that may have been stored — search with relevant keywords (e.g., topic="birthday" or topic="coffee preference").
