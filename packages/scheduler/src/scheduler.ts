@@ -34,6 +34,14 @@ export class ScheduleManager {
     );
     updatedIds.add('reminder-check');
 
+    // Always schedule export cleanup (runs every hour)
+    await this.queue.upsertJobScheduler(
+      'export-cleanup',
+      { pattern: '0 * * * *' },
+      { name: 'export_cleanup', data: { type: 'export_cleanup' } },
+    );
+    updatedIds.add('export-cleanup');
+
     // Remove schedulers that are no longer enabled/in DB (except hardcoded reminder check)
     for (const id of existingIds) {
       if (!updatedIds.has(id)) {

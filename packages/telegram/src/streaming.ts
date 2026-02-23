@@ -1,6 +1,8 @@
+import { readFile, unlink } from 'node:fs/promises';
 import type { Context } from 'grammy';
+import { InputFile } from 'grammy';
 import type { Agent, AgentEvent, AgentMessage } from '@mariozechner/pi-agent-core';
-import { isAgentMessageOverflow, createContextMessage, createUserMessage } from '@echos/core';
+import { isAgentMessageOverflow, createContextMessage, createUserMessage, type ExportFileResult } from '@echos/core';
 
 const EDIT_DEBOUNCE_MS = 1000;
 const MAX_MESSAGE_LENGTH = 4096;
@@ -28,6 +30,7 @@ const TOOL_EMOJI_MAP: Record<string, string> = {
   analyze_my_style: '🎨',
   mark_as_voice_example: '🎙️',
   set_agent_voice: '🎭',
+  export_notes: '📦',
 };
 
 // Append a zero-width space so Telegram doesn't render the emoji at giant size
@@ -138,6 +141,7 @@ export async function streamAgentResponse(
   let lastAssistantMessage: AgentMessage | undefined;
 
   let toolExecuted = false;
+  const pendingExports: ExportFileResult[] = [];
 
   /**
    * Send an edit with the current content.
@@ -223,6 +227,22 @@ export async function streamAgentResponse(
       // Only push the status update when no AI text has arrived yet
       if (!textBuffer && messageId) void updateMessage();
     }
+
+    if (event.type === 'tool_execution_end' && !event.isError && event.toolName === 'export_notes') {
+      try {
+        const resultContent = (event.result as { content?: Array<{ type: string; text?: string }> } | undefined)
+          ?.content;
+        const textContent = resultContent?.find((c) => c.type === 'text');
+        if (textContent?.text) {
+          const parsed = JSON.parse(textContent.text) as ExportFileResult;
+          if (parsed.type === 'export_file') {
+            pendingExports.push(parsed);
+          }
+        }
+      } catch {
+        // ignore parse errors — agent will describe the failure in text
+      }
+    }
   });
 
   // Send initial status message
@@ -262,6 +282,22 @@ export async function streamAgentResponse(
     await updateMessage(fallbackText || 'Done.');
   } else {
     await updateMessage('Done.');
+  }
+
+  // Deliver any exported files
+  for (const exportResult of pendingExports) {
+    try {
+      if (exportResult.inline !== undefined) {
+        const buf = Buffer.from(exportResult.inline, 'utf8');
+        await ctx.replyWithDocument(new InputFile(buf, exportResult.fileName));
+      } else if (exportResult.filePath) {
+        const buf = await readFile(exportResult.filePath);
+        await ctx.replyWithDocument(new InputFile(buf, exportResult.fileName));
+        await unlink(exportResult.filePath).catch(() => undefined);
+      }
+    } catch {
+      // Non-fatal: agent already described the export in text
+    }
   }
 
   // React to the original user message to signal completion

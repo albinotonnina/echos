@@ -14,7 +14,9 @@ import { createInterface } from 'node:readline';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { writeFile, copyFile } from 'node:fs/promises';
 import { createLogger } from '@echos/shared';
+import type { ExportFileResult } from '@echos/core';
 import {
   createEchosAgent,
   createContextMessage,
@@ -71,8 +73,25 @@ async function runCli(): Promise<void> {
   const useColors = isTTY && process.stdout.hasColors();
   const dim = (s: string): string => (useColors ? `\x1b[2m${s}\x1b[0m` : s);
 
+  // ── Argument parsing (--output / -o) ──────────────────────────────────────
+
+  const rawArgs = process.argv.slice(2);
+  let outputPath: string | undefined;
+  const promptArgs: string[] = [];
+  for (let i = 0; i < rawArgs.length; i++) {
+    const arg = rawArgs[i]!;
+    if ((arg === '--output' || arg === '-o') && i + 1 < rawArgs.length) {
+      outputPath = rawArgs[i + 1];
+      i++;
+    } else {
+      promptArgs.push(arg);
+    }
+  }
+
   let cancelled = false;
   let inFlight = false;
+
+  const pendingExports: ExportFileResult[] = [];
 
   const unsubscribe = agent.subscribe((event) => {
     if (cancelled) return;
@@ -88,7 +107,45 @@ async function runCli(): Promise<void> {
     if (event.type === 'agent_end') {
       process.stdout.write(isTTY ? '\n' + '─'.repeat(40) + '\n' : '\n');
     }
+    if (event.type === 'tool_execution_end' && !event.isError && event.toolName === 'export_notes') {
+      try {
+        const resultContent = (
+          event.result as { content?: Array<{ type: string; text?: string }> } | undefined
+        )?.content;
+        const textContent = resultContent?.find((c) => c.type === 'text');
+        if (textContent?.text) {
+          const parsed = JSON.parse(textContent.text) as ExportFileResult;
+          if (parsed.type === 'export_file') {
+            pendingExports.push(parsed);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
   });
+
+  const processPendingExports = async (): Promise<void> => {
+    for (const exportResult of pendingExports) {
+      try {
+        if (exportResult.inline !== undefined) {
+          if (outputPath) {
+            await writeFile(outputPath, exportResult.inline, 'utf8');
+            process.stderr.write(`Exported to: ${outputPath}\n`);
+          } else {
+            process.stdout.write(exportResult.inline);
+          }
+        } else if (exportResult.filePath) {
+          const dest = outputPath ?? join(process.cwd(), exportResult.fileName);
+          await copyFile(exportResult.filePath, dest);
+          process.stderr.write(`Exported to: ${dest}\n`);
+        }
+      } catch (err: unknown) {
+        process.stderr.write(`Export delivery failed: ${String(err)}\n`);
+      }
+    }
+    pendingExports.length = 0;
+  };
 
   const cleanup = (): void => {
     unsubscribe();
@@ -101,6 +158,7 @@ async function runCli(): Promise<void> {
     inFlight = true;
     try {
       await agent.prompt([makeContextMessage(), createUserMessage(text)]);
+      await processPendingExports();
     } finally {
       inFlight = false;
     }
@@ -108,7 +166,7 @@ async function runCli(): Promise<void> {
 
   // ── Mode detection ────────────────────────────────────────────────────────
 
-  const argInput = process.argv.slice(2).join(' ').trim();
+  const argInput = promptArgs.join(' ').trim();
   const hasPipedInput = !process.stdin.isTTY;
 
   // ── One-shot mode ─────────────────────────────────────────────────────────

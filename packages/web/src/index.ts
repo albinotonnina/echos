@@ -5,6 +5,7 @@ import type { Config, InterfaceAdapter } from '@echos/shared';
 import type { AgentDeps } from '@echos/core';
 import { registerChatRoutes } from './api/chat.js';
 import { registerScheduleRoutes } from './api/schedules.js';
+import { registerExportRoutes } from './api/export.js';
 
 export interface WebAdapterOptions {
   config: Config;
@@ -12,10 +13,12 @@ export interface WebAdapterOptions {
   syncSchedule?: (id: string) => Promise<void>;
   deleteSchedule?: (id: string) => Promise<boolean>;
   logger: Logger;
+  /** Directory where export files are written (default: ./data/exports) */
+  exportsDir?: string;
 }
 
 export function createWebAdapter(options: WebAdapterOptions): InterfaceAdapter {
-  const { config, agentDeps, syncSchedule, deleteSchedule, logger } = options;
+  const { config, agentDeps, syncSchedule, deleteSchedule, logger, exportsDir = './data/exports' } = options;
 
   const app = Fastify({ logger: false });
 
@@ -59,6 +62,9 @@ export function createWebAdapter(options: WebAdapterOptions): InterfaceAdapter {
 
       // Schedules API
       registerScheduleRoutes(app, agentDeps, logger, syncSchedule, deleteSchedule);
+
+      // Export file download (auth enforced by global preHandler hook)
+      registerExportRoutes(app, exportsDir);
 
       await app.listen({ port: config.webPort, host: '127.0.0.1' });
       logger.info({ port: config.webPort }, 'Web server started (localhost only)');
