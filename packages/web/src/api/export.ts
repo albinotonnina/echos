@@ -32,21 +32,15 @@ export function registerExportRoutes(app: FastifyInstance, exportsDir: string): 
         return reply.status(400).send({ error: 'Invalid file name' });
       }
 
+      // Resolve both paths and confirm the file stays inside exportsDir.
+      // SAFE_FILENAME_RE already prevents traversal chars; this is defence-in-depth.
       const resolvedExportsDir = resolve(exportsDir);
       const filePath = resolve(resolvedExportsDir, fileName);
-      if (!filePath.startsWith(resolvedExportsDir + '/')) {
-        return reply.status(400).send({ error: 'Invalid file path' });
-      }
-
-      // Defence-in-depth: ensure the resolved path stays inside exportsDir
-      // even though SAFE_FILENAME_RE already prevents traversal characters.
-      const resolvedFile = resolve(filePath);
-      const resolvedDir = resolve(exportsDir);
-      if (!resolvedFile.startsWith(resolvedDir + sep)) {
+      if (!filePath.startsWith(resolvedExportsDir + sep)) {
         return reply.status(400).send({ error: 'Invalid file name' });
       }
 
-      if (!existsSync(resolvedFile)) {
+      if (!existsSync(filePath)) {
         return reply.status(404).send({ error: 'Export file not found or already cleaned up' });
       }
 
@@ -66,7 +60,7 @@ export function registerExportRoutes(app: FastifyInstance, exportsDir: string): 
         'Content-Disposition',
         `attachment; filename="${fileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
       );
-      return reply.send(createReadStream(resolvedFile));
+      return reply.send(createReadStream(filePath));
     },
   );
 }
