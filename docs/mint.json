@@ -1,0 +1,58 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "EchOS",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#0D9373",
+    "light": "#07C983",
+    "dark": "#0D9373"
+  },
+  "topbarLinks": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/albinotonnina/echos"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": ["DEPLOYMENT", "SETUP_FIXES"]
+    },
+    {
+      "group": "Architecture",
+      "pages": ["ARCHITECTURE", "INTERFACES", "PLUGINS"]
+    },
+    {
+      "group": "Features",
+      "pages": [
+        "CATEGORIZATION",
+        "KNOWLEDGE_IMPORT",
+        "SLASH_COMMANDS",
+        "WRITING",
+        "SCHEDULER",
+        "IMAGES"
+      ]
+    },
+    {
+      "group": "Operations",
+      "pages": [
+        "REMOTE_ACCESS",
+        "ORACLE_CLOUD_VAULT",
+        "RELEASING",
+        "DISTRIBUTION"
+      ]
+    },
+    {
+      "group": "Security",
+      "pages": ["SECURITY"]
+    },
+    {
+      "group": "Help",
+      "pages": ["TROUBLESHOOTING"]
+    }
+  ]
+}
