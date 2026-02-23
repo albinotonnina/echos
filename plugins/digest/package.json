@@ -14,11 +14,11 @@
   "dependencies": {
     "@echos/core": "workspace:*",
     "@echos/shared": "workspace:*",
-    "@mariozechner/pi-agent-core": "^0.53.0",
-    "bullmq": "^5.69.3"
+    "@mariozechner/pi-agent-core": "^0.54.2",
+    "bullmq": "^5.70.1"
   },
   "devDependencies": {
-    "@types/node": "^25.2.3",
+    "@types/node": "^25.3.0",
     "typescript": "^5.7.0"
   }
 }
