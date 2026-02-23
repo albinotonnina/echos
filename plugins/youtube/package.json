@@ -15,8 +15,8 @@
     "@distube/ytdl-core": "^4.16.12",
     "@echos/core": "workspace:*",
     "@echos/shared": "workspace:*",
-    "@mariozechner/pi-agent-core": "^0.53.0",
-    "@mariozechner/pi-ai": "^0.53.0",
+    "@mariozechner/pi-agent-core": "^0.54.2",
+    "@mariozechner/pi-ai": "^0.54.2",
     "@sinclair/typebox": "^0.34.48",
     "https-proxy-agent": "^7.0.6",
     "openai": "^4.104.0",
@@ -24,7 +24,7 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "@types/node": "^25.2.3",
+    "@types/node": "^25.3.0",
     "@types/uuid": "^11.0.0",
     "typescript": "^5.7.0"
   }
