@@ -87,7 +87,7 @@ The export utility provides pure serialization functions for converting notes in
 | Format | Function | Output |
 |--------|----------|--------|
 | `markdown` | `exportToMarkdown(note)` | Full markdown file with YAML frontmatter (reads raw file from disk when available; reconstructs from SQLite otherwise) |
-| `text` | `exportToText(note)` | Markdown body only, no frontmatter |
+| `text` | `exportToText(note)` | Plain text with markdown syntax stripped (headings, bold, links, list markers, etc. removed) |
 | `json` | `exportToJson(notes)` | JSON array of `{ metadata, content }` objects |
 | `zip` | `exportToZip(notes)` | ZIP archive of `.md` files (one per note), deduplicated filenames |
 

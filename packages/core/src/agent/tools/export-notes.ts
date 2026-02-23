@@ -95,7 +95,9 @@ function buildExportableNote(row: NoteRow, markdown: MarkdownStorage): Exportabl
       rawMarkdown = readFileSync(row.filePath, 'utf8');
       content = noteFile.content;
     } catch {
+      // File listed in SQLite but unreadable — reconstruct from row
       rawMarkdown = rowToRawMarkdown(row);
+      content = row.content;
     }
   } else {
     rawMarkdown = rowToRawMarkdown(row);
