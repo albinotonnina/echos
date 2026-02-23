@@ -1,0 +1,453 @@
+---
+title: "Tools Reference"
+description: "Everything EchOS can do — a plain-language guide to every tool available to the agent."
+---
+
+# Tools Reference
+
+EchOS is an agent, not a command-line app. You don't call tools directly — you just talk to it, and it decides which tools to use. This page tells you what's possible so you know what to ask for.
+
+Tools are split into two groups:
+
+- **Core tools** — always available, built into the agent
+- **Plugin tools** — enabled by config, extend the agent with new capabilities
+
+---
+
+## Core tools
+
+### Notes
+
+#### Create a note
+
+**Tool:** `create_note`
+
+Save anything as a note — thoughts, research, meeting notes, journal entries, ideas. Notes are stored as Markdown files with YAML frontmatter, indexed for full-text and semantic search.
+
+```
+Save a note: I want to learn Rust this year, starting with the book.
+Write a journal entry about today's standup.
+Note this down: the API rate limit is 100 req/min per user.
+```
+
+Supports types: `note` (default) and `journal`. You can also provide tags and a category.
+
+---
+
+#### Read a note
+
+**Tool:** `get_note`
+
+Retrieve the full content of a specific note by its ID.
+
+```
+Show me note abc-123.
+What does note xyz-456 say?
+```
+
+---
+
+#### List notes
+
+**Tool:** `list_notes`
+
+Browse your notes — optionally filtered by type, read status, or date range.
+
+```
+List my recent notes.
+Show me all my journal entries from last week.
+What articles have I saved but not read yet?
+List notes from January.
+```
+
+---
+
+#### Update a note
+
+**Tool:** `update_note`
+
+Change the title, content, tags, or category of an existing note.
+
+```
+Update note abc-123 — add the tag "important".
+Change the title of note xyz to "Q1 Planning".
+Append this to note abc-123: [text]
+```
+
+---
+
+#### Delete a note
+
+**Tool:** `delete_note`
+
+Permanently remove a note from storage and all indexes.
+
+```
+Delete note abc-123.
+Remove that note I just saved.
+```
+
+---
+
+#### Search your knowledge
+
+**Tool:** `search_knowledge`
+
+Find notes by meaning, not just exact words. Uses hybrid search (keyword + semantic vector search) by default, so it finds conceptually related content even when the exact phrasing differs.
+
+```
+Find everything I know about distributed systems.
+Search for notes about anxiety.
+What did I save about Rust's ownership model?
+Find articles related to sleep and productivity.
+```
+
+Search modes: `hybrid` (default), `keyword`, or `semantic`.
+
+---
+
+#### Link notes
+
+**Tool:** `link_notes`
+
+Create a bidirectional connection between two notes. Useful for building a knowledge graph.
+
+```
+Link note abc-123 to note xyz-456.
+Connect the "Redis caching" note to the "API design" note.
+```
+
+---
+
+#### Categorize a note
+
+**Tool:** `categorize_note`
+
+Ask the agent to automatically categorize an existing note using AI — assigns a category and tags, and in `full` mode also generates a summary, key points, and a one-line gist.
+
+```
+Categorize note abc-123.
+Auto-tag this note and generate a summary.
+Run full processing on note xyz-456.
+```
+
+Modes: `lightweight` (category + tags only) and `full` (category + tags + summary + gist + key points).
+
+---
+
+#### Mark content status
+
+**Tool:** `mark_content`
+
+Track whether you've read, consumed, or archived a note or saved article.
+
+```
+Mark note abc-123 as read.
+Archive that article — I'm done with it.
+I've read the Redis docs, mark them as read.
+```
+
+Statuses: `saved` (unread, default), `read` (consumed), `archived` (hidden from search).
+
+---
+
+### Reminders
+
+#### Add a reminder
+
+**Tool:** `add_reminder`
+
+Set a reminder with an optional due date and priority. If the scheduler is enabled, EchOS will notify you when it's due.
+
+```
+Remind me to review the PR tomorrow at 10am.
+Add a high-priority reminder: renew SSL cert by March 1st.
+Todo: call the dentist — no rush.
+```
+
+---
+
+#### Complete a reminder
+
+**Tool:** `complete_reminder`
+
+Mark a reminder as done.
+
+```
+Mark reminder abc-123 as done.
+I've completed that dentist reminder.
+```
+
+---
+
+#### List reminders
+
+**Tool:** `list_reminders`
+
+See your pending (or completed) reminders.
+
+```
+What are my open reminders?
+Show me all completed todos.
+What do I have due this week?
+```
+
+---
+
+### Memory
+
+#### Remember something about you
+
+**Tool:** `remember_about_me`
+
+Store a fact, preference, or detail about yourself in long-term memory. EchOS will use this in future conversations without you having to repeat it.
+
+```
+Remember that I prefer TypeScript over JavaScript.
+I'm allergic to peanuts — save that.
+Note that I'm working on a startup in the fintech space.
+I prefer concise responses without bullet points.
+```
+
+Kinds: `fact`, `person`, `project`, `expertise`, `preference`.
+
+---
+
+#### Recall what EchOS knows about you
+
+**Tool:** `recall_knowledge`
+
+Ask EchOS to surface everything it remembers about a topic or about you.
+
+```
+What do you know about my tech preferences?
+Recall everything about my work projects.
+What have I told you about my health?
+```
+
+---
+
+### Conversation
+
+#### Save conversation
+
+**Tool:** `save_conversation`
+
+Save a summary of the current conversation as a note — useful after a productive discussion you want to preserve.
+
+```
+Save this conversation.
+Save a summary of what we discussed about the API design.
+Note down what we figured out today.
+```
+
+---
+
+### Export
+
+#### Export notes or content
+
+**Tool:** `export_notes`
+
+Export stored notes — or any piece of content, including agent responses and analysis results — as a downloadable file. Delivered directly in Telegram (as a document attachment), the CLI (stdout or `--output`), or the Web interface (as a download link).
+
+```
+Export note abc-123 as markdown.
+Export all my notes tagged "recipes" as a zip.
+Export everything I have about Redis as JSON.
+Export that analysis you just did as a text file.
+Export this conversation as a markdown file.
+```
+
+Formats:
+| Format | Extension | Best for |
+|---|---|---|
+| `markdown` | `.md` | Single notes with frontmatter intact |
+| `text` | `.txt` | Plain readable text, markdown syntax stripped |
+| `json` | `.json` | Structured data with metadata |
+| `zip` | `.zip` | Multiple notes bundled together |
+
+You can also export arbitrary content — agent responses, analysis results, or anything from the current conversation — by just asking for it.
+
+---
+
+### Voice & personality
+
+#### Set agent voice
+
+**Tool:** `set_agent_voice`
+
+Change how EchOS talks to you — tone, warmth, verbosity, formality, personality. Takes effect immediately and persists across sessions.
+
+```
+Be more concise.
+Be warmer and more encouraging.
+Use a formal, professional tone.
+Be playful, use light humour.
+Reset your voice to default.
+```
+
+See [Writing & Voice](/WRITING) for the full guide.
+
+---
+
+## Plugin tools
+
+Plugins extend EchOS with additional capabilities. Enable them via config.
+
+---
+
+### Article plugin
+
+#### Save a web article
+
+**Tool:** `save_article`
+
+Fetch any URL, extract the article content (using Mozilla Readability), and save it as a note. Strips ads, navigation, and boilerplate — keeps the actual content.
+
+```
+Save this article: https://example.com/post
+Save and auto-categorize: https://example.com/post
+```
+
+Optional: `autoCategorize` (runs AI categorization on save), `processingMode` (`lightweight` or `full`).
+
+---
+
+### YouTube plugin
+
+#### Save a YouTube video
+
+**Tool:** `save_youtube`
+
+Extract the transcript from a YouTube video and save it as a note. Great for preserving content from talks, tutorials, and interviews.
+
+```
+Save this video: https://youtube.com/watch?v=...
+Save and summarize this talk: https://youtu.be/...
+```
+
+Optional: `autoCategorize`, `processingMode`.
+
+---
+
+### Image plugin
+
+#### Save an image
+
+**Tool:** `save_image`
+
+Save an image to your knowledge base — via URL or by sending the image directly. Extracts metadata (dimensions, format, EXIF data) and optionally runs AI analysis.
+
+```
+Save this image: https://example.com/photo.jpg
+[send image in Telegram] Save this with the tag "inspiration"
+Analyze and save this screenshot.
+```
+
+On Telegram, you can just send an image and ask EchOS to save it.
+
+---
+
+### Content-creation plugin
+
+#### Write content in your voice
+
+**Tool:** `create_content`
+
+Generate long-form content that sounds like *you* — blog posts, articles, threads, emails, essays, and tutorials. Uses your style profile (built from voice examples you curate) and pulls relevant notes from your knowledge base as context.
+
+```
+Write a blog post about burnout in tech.
+Draft a Twitter thread about Rust's memory model.
+Write an email to my team about the Q2 roadmap.
+Write a tutorial on setting up LanceDB.
+```
+
+Content types: `blog_post`, `article`, `thread`, `email`, `essay`, `tutorial`
+
+You can also specify: length, audience, and extra instructions.
+
+See [Writing & Voice](/WRITING) for the full guide.
+
+---
+
+#### Analyze your writing style
+
+**Tool:** `analyze_my_style`
+
+Build a detailed profile of your writing voice from pieces you've curated as examples. Run this after you've tagged at least 5 notes as voice examples.
+
+```
+Analyze my writing style.
+Re-analyze my style — I've added new examples.
+```
+
+---
+
+#### View your style profile
+
+**Tool:** `get_style_profile`
+
+Display your current writing style profile — tone descriptors, vocabulary characteristics, sentence patterns, formality level, and sample paragraphs.
+
+```
+Show me my style profile.
+What have you learned about how I write?
+```
+
+---
+
+#### Mark a voice example
+
+**Tool:** `mark_as_voice_example`
+
+Tag a note as a voice example so it gets included in style analysis. Best with polished, representative writing of 500+ words.
+
+```
+Mark note abc-123 as a voice example.
+Tag my "distributed systems post" as a voice example.
+```
+
+---
+
+### Digest plugin
+
+The digest plugin runs as a scheduled background job (not a direct tool). It generates a summary of recent notes and broadcasts it to your configured notification channel (Telegram).
+
+Configure it via the scheduler:
+
+```
+Schedule a daily digest at 8am.
+Send me a weekly digest every Sunday.
+```
+
+---
+
+## Quick reference
+
+| What you say | Tool |
+|---|---|
+| *"Save a note about..."* | `create_note` |
+| *"Search for..."* | `search_knowledge` |
+| *"List my recent notes"* | `list_notes` |
+| *"Update note abc-123"* | `update_note` |
+| *"Delete note abc-123"* | `delete_note` |
+| *"Remind me to..."* | `add_reminder` |
+| *"What are my reminders?"* | `list_reminders` |
+| *"Mark reminder done"* | `complete_reminder` |
+| *"Remember that I prefer..."* | `remember_about_me` |
+| *"What do you know about me?"* | `recall_knowledge` |
+| *"Save this conversation"* | `save_conversation` |
+| *"Export this as a zip"* | `export_notes` |
+| *"Categorize note abc"* | `categorize_note` |
+| *"Link these two notes"* | `link_notes` |
+| *"Mark article as read"* | `mark_content` |
+| *"Be more concise"* | `set_agent_voice` |
+| *"Save this article: URL"* | `save_article` |
+| *"Save this YouTube video: URL"* | `save_youtube` |
+| *"Save this image"* | `save_image` |
+| *"Write a blog post about X"* | `create_content` |
+| *"Analyze my writing style"* | `analyze_my_style` |
+| *"Show my style profile"* | `get_style_profile` |
+| *"Mark this as a voice example"* | `mark_as_voice_example` |

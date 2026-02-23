@@ -29,6 +29,7 @@
     {
       "group": "Features",
       "pages": [
+        "TOOLS",
         "CATEGORIZATION",
         "KNOWLEDGE_IMPORT",
         "SLASH_COMMANDS",
