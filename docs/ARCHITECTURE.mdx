@@ -76,6 +76,44 @@ Workers:
 
 See [Scheduler](SCHEDULER) for configuration and usage details.
 
+## Export Utility
+
+**Location:** `packages/core/src/export/index.ts`
+
+The export utility provides pure serialization functions for converting notes into downloadable file formats. It is used by the `export_notes` agent tool and is independent of any interface or storage layer.
+
+### Formats
+
+| Format | Function | Output |
+|--------|----------|--------|
+| `markdown` | `exportToMarkdown(note)` | Full markdown file with YAML frontmatter (reads raw file from disk when available; reconstructs from SQLite otherwise) |
+| `text` | `exportToText(note)` | Markdown body only, no frontmatter |
+| `json` | `exportToJson(notes)` | JSON array of `{ metadata, content }` objects |
+| `zip` | `exportToZip(notes)` | ZIP archive of `.md` files (one per note), deduplicated filenames |
+
+### `export_notes` Agent Tool
+
+**Location:** `packages/core/src/agent/tools/export-notes.ts`
+
+The tool selects notes (by ID or filter), serializes them, and returns an `ExportFileResult` JSON string in its tool result. Interfaces intercept this via the `tool_execution_end` agent event (which exposes `event.result`) and deliver the file:
+
+- **Single note, markdown/text** → returned inline (no file written to disk)
+- **Multiple notes, or json/zip format** → written to `data/exports/export-{timestamp}.{ext}`
+
+**Auto-format upgrade**: if multiple notes are requested with `markdown` or `text` format, the tool automatically upgrades to `zip`.
+
+### Exports Directory
+
+Export files are written to `data/exports/` (configurable via `exportsDir` in `AgentDeps`). Files are cleaned up automatically after 1 hour by the export cleanup cron job in the scheduler (`export-cleanup`, runs hourly at `0 * * * *`).
+
+### Interface Delivery
+
+| Interface | Delivery mechanism |
+|-----------|-------------------|
+| **Telegram** | `ctx.replyWithDocument(new InputFile(buffer, fileName))` after agent completes; temp file deleted immediately |
+| **CLI** | Inline content → stdout; file exports → `--output` path or `./fileName` in CWD; path printed to stderr |
+| **Web** | `GET /api/export/:fileName` download endpoint; agent includes the URL in its text response |
+
 ## Plugin Architecture
 
 Content processors live in `plugins/` as separate workspace packages. Each plugin:
@@ -85,7 +123,7 @@ Content processors live in `plugins/` as separate workspace packages. Each plugi
 - Receives a `PluginContext` with storage, embeddings, logger, and config
 - Is registered via `PluginRegistry` in the application entry point
 
-Core tools (create_note, search, get, list, update, delete, reminders, memory, linking, categorize_note, save_conversation, mark_content) remain in `@echos/core`.
+Core tools (create_note, search, get, list, update, delete, reminders, memory, linking, categorize_note, save_conversation, mark_content, export_notes) remain in `@echos/core`.
 Domain-specific processors (YouTube, article, image, etc.) are plugins.
 
 Plugins can optionally use the AI categorization service from `@echos/core` to automatically extract category, tags, gist, summary, and key points from content. See [Categorization](CATEGORIZATION) for details.

@@ -82,6 +82,20 @@ The agent replies "↩️ Redirecting..." immediately to acknowledge receipt. Th
 
 Use `/followup` instead when you want to *chain* work after the current task — e.g. "save this article" then `/followup summarise the key points`.
 
+### Exporting Notes
+
+Ask the agent to export notes and it will send the file as a document attachment:
+
+```
+"Export my Redis note as a markdown file"
+→ bot sends redis-note.md as a document
+
+"Export all my programming notes as a zip"
+→ bot sends export-{timestamp}.zip as a document
+```
+
+Supported formats: `markdown`, `text`, `json`, `zip`. Single-note markdown/text exports are sent inline; multi-note exports or explicit `zip`/`json` format requests write a file to `data/exports/` before sending. The temporary file is deleted automatically after the bot sends it.
+
 ### Features
 
 - ✅ Streaming responses (live updates as AI thinks)
@@ -91,6 +105,7 @@ Use `/followup` instead when you want to *chain* work after the current task —
 - ✅ Voice message support (with Whisper transcription)
 - ✅ Photo/document support
 - ✅ Mid-run steering and follow-up queuing
+- ✅ File exports delivered as document attachments
 
 ### Security
 
@@ -259,6 +274,21 @@ curl -X POST http://localhost:3000/api/chat \
 curl http://localhost:3000/health
 ```
 
+### Exporting Notes
+
+Ask the agent to export notes. The agent's response will include a download link:
+
+```
+POST /api/chat  { "message": "export my redis note as json", "userId": 123 }
+→ { "response": "Here is your export: /api/export/files/export-123.json", ... }
+
+GET /api/export/export-123.json
+Authorization: Bearer <WEB_API_KEY>
+→ file download
+```
+
+The export file endpoint `GET /api/export/:fileName` requires Bearer auth and validates the filename against `^[\w-]+\.(zip|json|md|txt)$` to prevent path traversal. Files are automatically cleaned up after 1 hour by the scheduler.
+
 ### Features
 
 - ✅ RESTful JSON API
@@ -269,6 +299,7 @@ curl http://localhost:3000/health
 - ✅ Session management per user
 - ✅ Tool execution tracking
 - ✅ Non-streaming responses (full response after completion)
+- ✅ Export file download via `GET /api/export/:fileName`
 
 ### Integration
 
@@ -375,6 +406,26 @@ cd ~/echos
 pnpm echos "what are my reminders for this week?"
 ```
 
+### Exporting Notes
+
+Use the `--output` / `-o` flag to save an exported file, or pipe single-note exports directly:
+
+```bash
+# Single note — content goes to stdout (pipe-friendly)
+echos "export my redis note" | pbcopy
+
+# Single note to a file
+echos "export my redis note as markdown" -o ~/Desktop/redis.md
+
+# Multi-note zip
+echos "export all my programming notes as zip" -o ~/Downloads/programming.zip
+
+# Multi-note json
+echos "export notes tagged 'recipe' as json" --output ~/Downloads/recipes.json
+```
+
+For inline (single-note markdown/text) exports, content is written to stdout or `--output` if specified. For file exports (zip/json), the file is moved to the `--output` path or saved to the current directory. The export destination path is printed to stderr so stdout remains clean for piping.
+
 ### Features
 
 - ✅ Standalone — no daemon or Redis required
@@ -384,6 +435,7 @@ pnpm echos "what are my reminders for this week?"
 - ✅ Ctrl+C cancels mid-response without killing the process
 - ✅ Plain output in pipe mode (scriptable)
 - ✅ Safe concurrent access alongside running daemon (SQLite WAL)
+- ✅ `--output` / `-o` flag for saving exported files
 
 ### Limitations
 
@@ -408,6 +460,7 @@ pnpm echos "what are my reminders for this week?"
 | **Voice Input** | ✅ Yes | ❌ No | ❌ No |
 | **Scriptable** | ❌ No | ✅ Yes (curl) | ✅ Yes (pipe) |
 | **SSH-friendly** | ❌ No | ❌ No | ✅ Yes |
+| **Export notes** | ✅ Document attachment | ✅ Download link | ✅ stdout / `--output` |
 | **Best For** | Daily use | Local integration | Terminal / SSH |
 
 **Recommendations:**

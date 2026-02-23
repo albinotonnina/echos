@@ -7,6 +7,7 @@ export interface ProcessorDeps {
   scheduleManager: ScheduleManager;
   contentProcessor: (job: Job<JobData>) => Promise<void>;
   reminderProcessor: (job: Job<JobData>) => Promise<void>;
+  exportCleanupProcessor?: (job: Job<JobData>) => Promise<void>;
   logger: Logger;
 }
 
@@ -22,6 +23,13 @@ export function createJobRouter(deps: ProcessorDeps) {
 
     if (type === 'reminder-check' || type === 'reminder_check') {
       await deps.reminderProcessor(job);
+      return;
+    }
+
+    if (type === 'export_cleanup' || type === 'export-cleanup') {
+      if (deps.exportCleanupProcessor) {
+        await deps.exportCleanupProcessor(job);
+      }
       return;
     }
 

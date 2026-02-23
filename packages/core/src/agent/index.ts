@@ -20,6 +20,7 @@ import {
   recallKnowledgeTool,
   createCategorizeNoteTool,
   createSetAgentVoiceTool,
+  createExportNotesTool,
 } from './tools/index.js';
 import type { SqliteStorage } from '../storage/sqlite.js';
 import type { MarkdownStorage } from '../storage/markdown.js';
@@ -44,6 +45,8 @@ export interface AgentDeps {
   /** Additional tools registered by plugins */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pluginTools?: AgentTool<any>[];
+  /** Directory for writing temporary export files (default: ./data/exports) */
+  exportsDir?: string;
 }
 
 export function createEchosAgent(deps: AgentDeps): Agent {
@@ -103,6 +106,11 @@ export function createEchosAgent(deps: AgentDeps): Agent {
           agentRef.setSystemPrompt(newPrompt);
         }
       },
+    }),
+    createExportNotesTool({
+      sqlite: deps.sqlite,
+      markdown: deps.markdown,
+      exportsDir: deps.exportsDir ?? './data/exports',
     }),
   ];
 
