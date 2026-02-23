@@ -1,5 +1,5 @@
 import { createReadStream, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import type { FastifyRateLimitOptions } from '@fastify/rate-limit';
 
@@ -32,7 +32,11 @@ export function registerExportRoutes(app: FastifyInstance, exportsDir: string): 
         return reply.status(400).send({ error: 'Invalid file name' });
       }
 
-      const filePath = join(exportsDir, fileName);
+      const resolvedExportsDir = resolve(exportsDir);
+      const filePath = resolve(resolvedExportsDir, fileName);
+      if (!filePath.startsWith(resolvedExportsDir + '/')) {
+        return reply.status(400).send({ error: 'Invalid file path' });
+      }
 
       if (!existsSync(filePath)) {
         return reply.status(404).send({ error: 'Export file not found or already cleaned up' });
