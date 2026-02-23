@@ -1,4 +1,11 @@
+---
+title: "Architecture"
+description: "Data flow, package layout, storage, and search internals."
+---
+
 # Architecture
+
+EchOS is structured as a pnpm monorepo where a central agent core handles all reasoning, and separate packages implement each interface and storage layer. This document covers how a message moves through the system, how packages depend on each other, and how the three-layer storage architecture keeps data consistent.
 
 ## Data Flow
 
@@ -67,7 +74,7 @@ Workers:
 - **Reminder check**: Queries SQLite for overdue reminders and sends notifications
 - **Content processing**: Processes article/YouTube URLs queued by the agent
 
-See [SCHEDULER.md](SCHEDULER.md) for configuration and usage details.
+See [Scheduler](SCHEDULER) for configuration and usage details.
 
 ## Plugin Architecture
 
@@ -81,7 +88,7 @@ Content processors live in `plugins/` as separate workspace packages. Each plugi
 Core tools (create_note, search, get, list, update, delete, reminders, memory, linking, categorize_note, save_conversation, mark_content) remain in `@echos/core`.
 Domain-specific processors (YouTube, article, image, etc.) are plugins.
 
-Plugins can optionally use the AI categorization service from `@echos/core` to automatically extract category, tags, gist, summary, and key points from content. See [CATEGORIZATION.md](CATEGORIZATION.md) for details.
+Plugins can optionally use the AI categorization service from `@echos/core` to automatically extract category, tags, gist, summary, and key points from content. See [Categorization](CATEGORIZATION) for details.
 
 ### Available Plugins
 
@@ -90,7 +97,7 @@ Plugins can optionally use the AI categorization service from `@echos/core` to a
 - **image**: Image storage with metadata extraction (format, dimensions, EXIF)
 - **content-creation**: Content generation tools
 
-See [PLUGINS.md](PLUGINS.md) for detailed plugin documentation.
+See [Building a Plugin](PLUGINS) for detailed plugin documentation.
 
 ## Storage Architecture
 

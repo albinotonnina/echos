@@ -1,3 +1,8 @@
+---
+title: "Interfaces"
+description: "Configure and use Telegram, Web API, and CLI interfaces."
+---
+
 # Interface Guide
 
 EchOS supports three interfaces for interacting with your personal knowledge base. You can enable/disable each interface in your `.env` file.
@@ -19,7 +24,7 @@ WEB_PORT=3000
 WEB_API_KEY=your_secret_key_here
 ```
 
-> **Note**: The Web UI is experimental. The CLI (`pnpm echos`) is stable and requires no daemon. Telegram is the recommended interface for daily use. The setup wizard (`pnpm wizard`) generates a `WEB_API_KEY` automatically when you enable the web interface.
+<Note>The Web UI is experimental. The CLI (`pnpm echos`) is stable and requires no daemon. Telegram is the recommended interface for daily use. The setup wizard (`pnpm wizard`) generates a `WEB_API_KEY` automatically when you enable the web interface.</Note>
 
 **Start the application:**
 ```bash
@@ -113,7 +118,7 @@ openssl rand -hex 32
 
 Or run `pnpm wizard` — it generates and stores the key automatically.
 
-> **Startup behaviour**: if `ENABLE_WEB=true` and `WEB_API_KEY` is not set, the web server throws at startup and the process exits. There is no unauthenticated fallback.
+<Warning>If `ENABLE_WEB=true` and `WEB_API_KEY` is not set, the web server throws at startup and the process exits. There is no unauthenticated fallback.</Warning>
 
 ### Usage
 
@@ -505,7 +510,7 @@ pnpm start
 ## Troubleshooting
 
 ### Telegram: 409 Conflict Error
-See [TROUBLESHOOTING.md#telegram-bot-conflicts](./TROUBLESHOOTING.md#telegram-bot-conflicts)
+See [Troubleshooting — Telegram bot conflicts](./TROUBLESHOOTING#telegram-bot-conflicts)
 
 ### Web API: Port Already in Use
 ```bash
@@ -542,4 +547,4 @@ Look for messages like:
 - **Telegram**: See examples in the [main README](../README.md)
 - **Web API**: Build a frontend with React/Vue/etc.
 - **CLI**: Terminal queries, SSH access, scripting
-- **Deploy**: See [DEPLOYMENT.md](./DEPLOYMENT.md) for production setup
+- **Deploy**: See [Deployment](./DEPLOYMENT) for production setup

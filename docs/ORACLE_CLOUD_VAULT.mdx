@@ -1,6 +1,9 @@
-# Oracle Cloud Vault Integration
+---
+title: "Oracle Cloud Vault"
+description: "Secrets management with Oracle Cloud Vault."
+---
 
-> Securely manage your EchOS secrets using Oracle Cloud Infrastructure (OCI) Vault.
+# Oracle Cloud Vault Integration
 
 ## Overview
 
@@ -147,9 +150,7 @@ Create an IAM policy to allow your compute instance to read secrets:
 Allow dynamic-group <YOUR_INSTANCE_DYNAMIC_GROUP> to read secret-family in compartment <YOUR_COMPARTMENT_NAME>
 ```
 
-> **Note**: You may need to create a Dynamic Group for your compute instance:
-> 1. Go to **Identity & Security** → **Dynamic Groups**
-> 2. Create: `All instances in compartment <YOUR_COMPARTMENT_NAME>`
+<Note>You may need to create a Dynamic Group for your compute instance: go to **Identity & Security** → **Dynamic Groups** and create: `All instances in compartment <YOUR_COMPARTMENT_NAME>`.</Note>
 
 ### Via OCI CLI
 

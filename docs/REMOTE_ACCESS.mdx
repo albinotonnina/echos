@@ -1,3 +1,8 @@
+---
+title: "Remote Access"
+description: "Access your knowledge files from a local machine."
+---
+
 # Accessing Your Knowledge Base Remotely
 
 When EchOS runs on a VPS, the knowledge files live at `data/knowledge/` on the server. This guide covers the main ways to access that directory from your local machine so you can open it in Obsidian, back it up, or work with the files directly.
@@ -89,8 +94,7 @@ rsync -avz --delete \
   user@your-server:/home/user/echos/data/knowledge/
 ```
 
-> [!WARNING]
-> `--delete` removes files on the destination that no longer exist on the source. If EchOS has added new notes since your last pull, push carefully — pull first, then push. Or omit `--delete` if you only want to push additions.
+<Warning>`--delete` removes files on the destination that no longer exist on the source. If EchOS has added new notes since your last pull, push carefully — pull first, then push. Or omit `--delete` if you only want to push additions.</Warning>
 
 **Automate with cron**
 

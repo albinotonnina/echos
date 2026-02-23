@@ -1,10 +1,17 @@
+---
+title: "Building a Plugin"
+description: "Extend EchOS with custom content processors and agent tools."
+---
+
 # Creating a Plugin
 
 Plugins add content processors and agent tools to EchOS without modifying core code. Each plugin is a separate workspace package in `plugins/`.
 
 ## Steps
 
-### 1. Scaffold the package
+<Steps>
+
+<Step title="Scaffold the package">
 
 ```bash
 mkdir -p plugins/my-plugin/src
@@ -55,7 +62,9 @@ Create `plugins/my-plugin/tsconfig.json`:
 }
 ```
 
-### 2. Write the processor
+</Step>
+
+<Step title="Write the processor">
 
 Create `plugins/my-plugin/src/processor.ts` — the logic that fetches/transforms external content:
 
@@ -93,7 +102,9 @@ export async function processMyContent(
 - Never use `eval()`, `Function()`, or `vm`
 - Never log secrets
 
-### 3. Create the agent tool
+</Step>
+
+<Step title="Create the agent tool">
 
 Create `plugins/my-plugin/src/tool.ts` — defines the tool the LLM agent can call:
 
@@ -231,7 +242,9 @@ export function createMyTool(
 
 **New in this example**: AI-powered auto-categorization support using the `categorizeContent` function from `@echos/core`. When `autoCategorize=true`, the plugin will automatically extract category, tags, and optionally gist/summary/key points from the content.
 
-### 4. Export the plugin
+</Step>
+
+<Step title="Export the plugin">
 
 Create `plugins/my-plugin/src/index.ts`:
 
@@ -255,7 +268,9 @@ const myPlugin: EchosPlugin = {
 export default myPlugin;
 ```
 
-### 5. Register it
+</Step>
+
+<Step title="Register it">
 
 In `src/index.ts`, import and register:
 
@@ -266,7 +281,9 @@ import myPlugin from '@echos/plugin-my-plugin';
 pluginRegistry.register(myPlugin);
 ```
 
-### 6. Wire up the workspace
+</Step>
+
+<Step title="Wire up the workspace">
 
 Add the path mapping to root `tsconfig.json`:
 
@@ -292,6 +309,10 @@ Build and verify:
 pnpm -r build
 pnpm test
 ```
+
+</Step>
+
+</Steps>
 
 ## PluginContext API
 
@@ -344,7 +365,7 @@ The categorization service:
 - Respects content length limits (5000 chars for lightweight, 10000 for full)
 - Is safe to call without `onProgress` — callers that don't need streaming omit the last argument
 
-See [CATEGORIZATION.md](CATEGORIZATION.md) for detailed documentation.
+See [Categorization](CATEGORIZATION) for detailed documentation.
 
 ## Existing plugins
 
@@ -401,4 +422,4 @@ The image plugin (`@echos/plugin-image`) provides the `save_image` tool for stor
 - Passes URL to save_image tool
 - Supports captions for context
 
-See [IMAGES.md](IMAGES.md) for complete documentation on image handling.
+See [Images](IMAGES) for complete documentation on image handling.

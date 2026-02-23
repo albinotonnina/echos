@@ -1,3 +1,8 @@
+---
+title: "Knowledge Import"
+description: "Import Obsidian vaults, Notion exports, and plain markdown files."
+---
+
 # Knowledge Import Guide
 
 EchOS stores every note as a plain `.md` file with YAML frontmatter, making the knowledge base
@@ -14,9 +19,7 @@ Point Obsidian at the knowledge directory and everything works immediately:
 2. All notes open with their frontmatter properties visible in Obsidian's Properties panel
 3. Live edits in Obsidian are picked up automatically by EchOS's file watcher — no restart needed
 
-> [!NOTE]
-> EchOS watches `KNOWLEDGE_DIR` for changes. Saving a file in Obsidian triggers a re-index
-> within seconds. New files added via Obsidian are indexed the same way.
+<Note>EchOS watches `KNOWLEDGE_DIR` for changes. Saving a file in Obsidian triggers a re-index within seconds. New files added via Obsidian are indexed the same way.</Note>
 
 ---
 
@@ -214,9 +217,7 @@ All fields EchOS reads from `.md` files:
 | `gist` | No | `string` | Short summary / AI-generated abstract |
 | `author` | No | `string` | Author name for articles |
 
-> [!IMPORTANT]
-> Files missing `id` are silently skipped by the reconciler. The import scripts ensure `id`
-> is always written. If you create notes manually, you must add a UUID `id` field.
+<Warning>Files missing `id` are silently skipped by the reconciler. The import scripts ensure `id` is always written. If you create notes manually, you must add a UUID `id` field.</Warning>
 
 ---
 

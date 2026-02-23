@@ -1,7 +1,14 @@
+---
+title: "Deployment"
+description: "Deploy EchOS via Docker, systemd on a VPS, or locally."
+---
+
 # Deployment
 
-> **Troubleshooting?** See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for common issues and solutions.
-> **Interface Usage?** See [INTERFACES.md](./INTERFACES.md) for accessing Telegram, Web API, and CLI.
+<Tip>
+  **Troubleshooting?** See [Troubleshooting](./TROUBLESHOOTING) for common issues and solutions.
+  **Interface Usage?** See [Interfaces](./INTERFACES) for accessing Telegram, Web API, and CLI.
+</Tip>
 
 ## Quick Start
 
@@ -211,7 +218,7 @@ exit
 pnpm start
 ```
 
-Only one instance can poll Telegram at a time. See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md#telegram-bot-conflicts) for details.
+Only one instance can poll Telegram at a time. See [Troubleshooting](./TROUBLESHOOTING#telegram-bot-conflicts) for details.
 
 ## Backup
 
@@ -238,7 +245,7 @@ Scheduler (requires Redis):
 - `DIGEST_SCHEDULE` - Cron expression for AI daily digest (e.g. `0 8 * * *` for 8am daily)
 - `REMINDER_CHECK_SCHEDULE` - Cron expression for due reminder checks (e.g. `*/15 * * * *` for every 15min)
 
-See [SCHEDULER.md](./SCHEDULER.md) for details.
+See [Scheduler](./SCHEDULER) for details.
 
 ## Process Management
 
