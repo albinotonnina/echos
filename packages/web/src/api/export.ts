@@ -1,6 +1,7 @@
 import { createReadStream, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { FastifyInstance } from 'fastify';
+import type { FastifyRateLimitOptions } from '@fastify/rate-limit';
 
 /** Only allow safe filenames — no path traversal, no hidden files. */
 const SAFE_FILENAME_RE = /^[\w-]+\.(zip|json|md|txt)$/;
@@ -15,6 +16,15 @@ export function registerExportRoutes(app: FastifyInstance, exportsDir: string): 
    */
   app.get<{ Params: { fileName: string } }>(
     '/api/export/:fileName',
+    {
+      // Per-route rate limiting to protect filesystem-backed export downloads.
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        } satisfies FastifyRateLimitOptions,
+      },
+    },
     async (request, reply) => {
       const { fileName } = request.params;
 
