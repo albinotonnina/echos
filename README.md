@@ -315,6 +315,12 @@ echo "summarise my last 5 notes" | pnpm echos  # pipe mode, plain text output
 
 Works over SSH too — just `cd ~/echos && pnpm echos "query"` while the daemon keeps running.
 
+To use `echos` seamlessly from any directory on your system, add a shell alias (e.g., to your `.bashrc` or `.zshrc`), pointing to your installation path:
+
+```bash
+alias echos="pnpm --silent --dir ~/echos echos"
+```
+
 </details>
 
 ---
