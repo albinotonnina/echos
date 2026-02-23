@@ -1,5 +1,5 @@
 import { createReadStream, existsSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { resolve, sep } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import type { FastifyRateLimitOptions } from '@fastify/rate-limit';
 
@@ -32,10 +32,12 @@ export function registerExportRoutes(app: FastifyInstance, exportsDir: string): 
         return reply.status(400).send({ error: 'Invalid file name' });
       }
 
+      // Resolve both paths and confirm the file stays inside exportsDir.
+      // SAFE_FILENAME_RE already prevents traversal chars; this is defence-in-depth.
       const resolvedExportsDir = resolve(exportsDir);
       const filePath = resolve(resolvedExportsDir, fileName);
-      if (!filePath.startsWith(resolvedExportsDir + '/')) {
-        return reply.status(400).send({ error: 'Invalid file path' });
+      if (!filePath.startsWith(resolvedExportsDir + sep)) {
+        return reply.status(400).send({ error: 'Invalid file name' });
       }
 
       if (!existsSync(filePath)) {
@@ -52,7 +54,12 @@ export function registerExportRoutes(app: FastifyInstance, exportsDir: string): 
       const contentType = mimeTypes[ext] ?? 'application/octet-stream';
 
       void reply.header('Content-Type', contentType);
-      void reply.header('Content-Disposition', `attachment; filename="${fileName}"`);
+      // RFC 5987 encoding prevents header injection; fileName is also validated
+      // by SAFE_FILENAME_RE so no special chars can appear.
+      void reply.header(
+        'Content-Disposition',
+        `attachment; filename="${fileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+      );
       return reply.send(createReadStream(filePath));
     },
   );

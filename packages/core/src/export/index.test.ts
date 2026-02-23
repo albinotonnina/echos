@@ -110,17 +110,18 @@ describe('exportToZip', () => {
     expect(contentA).toBe('# Note A');
   });
 
-  it('deduplicates filenames by prepending ID prefix', async () => {
+  it('deduplicates filenames with a numeric counter suffix', async () => {
     const notes = [
       makeNote({ id: 'aaa', fileName: 'same-name.md' }),
       makeNote({ id: 'bbb', fileName: 'same-name.md' }),
+      makeNote({ id: 'ccc', fileName: 'same-name.md' }),
     ];
     const buf = await exportToZip(notes);
     const zip = await JSZip.loadAsync(buf);
     const fileNames = Object.keys(zip.files);
-    // One entry uses the original name, the second gets the ID prefix
     expect(fileNames).toContain('same-name.md');
-    expect(fileNames.some((n) => n.startsWith('bbb') && n.endsWith('.md'))).toBe(true);
+    expect(fileNames).toContain('same-name (2).md');
+    expect(fileNames).toContain('same-name (3).md');
   });
 });
 

@@ -79,9 +79,15 @@ export async function exportToZip(notes: ExportableNote[]): Promise<Buffer> {
   const usedNames = new Set<string>();
 
   for (const note of notes) {
-    let entryName = basename(note.fileName);
-    if (usedNames.has(entryName)) {
-      entryName = `${note.id.slice(0, 8)}-${entryName}`;
+    const base = basename(note.fileName);
+    let entryName = base;
+    let counter = 2;
+    while (usedNames.has(entryName)) {
+      const dot = base.lastIndexOf('.');
+      entryName = dot >= 0
+        ? `${base.slice(0, dot)} (${counter})${base.slice(dot)}`
+        : `${base} (${counter})`;
+      counter++;
     }
     usedNames.add(entryName);
     zip.file(entryName, note.rawMarkdown);
@@ -98,11 +104,11 @@ export function makeExportFileName(
   if (format === 'markdown' || format === 'text') {
     const ext = format === 'text' ? 'txt' : 'md';
     const slug = noteTitle
-      ? noteTitle
+      ? (noteTitle
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-|-$/g, '')
-          .slice(0, 40)
+          .slice(0, 40) || 'untitled')
       : 'export';
     return `${slug}-${ts}.${ext}`;
   }

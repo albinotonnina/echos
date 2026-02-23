@@ -291,9 +291,12 @@ export async function streamAgentResponse(
         const buf = Buffer.from(exportResult.inline, 'utf8');
         await ctx.replyWithDocument(new InputFile(buf, exportResult.fileName));
       } else if (exportResult.filePath) {
-        const buf = await readFile(exportResult.filePath);
-        await ctx.replyWithDocument(new InputFile(buf, exportResult.fileName));
-        await unlink(exportResult.filePath).catch(() => undefined);
+        try {
+          const buf = await readFile(exportResult.filePath);
+          await ctx.replyWithDocument(new InputFile(buf, exportResult.fileName));
+        } finally {
+          await unlink(exportResult.filePath).catch(() => undefined);
+        }
       }
     } catch {
       // Non-fatal: agent already described the export in text

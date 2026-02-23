@@ -94,7 +94,7 @@ Ask the agent to export notes and it will send the file as a document attachment
 → bot sends export-{timestamp}.zip as a document
 ```
 
-Supported formats: `markdown`, `text`, `json`, `zip`. Single-note markdown/text exports are sent inline; multi-note exports or explicit `zip`/`json` format requests write a file to `data/exports/` before sending. The temporary file is deleted automatically after the bot sends it.
+Supported formats: `markdown`, `text`, `json`, `zip`. All exports are sent as document attachments. Single-note markdown/text exports are delivered directly as small document files; multi-note exports or explicit `zip`/`json` format requests write a temporary file to `data/exports/` before sending. The temporary file is deleted automatically after the bot sends it.
 
 ### Features
 
@@ -280,14 +280,14 @@ Ask the agent to export notes. The agent's response will include a download link
 
 ```
 POST /api/chat  { "message": "export my redis note as json", "userId": 123 }
-→ { "response": "Here is your export: /api/export/files/export-123.json", ... }
+→ { "response": "Here is your export: /api/export/export-123.json", ... }
 
 GET /api/export/export-123.json
 Authorization: Bearer <WEB_API_KEY>
 → file download
 ```
 
-The export file endpoint `GET /api/export/:fileName` requires Bearer auth and validates the filename against `^[\w-]+\.(zip|json|md|txt)$` to prevent path traversal. Files are automatically cleaned up after 1 hour by the scheduler.
+The export file endpoint `GET /api/export/:fileName` requires Bearer auth and validates the filename against `^[\w-]+\.(zip|json|md|txt)$` to prevent path traversal. Files are automatically cleaned up after 1 hour by the scheduler. Example URL: `/api/export/export-1234567890.zip`.
 
 ### Features
 

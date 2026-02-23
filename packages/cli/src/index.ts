@@ -29,6 +29,12 @@ import {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+/** Insert a numeric suffix before the extension: foo.zip → foo-2.zip */
+function suffixPath(p: string, n: number): string {
+  const dot = p.lastIndexOf('.');
+  return dot >= 0 ? `${p.slice(0, dot)}-${n}${p.slice(dot)}` : `${p}-${n}`;
+}
+
 function makeContextMessage() {
   const now = new Date();
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -126,17 +132,20 @@ async function runCli(): Promise<void> {
   });
 
   const processPendingExports = async (): Promise<void> => {
-    for (const exportResult of pendingExports) {
+    for (let i = 0; i < pendingExports.length; i++) {
+      const exportResult = pendingExports[i]!;
       try {
         if (exportResult.inline !== undefined) {
           if (outputPath) {
-            await writeFile(outputPath, exportResult.inline, 'utf8');
-            process.stderr.write(`Exported to: ${outputPath}\n`);
+            const dest = pendingExports.length > 1 ? suffixPath(outputPath, i + 1) : outputPath;
+            await writeFile(dest, exportResult.inline, 'utf8');
+            process.stderr.write(`Exported to: ${dest}\n`);
           } else {
             process.stdout.write(exportResult.inline);
           }
         } else if (exportResult.filePath) {
-          const dest = outputPath ?? join(process.cwd(), exportResult.fileName);
+          const base = outputPath ?? join(process.cwd(), exportResult.fileName);
+          const dest = outputPath && pendingExports.length > 1 ? suffixPath(base, i + 1) : base;
           await copyFile(exportResult.filePath, dest);
           process.stderr.write(`Exported to: ${dest}\n`);
         }

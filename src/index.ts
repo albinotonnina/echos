@@ -32,6 +32,7 @@ import {
   ScheduleManager,
   createContentProcessor,
   createReminderCheckProcessor,
+  createExportCleanupProcessor,
   createJobRouter,
   createManageScheduleTool,
   type QueueService,
@@ -49,6 +50,9 @@ const logger = createLogger('echos');
 async function main(): Promise<void> {
   const config = loadConfig();
   logger.info('Starting EchOS...');
+
+  // Derive exportsDir alongside the other data directories
+  const exportsDir = join(config.dbPath, '..', 'exports');
 
   // Initialize storage
   const sqlite = createSqliteStorage(join(config.dbPath, 'echos.db'), logger);
@@ -132,6 +136,7 @@ async function main(): Promise<void> {
     logLlmPayloads: config.logLlmPayloads,
     logger,
     pluginTools: [...pluginRegistry.getTools(), manageScheduleTool],
+    exportsDir,
   };
 
   const interfaces: InterfaceAdapter[] = [];
@@ -180,6 +185,8 @@ async function main(): Promise<void> {
         logger,
       });
 
+      const exportCleanupProcessor = createExportCleanupProcessor({ exportsDir, logger });
+
       const scheduleManager = new ScheduleManager(
         queueService.queue,
         sqlite,
@@ -195,6 +202,7 @@ async function main(): Promise<void> {
         scheduleManager,
         contentProcessor,
         reminderProcessor,
+        exportCleanupProcessor,
         logger,
       });
 
@@ -222,6 +230,7 @@ async function main(): Promise<void> {
       config,
       agentDeps,
       logger,
+      exportsDir,
     };
     if (webAdapterSyncSchedule) webOptions.syncSchedule = webAdapterSyncSchedule;
     if (webAdapterDeleteSchedule) webOptions.deleteSchedule = webAdapterDeleteSchedule;
