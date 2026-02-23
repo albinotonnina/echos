@@ -176,7 +176,34 @@ async function runCli(): Promise<void> {
     }
   };
 
-  process.stdout.write('EchOS (Ctrl+C cancels response, Ctrl+D or "exit" to quit)\n\n');
+
+
+  const asciiArt = [
+    '      ___          ______      _          ____    _____ ',
+    '     /   \\        |  ____|    | |        / __ \\  / ____|',
+    '    / /_\\ \\       | |__   ___ | |__     | |  | || (___  ',
+    '    \\  _  /       |  __| / __|| \'_ \\    | |  | | \\___ \\ ',
+    '     \\/ \\/        | |___| (__ | | | |   | |__| | ____) |',
+    '      ___         |______\\___||_| |_|    \\____/ |_____/ ',
+    '                                                        ',
+    ' [ SYSTEM READY ] ----------------------- [ MEMORY: ON ]'
+  ].join('\n');
+
+
+
+  let version = 'unknown';
+  try {
+    const pkgPath = new URL('../package.json', import.meta.url);
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    version = pkg.version;
+  } catch {
+    // ignore
+  }
+
+  const welcomeMsg = `\nWelcome to EchOS CLI v${version}.\nType your message below. (Ctrl+C cancels response, Ctrl+D or "exit" to quit)\n\n`;
+  const colorfulArt = useColors ? `\x1b[36m${asciiArt}\x1b[0m` : asciiArt;
+
+  process.stdout.write(colorfulArt + welcomeMsg);
 
   process.on('SIGINT', () => {
     if (inFlight) {
