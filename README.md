@@ -106,13 +106,13 @@ Every note is a plain `.md` file with YAML frontmatter — the same format Obsid
 - **Import existing vault**: `pnpm import:obsidian --source ~/vault --dry-run` previews the conversion; remove `--dry-run` to apply
 - **Import from Notion**: `pnpm import:notion --source ~/notion-export --dry-run`
 
-See [docs/KNOWLEDGE_IMPORT.md](docs/KNOWLEDGE_IMPORT.md) for the full import guide, frontmatter reference, and step-by-step walkthroughs.
+See [docs/KNOWLEDGE_IMPORT](https://docs.echos.sh/KNOWLEDGE_IMPORT) for the full import guide, frontmatter reference, and step-by-step walkthroughs.
 
 #### Accessing your knowledge from your local machine
 
 If EchOS runs on a VPS, you can access `data/knowledge/` locally and open it in Obsidian as a live vault. There are several ways to do this depending on your preference: SSHFS (mount the directory over SSH), rsync (periodic one-way or two-way sync), or Syncthing (continuous background sync with no manual steps).
 
-See [docs/REMOTE_ACCESS.md](docs/REMOTE_ACCESS.md) for setup instructions for each approach.
+See [docs/REMOTE_ACCESS](https://docs.echos.sh/REMOTE_ACCESS) for setup instructions for each approach.
 
 ### 🔌 Plugin architecture
 
@@ -121,7 +121,7 @@ Content processors are plugins, not core code. Ships with:
 - **YouTube plugin** — extract and summarize transcripts
 - **Article plugin** — fetch, clean, and summarize any web article
 
-Adding your own plugin is [straightforward](docs/PLUGINS.md).
+Adding your own plugin is [straightforward](https://docs.echos.sh/PLUGINS).
 
 ### ⏰ Scheduled background jobs (optional)
 
@@ -195,7 +195,7 @@ Generated content is saved as a regular note, tagged and indexed like everything
 > [!NOTE]
 > Agent voice controls how EchOS *talks to you*. Your style profile controls how it *writes content on your behalf*. These are independent — a formal writing style and a casual conversational agent work fine together.
 
-See [docs/WRITING.md](docs/WRITING.md) for the full setup guide.
+See [docs/WRITING](https://docs.echos.sh/WRITING) for the full setup guide.
 
 ---
 
@@ -235,7 +235,7 @@ cd docker && docker compose up -d
 ```
 
 > [!TIP]
-> For a full list of supported env vars and their defaults, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+> For a full list of supported env vars and their defaults, see [docs/DEPLOYMENT](https://docs.echos.sh/DEPLOYMENT).
 
 With nginx + Let's Encrypt:
 
@@ -245,7 +245,7 @@ docker compose --profile nginx up -d
 ```
 
 > [!TIP]
-> See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for systemd service setup, nginx SSL, and VPS deployment instructions.
+> See [docs/DEPLOYMENT](https://docs.echos.sh/DEPLOYMENT) for systemd service setup, nginx SSL, and VPS deployment instructions.
 
 ---
 
@@ -352,7 +352,7 @@ Storage Layer
   └── LanceDB         (vector embeddings, semantic search)
 ```
 
-Storage stays in sync automatically — a startup reconciler and live file watcher handle files added or edited outside the app. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
+Storage stays in sync automatically — a startup reconciler and live file watcher handle files added or edited outside the app. See [docs/ARCHITECTURE](https://docs.echos.sh/ARCHITECTURE) for details.
 
 ---
 
@@ -400,7 +400,7 @@ Token bucket algorithm — 20 tokens, 1 token/second refill — applied per user
 
 Security-relevant events (auth failures, content access, mutations) are written to a separate audit logger with structured timestamps and user IDs.
 
-See [docs/SECURITY.md](docs/SECURITY.md) for the full threat model and implementation details.
+See [docs/SECURITY](https://docs.echos.sh/SECURITY) for the full threat model and implementation details.
 
 ---
 
@@ -423,16 +423,16 @@ See [docs/SECURITY.md](docs/SECURITY.md) for the full threat model and implement
 
 | Doc | Contents |
 |---|---|
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Data flow, storage sync, search, memory system |
-| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | VPS, Docker, nginx, systemd |
-| [PLUGINS.md](docs/PLUGINS.md) | Building custom content processors |
-| [INTERFACES.md](docs/INTERFACES.md) | Telegram, Web API, CLI reference |
-| [SCHEDULER.md](docs/SCHEDULER.md) | Background jobs, digests, reminders |
-| [SECURITY.md](docs/SECURITY.md) | Security model and threat mitigations |
-| [KNOWLEDGE_IMPORT.md](docs/KNOWLEDGE_IMPORT.md) | Obsidian vault opening, Notion import, frontmatter reference |
-| [REMOTE_ACCESS.md](docs/REMOTE_ACCESS.md) | Accessing knowledge files from a local machine (SSHFS, rsync, Syncthing) |
-| [WRITING.md](docs/WRITING.md) | Agent voice, style profiles, content generation |
-| [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and fixes |
+| [ARCHITECTURE](https://docs.echos.sh/ARCHITECTURE) | Data flow, storage sync, search, memory system |
+| [DEPLOYMENT](https://docs.echos.sh/DEPLOYMENT) | VPS, Docker, nginx, systemd |
+| [PLUGINS](https://docs.echos.sh/PLUGINS) | Building custom content processors |
+| [INTERFACES](https://docs.echos.sh/INTERFACES) | Telegram, Web API, CLI reference |
+| [SCHEDULER](https://docs.echos.sh/SCHEDULER) | Background jobs, digests, reminders |
+| [SECURITY](https://docs.echos.sh/SECURITY) | Security model and threat mitigations |
+| [KNOWLEDGE_IMPORT](https://docs.echos.sh/KNOWLEDGE_IMPORT) | Obsidian vault opening, Notion import, frontmatter reference |
+| [REMOTE_ACCESS](https://docs.echos.sh/REMOTE_ACCESS) | Accessing knowledge files from a local machine (SSHFS, rsync, Syncthing) |
+| [WRITING](https://docs.echos.sh/WRITING) | Agent voice, style profiles, content generation |
+| [TROUBLESHOOTING](https://docs.echos.sh/TROUBLESHOOTING) | Common issues and fixes |
 
 ---
 

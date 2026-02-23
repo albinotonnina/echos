@@ -134,16 +134,16 @@ Same requirements as the original CLAUDE.md apply:
 ## Documentation
 
 After completing any feature work, ALWAYS update the relevant documentation:
-- Architecture changes → `docs/ARCHITECTURE.md`
-- New interfaces or API changes → `docs/INTERFACES.md`
-- New plugins or plugin changes → `docs/PLUGINS.md`
-- Deployment changes → `docs/DEPLOYMENT.md`
-- Security changes → `docs/SECURITY.md`
-- Setup or configuration changes → `docs/SETUP_FIXES.md`
-- Categorization logic changes → `docs/CATEGORIZATION.md`
-- Import/export changes → `docs/KNOWLEDGE_IMPORT.md`
+- Architecture changes → `docs/ARCHITECTURE.mdx`
+- New interfaces or API changes → `docs/INTERFACES.mdx`
+- New plugins or plugin changes → `docs/PLUGINS.mdx`
+- Deployment changes → `docs/DEPLOYMENT.mdx`
+- Security changes → `docs/SECURITY.mdx`
+- Setup or configuration changes → `docs/SETUP_FIXES.mdx`
+- Categorization logic changes → `docs/CATEGORIZATION.mdx`
+- Import/export changes → `docs/KNOWLEDGE_IMPORT.mdx`
 
-Review `docs/TROUBLESHOOTING.md` to add any new common issues or solutions.
+Review `docs/TROUBLESHOOTING.mdx` to add any new common issues or solutions.
 
 ## Do NOT
 
