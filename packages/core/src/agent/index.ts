@@ -19,6 +19,7 @@ import {
   rememberAboutMeTool,
   recallKnowledgeTool,
   createCategorizeNoteTool,
+  markContentTool,
   createSetAgentVoiceTool,
   createExportNotesTool,
 } from './tools/index.js';
@@ -90,6 +91,7 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     completeReminderTool({ sqlite: deps.sqlite }),
     listRemindersTool({ sqlite: deps.sqlite }),
     linkNotesTool({ sqlite: deps.sqlite, markdown: deps.markdown }),
+    markContentTool({ sqlite: deps.sqlite, markdown: deps.markdown }),
     rememberAboutMeTool({ sqlite: deps.sqlite }),
     recallKnowledgeTool({ sqlite: deps.sqlite }),
     createCategorizeNoteTool({
