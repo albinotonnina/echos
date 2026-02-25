@@ -246,6 +246,14 @@ The helper `isAgentMessageOverflow(message, contextWindow)` is exported from `@e
 
 ## Prompt Caching
 
+Each agent instance is assigned a `sessionId` at creation time, forwarded to LLM providers that support session-aware prompt caching:
+
+| Interface | Session ID format |
+|---|---|
+| Telegram | `telegram-{userId}` |
+| Web | `web-{userId}` |
+| CLI (`pnpm echos`) | `cli-local` |
+
 EchOS configures prompt caching via `pi-ai`'s `cacheRetention` option, which controls the TTL of the `cache_control` markers applied to the system prompt and conversation history.
 
 ### Cache retention
