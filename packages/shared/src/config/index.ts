@@ -18,7 +18,7 @@ export const configSchema = z
   openaiApiKey: z.string().optional(),
 
   // Multi-provider LLM support
-  llmApiKey: z.string().optional(),
+  llmApiKey: z.string().min(1).optional(),
   llmBaseUrl: z.string().url().optional(),
 
   // Redis
