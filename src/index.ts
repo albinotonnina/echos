@@ -138,6 +138,7 @@ async function main(): Promise<void> {
     },
     thinkingLevel: config.thinkingLevel,
     logLlmPayloads: config.logLlmPayloads,
+    cacheRetention: config.cacheRetention,
     logger,
     pluginTools: [...pluginRegistry.getTools(), manageScheduleTool],
     exportsDir,
