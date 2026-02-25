@@ -55,11 +55,14 @@ bash /tmp/install-echos.sh
 **Problem**: Missing required env vars.
 
 **Required variables for non-interactive mode**:
-- `ANTHROPIC_API_KEY`
 - `ALLOWED_USER_IDS`
+- At least one LLM key: `ANTHROPIC_API_KEY` or `LLM_API_KEY`
 
 ```bash
+# Anthropic
 ANTHROPIC_API_KEY=sk-ant-... ALLOWED_USER_IDS=123456789 pnpm wizard --non-interactive
+# Other provider (e.g. Groq)
+LLM_API_KEY=gsk_... DEFAULT_MODEL=groq/llama-3.3-70b-versatile ALLOWED_USER_IDS=123456789 pnpm wizard --non-interactive
 ```
 
 ### .env file has wrong permissions
@@ -86,6 +89,8 @@ pnpm wizard
 Or for CI environments:
 ```bash
 ANTHROPIC_API_KEY=... ALLOWED_USER_IDS=... pnpm wizard --non-interactive --skip-validation
+# or with a non-Anthropic provider:
+LLM_API_KEY=... DEFAULT_MODEL=groq/llama-3.3-70b-versatile ALLOWED_USER_IDS=... pnpm wizard --non-interactive --skip-validation
 ```
 
 ---
@@ -186,7 +191,11 @@ Error: Invalid configuration:
    ```bash
    TELEGRAM_BOT_TOKEN=your_token_from_botfather
    ALLOWED_USER_IDS=123456789,987654321
+   # Anthropic:
    ANTHROPIC_API_KEY=sk-ant-your-key-here
+   # or another provider (e.g. Groq):
+   # LLM_API_KEY=gsk_...
+   # DEFAULT_MODEL=groq/llama-3.3-70b-versatile
    ```
 
 3. Get your Telegram user ID:
