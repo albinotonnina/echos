@@ -95,15 +95,15 @@ describe('createEchosAgent — effectiveCacheRetention', () => {
   });
 
   it('forces cacheRetention to none for custom endpoints regardless of setting', () => {
-    const agent = createEchosAgent(
-      makeMinimalDeps({
-        anthropicApiKey: undefined,
-        llmApiKey: 'custom-key',
-        llmBaseUrl: 'https://api.custom.example.com/v1',
-        modelId: 'some-model',
-        cacheRetention: 'long', // should be overridden to 'none'
-      }),
-    );
+    // Omit anthropicApiKey entirely (exactOptionalPropertyTypes disallows explicit undefined)
+    const { anthropicApiKey: _omit, ...baseWithoutAnthropicKey } = makeMinimalDeps();
+    const agent = createEchosAgent({
+      ...baseWithoutAnthropicKey,
+      llmApiKey: 'custom-key',
+      llmBaseUrl: 'https://api.custom.example.com/v1',
+      modelId: 'some-model',
+      cacheRetention: 'long', // should be overridden to 'none'
+    });
     invokeStreamFn(agent);
     expect(vi.mocked(streamSimple)).toHaveBeenCalledWith(
       expect.anything(),
