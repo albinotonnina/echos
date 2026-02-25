@@ -244,22 +244,34 @@ On overflow detection:
 
 The helper `isAgentMessageOverflow(message, contextWindow)` is exported from `@echos/core` for use in any interface adapter.
 
-## Agent Session Caching
+## Prompt Caching
 
-Each agent instance is assigned a `sessionId` at creation time, forwarded to LLM providers that support session-aware prompt caching:
+EchOS configures prompt caching via `pi-ai`'s `cacheRetention` option, which controls the TTL of the `cache_control` markers applied to the system prompt and conversation history.
 
-| Interface | Session ID format |
-|---|---|
-| Telegram | `telegram-{userId}` |
-| Web | `web-{userId}` |
-| CLI (`pnpm echos`) | `cli-local` |
+### Cache retention
 
-**Effect by provider:**
+| `CACHE_RETENTION` | TTL | Description |
+|---|---|---|
+| `long` (default) | 1 hour | Best for normal usage — nearly every message hits the cache |
+| `short` | 5 minutes | Useful for development or low-traffic sessions |
+| `none` | disabled | No `cache_control` markers sent |
 
-- **Anthropic**: Extends prompt cache TTL from the default 5 minutes to longer durations. Set `PI_CACHE_RETENTION=long` for 1-hour retention.
-- **OpenAI**: Enables 24-hour in-memory cache reuse across calls.
+**Provider support:**
 
-No configuration required — caching is automatic when a `sessionId` is present.
+- **Anthropic models**: Full prompt caching with configurable TTL. The stable system prompt (~800 tokens + up to 15 injected memories) is cached, reducing input token costs by ~90% on cache hits.
+- **Custom OpenAI-compatible endpoints** (`LLM_BASE_URL` set): `cacheRetention` is forced to `'none'` regardless of `CACHE_RETENTION`. Custom endpoints do not support Anthropic-style prompt caching.
+
+### Startup log
+
+On startup, `cacheRetention` is logged alongside the model and thinking level:
+
+```json
+{ "model": "claude-haiku-4-5-20251001", "thinkingLevel": "off", "cacheRetention": "long", ... }
+```
+
+### Verifying cache hits
+
+With `LOG_LLM_PAYLOADS=true`, the raw request payload will show `cache_control` markers on the system prompt. After the second message in a session, usage stats should show non-zero `cacheReadTokens`.
 
 ## Multi-Provider LLM Support
 

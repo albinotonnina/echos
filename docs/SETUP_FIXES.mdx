@@ -2,6 +2,33 @@
 
 This document tracks configuration changes and fixes made to ensure the project runs correctly.
 
+## February 25, 2026 — Configurable Prompt Cache Retention
+
+### New env var: `CACHE_RETENTION`
+
+Controls the TTL of Anthropic prompt cache markers applied to the system prompt and conversation history. Defaults to `long` (1-hour TTL).
+
+```bash
+CACHE_RETENTION=long    # default — 1h TTL, best cost savings for Anthropic
+CACHE_RETENTION=short   # 5min TTL — useful during development
+CACHE_RETENTION=none    # disable prompt caching entirely
+```
+
+**Important**: This setting only affects Anthropic models. When `LLM_BASE_URL` is set (custom OpenAI-compatible endpoint), `cacheRetention` is forced to `'none'` regardless of this env var, since those endpoints do not support Anthropic-style prompt caching.
+
+The effective value is logged at startup:
+```json
+{ "model": "...", "cacheRetention": "long", ... }
+```
+
+**Files changed:**
+- `packages/shared/src/config/index.ts` — added `cacheRetention` Zod enum field; `CACHE_RETENTION` env var mapping
+- `packages/core/src/agent/index.ts` — `cacheRetention?` in `AgentDeps`; `effectiveCacheRetention` computed (forced `'none'` for non-Anthropic); passed to `streamSimple`; logged at startup
+- `src/index.ts` — passes `config.cacheRetention` into `AgentDeps`
+- `.env.example` — `CACHE_RETENTION=long` added under LLM settings
+
+---
+
 ## February 19, 2026 — Standalone CLI & Model Deprecation Fix
 
 ### `pnpm echos` — standalone three-mode CLI
