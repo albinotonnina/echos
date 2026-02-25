@@ -261,6 +261,56 @@ Each agent instance is assigned a `sessionId` at creation time, forwarded to LLM
 
 No configuration required — caching is automatic when a `sessionId` is present.
 
+## Multi-Provider LLM Support
+
+EchOS supports any LLM provider available through `pi-ai` (23+ providers) as well as custom OpenAI-compatible endpoints such as DeepInfra and Groq. The provider is selected entirely through environment variables — no code changes are needed.
+
+### Configuration
+
+| Environment variable | Purpose |
+|---|---|
+| `ANTHROPIC_API_KEY` | API key for Anthropic (existing behaviour) |
+| `LLM_API_KEY` | API key for any other provider (Groq, DeepInfra, etc.) |
+| `LLM_BASE_URL` | Base URL for a custom OpenAI-compatible endpoint |
+| `DEFAULT_MODEL` | Model spec string (see formats below) |
+
+At least one of `ANTHROPIC_API_KEY` or `LLM_API_KEY` must be set. If `LLM_BASE_URL` is set, `LLM_API_KEY` is required. Validation is enforced at startup.
+
+### Model Spec Formats
+
+| Format | Example | Provider used |
+|---|---|---|
+| Bare model ID | `claude-haiku-4-5-20251001` | Inferred (Anthropic) |
+| `provider/model` | `groq/llama-3.3-70b-versatile` | Explicit (Groq) |
+| Any string + `LLM_BASE_URL` | `meta-llama/Meta-Llama-3.1-70B-Instruct` | Custom OpenAI-compatible endpoint |
+
+### Usage Examples
+
+**Existing Anthropic setup — no change needed:**
+```env
+ANTHROPIC_API_KEY=sk-ant-...
+DEFAULT_MODEL=claude-haiku-4-5-20251001
+```
+
+**DeepInfra (LLaMA via OpenAI-compatible endpoint):**
+```env
+LLM_API_KEY=<deepinfra_key>
+LLM_BASE_URL=https://api.deepinfra.com/v1/openai
+DEFAULT_MODEL=meta-llama/Meta-Llama-3.1-70B-Instruct
+```
+
+**Groq (native pi-ai provider):**
+```env
+LLM_API_KEY=<groq_key>
+DEFAULT_MODEL=groq/llama-3.3-70b-versatile
+```
+
+### Implementation
+
+`resolveModel(spec, baseUrl?)` in `packages/core/src/agent/model-resolver.ts` handles the translation from a spec string to a `pi-ai` `Model` object. When `baseUrl` is provided it constructs a `Model` with `api: 'openai-completions'` pointing at the custom endpoint; otherwise it delegates to `getModel()` from `pi-ai` using inferred or explicit provider/model-ID pairs.
+
+The resolved API key is injected into every LLM call via `agent.streamFn`, which wraps `streamSimple` and adds the `apiKey` option. This covers the main conversation agent. The `categorize_note` tool resolves its own model via `resolveModel()` and picks the matching key by inspecting `model.provider` directly.
+
 ## Security
 
 - User authentication via Telegram user ID whitelist

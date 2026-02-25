@@ -4,14 +4,17 @@ import type { SqliteStorage } from '../../storage/sqlite.js';
 import type { MarkdownStorage } from '../../storage/markdown.js';
 import type { VectorStorage } from '../../storage/vectordb.js';
 import type { Logger } from 'pino';
-import { categorizeContent, type ProcessingMode } from '../categorization.js';
+import { categorizeContent, type ProcessingMode, DEFAULT_CATEGORIZATION_MODEL } from '../categorization.js';
+import { resolveModel } from '../model-resolver.js';
 
 export interface CategorizeNoteToolDeps {
   sqlite: SqliteStorage;
   markdown: MarkdownStorage;
   vectorDb: VectorStorage;
   generateEmbedding: (text: string) => Promise<number[]>;
-  anthropicApiKey: string;
+  anthropicApiKey?: string;
+  llmApiKey?: string;
+  llmBaseUrl?: string;
   modelId?: string;
   logger: Logger;
 }
@@ -48,14 +51,20 @@ export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentToo
       const mode: ProcessingMode = params.mode ?? 'lightweight';
 
       try {
+        const model = resolveModel(deps.modelId ?? DEFAULT_CATEGORIZATION_MODEL, deps.llmBaseUrl);
+        const apiKey =
+          (model.provider as string) === 'anthropic'
+            ? (deps.anthropicApiKey ?? '')
+            : (deps.llmApiKey ?? '');
         const result = await categorizeContent(
           noteRow.title,
           noteRow.content,
           mode,
-          deps.anthropicApiKey,
+          apiKey,
           deps.logger,
           undefined,
           deps.modelId,
+          deps.llmBaseUrl,
         );
 
         // Parse existing note - fall back to SQLite content if file is missing

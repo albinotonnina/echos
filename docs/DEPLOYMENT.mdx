@@ -235,9 +235,13 @@ tar -xzf backups/echos_backup_TIMESTAMP.tar.gz
 See `.env.example` for the full list. Required:
 - `TELEGRAM_BOT_TOKEN` - Get from @BotFather on Telegram
 - `ALLOWED_USER_IDS` - Comma-separated Telegram user IDs (get from @userinfobot)
-- `ANTHROPIC_API_KEY` - Get from https://console.anthropic.com/
+- **At least one LLM key:**
+  - `ANTHROPIC_API_KEY` - Anthropic pay-as-you-go key from https://console.anthropic.com/
+  - `LLM_API_KEY` - API key for any other provider (Groq, Mistral, xAI, etc.)
+- `DEFAULT_MODEL` - Model spec: bare ID (`claude-haiku-4-5-20251001`), `provider/model` (`groq/llama-3.3-70b-versatile`), or any ID when using `LLM_BASE_URL`
 
-Optional but recommended:
+Optional:
+- `LLM_BASE_URL` - Custom OpenAI-compatible endpoint (e.g. DeepInfra); requires `LLM_API_KEY`
 - `OPENAI_API_KEY` - Required for embeddings and Whisper transcription
 
 Scheduler (requires Redis):

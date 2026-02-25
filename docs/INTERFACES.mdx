@@ -577,7 +577,7 @@ lsof -ti:3000 | xargs kill
 ### CLI: No output / empty response
 - The model may have changed. Check `DEFAULT_MODEL` in `.env` — ensure it's not a deprecated model
 - Run with `LOG_LEVEL=info pnpm echos "query"` to see startup and agent creation logs
-- Ensure `ANTHROPIC_API_KEY` is set in `.env`
+- Ensure at least one LLM API key is set: `ANTHROPIC_API_KEY` (Anthropic) or `LLM_API_KEY` (other providers)
 
 ### CLI: Startup logs cluttering output
 - By default the CLI runs at log level `warn` — you should only see agent responses

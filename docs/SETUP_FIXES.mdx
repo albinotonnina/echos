@@ -352,9 +352,10 @@ pnpm start
 Required variables (must be set in `.env`):
 - `TELEGRAM_BOT_TOKEN` - From @BotFather
 - `ALLOWED_USER_IDS` - Comma-separated Telegram user IDs
-- `ANTHROPIC_API_KEY` - From Anthropic Console
+- **At least one LLM key:** `ANTHROPIC_API_KEY` (Anthropic) or `LLM_API_KEY` (other providers)
 
-Optional but recommended:
+Optional:
+- `LLM_BASE_URL` - Custom OpenAI-compatible endpoint; requires `LLM_API_KEY`
 - `OPENAI_API_KEY` - For embeddings and Whisper
 
 See `.env.example` for full list with defaults.

@@ -2,12 +2,15 @@
  * Resolves a user-supplied model spec string to a pi-ai Model object.
  *
  * Supported formats:
- *   "claude-haiku-4-5-20251001"        → inferred provider (anthropic)
- *   "gpt-4o"                           → inferred provider (openai)
- *   "anthropic/claude-sonnet-4-5"      → explicit provider
- *   "openai/gpt-4o"                    → explicit provider
+ *   "claude-haiku-4-5-20251001"                  → provider inferred (anthropic)
+ *   "gpt-4o"                                     → provider inferred (openai)
+ *   "anthropic/claude-sonnet-4-5"                → explicit provider/model
+ *   "groq/llama-3.3-70b-versatile"               → explicit provider/model
+ *   any spec + baseUrl                           → custom OpenAI-compatible endpoint
+ *     e.g. "meta-llama/Meta-Llama-3.1-70B-Instruct" + "https://api.deepinfra.com/v1/openai"
+ *     The full spec is forwarded as the model ID; "/" is NOT treated as a provider separator.
  *
- * Falls back to anthropic for unrecognised prefixes.
+ * Falls back to anthropic for unrecognised prefixes (no baseUrl).
  */
 
 import { getModel } from '@mariozechner/pi-ai';
@@ -30,7 +33,27 @@ function inferProvider(modelId: string): string {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function resolveModel(spec: string): Model<any> {
+export function resolveModel(spec: string, baseUrl?: string): Model<any> {
+  if (baseUrl) {
+    // Custom OpenAI-compatible endpoint — preserve full spec as model ID
+    // (DeepInfra expects e.g. "meta-llama/Meta-Llama-3.1-70B-Instruct" as model ID)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return {
+      id: spec,
+      name: spec,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      api: 'openai-completions' as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      provider: 'custom' as any,
+      baseUrl,
+      reasoning: false,
+      input: ['text' as const],
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      contextWindow: 128000,
+      maxTokens: 32000,
+    } as Model<any>;
+  }
+
   let provider: string;
   let modelId: string;
 

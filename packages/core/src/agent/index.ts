@@ -1,8 +1,9 @@
 import { Agent } from '@mariozechner/pi-agent-core';
 import type { AgentTool, ThinkingLevel } from '@mariozechner/pi-agent-core';
-import { getModel, streamSimple } from '@mariozechner/pi-ai';
+import { streamSimple } from '@mariozechner/pi-ai';
 import type { Logger } from 'pino';
 import { buildSystemPrompt } from './system-prompt.js';
+import { resolveModel } from './model-resolver.js';
 import { createContextWindow } from './context-manager.js';
 import { echosConvertToLlm } from './messages.js';
 import {
@@ -34,7 +35,9 @@ export interface AgentDeps {
   vectorDb: VectorStorage;
   search: SearchService;
   generateEmbedding: (text: string) => Promise<number[]>;
-  anthropicApiKey: string;
+  anthropicApiKey?: string;
+  llmApiKey?: string;
+  llmBaseUrl?: string;
   modelId?: string;
   logger: Logger;
   /** Named model presets available for /model switching */
@@ -50,11 +53,29 @@ export interface AgentDeps {
   exportsDir?: string;
 }
 
+function pickApiKey(provider: string, deps: AgentDeps): string {
+  if (provider === 'anthropic') {
+    if (!deps.anthropicApiKey) {
+      throw new Error(
+        'ANTHROPIC_API_KEY is required when using an Anthropic model. Set it in your environment.',
+      );
+    }
+    return deps.anthropicApiKey;
+  }
+  if (!deps.llmApiKey) {
+    throw new Error(
+      'LLM_API_KEY is required when using a non-Anthropic model. Set it in your environment.',
+    );
+  }
+  return deps.llmApiKey;
+}
+
 export function createEchosAgent(deps: AgentDeps): Agent {
-  const model = getModel(
-    'anthropic',
-    (deps.modelId ?? 'claude-haiku-4-5-20251001') as Parameters<typeof getModel>[1],
+  const model = resolveModel(
+    deps.modelId ?? 'claude-haiku-4-5-20251001',
+    deps.llmBaseUrl,
   );
+  const apiKey = pickApiKey(model.provider as string, deps);
 
   const storageDeps = {
     sqlite: deps.sqlite,
@@ -96,7 +117,9 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     recallKnowledgeTool({ sqlite: deps.sqlite }),
     createCategorizeNoteTool({
       ...storageDeps,
-      anthropicApiKey: deps.anthropicApiKey,
+      ...(deps.anthropicApiKey !== undefined ? { anthropicApiKey: deps.anthropicApiKey } : {}),
+      ...(deps.llmApiKey !== undefined ? { llmApiKey: deps.llmApiKey } : {}),
+      ...(deps.llmBaseUrl !== undefined ? { llmBaseUrl: deps.llmBaseUrl } : {}),
       ...(deps.modelId !== undefined ? { modelId: deps.modelId } : {}),
       logger: deps.logger,
     }),
@@ -148,11 +171,14 @@ export function createEchosAgent(deps: AgentDeps): Agent {
   // Wire the mutable ref so set_agent_voice can update the system prompt mid-session
   agentRef = agent;
 
-  if (deps.logLlmPayloads) {
+  if (apiKey || deps.logLlmPayloads) {
     agent.streamFn = (m, context, options) =>
       streamSimple(m, context, {
         ...options,
-        onPayload: (payload) => deps.logger.debug({ payload }, 'LLM request payload'),
+        ...(apiKey ? { apiKey } : {}),
+        ...(deps.logLlmPayloads
+          ? { onPayload: (payload) => deps.logger.debug({ payload }, 'LLM request payload') }
+          : {}),
       });
   }
 
