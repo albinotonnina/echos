@@ -69,4 +69,17 @@ describe('loadConfig', () => {
     expect(config.llmBaseUrl).toBe('https://api.deepinfra.com/v1/openai');
     expect(config.defaultModel).toBe('meta-llama/Meta-Llama-3.1-70B-Instruct');
   });
+
+  it('defaults cacheRetention to long', () => {
+    const config = loadConfig(validEnv);
+    expect(config.cacheRetention).toBe('long');
+  });
+
+  it('accepts cacheRetention values', () => {
+    for (const v of ['none', 'short', 'long'] as const) {
+      resetConfig();
+      const config = loadConfig({ ...validEnv, CACHE_RETENTION: v });
+      expect(config.cacheRetention).toBe(v);
+    }
+  });
 });
