@@ -309,7 +309,7 @@ DEFAULT_MODEL=groq/llama-3.3-70b-versatile
 
 `resolveModel(spec, baseUrl?)` in `packages/core/src/agent/model-resolver.ts` handles the translation from a spec string to a `pi-ai` `Model` object. When `baseUrl` is provided it constructs a `Model` with `api: 'openai-completions'` pointing at the custom endpoint; otherwise it delegates to `getModel()` from `pi-ai` using inferred or explicit provider/model-ID pairs.
 
-The resolved API key is injected into every LLM call via `agent.streamFn`, which wraps `streamSimple` and adds the `apiKey` option. This covers both the main conversation agent and the standalone `categorize_note` tool.
+The resolved API key is injected into every LLM call via `agent.streamFn`, which wraps `streamSimple` and adds the `apiKey` option. This covers the main conversation agent. The `categorize_note` tool resolves its own model via `resolveModel()` and picks the matching key by inspecting `model.provider` directly.
 
 ## Security
 

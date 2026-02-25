@@ -4,7 +4,8 @@ import type { SqliteStorage } from '../../storage/sqlite.js';
 import type { MarkdownStorage } from '../../storage/markdown.js';
 import type { VectorStorage } from '../../storage/vectordb.js';
 import type { Logger } from 'pino';
-import { categorizeContent, type ProcessingMode } from '../categorization.js';
+import { categorizeContent, type ProcessingMode, DEFAULT_CATEGORIZATION_MODEL } from '../categorization.js';
+import { resolveModel } from '../model-resolver.js';
 
 export interface CategorizeNoteToolDeps {
   sqlite: SqliteStorage;
@@ -50,7 +51,11 @@ export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentToo
       const mode: ProcessingMode = params.mode ?? 'lightweight';
 
       try {
-        const apiKey = deps.llmApiKey ?? deps.anthropicApiKey ?? '';
+        const model = resolveModel(deps.modelId ?? DEFAULT_CATEGORIZATION_MODEL, deps.llmBaseUrl);
+        const apiKey =
+          (model.provider as string) === 'anthropic'
+            ? (deps.anthropicApiKey ?? '')
+            : (deps.llmApiKey ?? '');
         const result = await categorizeContent(
           noteRow.title,
           noteRow.content,

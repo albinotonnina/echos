@@ -54,8 +54,20 @@ export interface AgentDeps {
 }
 
 function pickApiKey(provider: string, deps: AgentDeps): string {
-  if (provider === 'anthropic') return deps.anthropicApiKey ?? '';
-  return deps.llmApiKey ?? '';
+  if (provider === 'anthropic') {
+    if (!deps.anthropicApiKey) {
+      throw new Error(
+        'ANTHROPIC_API_KEY is required when using an Anthropic model. Set it in your environment.',
+      );
+    }
+    return deps.anthropicApiKey;
+  }
+  if (!deps.llmApiKey) {
+    throw new Error(
+      'LLM_API_KEY is required when using a non-Anthropic model. Set it in your environment.',
+    );
+  }
+  return deps.llmApiKey;
 }
 
 export function createEchosAgent(deps: AgentDeps): Agent {
