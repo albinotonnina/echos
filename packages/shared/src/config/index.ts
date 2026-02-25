@@ -71,29 +71,19 @@ export const configSchema = z
     .transform((s) => s === 'true'),
 })
 .superRefine((data, ctx) => {
-  const defaultModel = data.defaultModel || '';
-  const llmBaseUrl = data.llmBaseUrl || '';
-
-  const isAnthropicModel = defaultModel.toLowerCase().includes('claude');
-  const isAnthropicBaseUrl = llmBaseUrl.toLowerCase().includes('anthropic');
-  const usesAnthropic = isAnthropicModel || isAnthropicBaseUrl;
-
-  if (usesAnthropic) {
-    if (!data.anthropicApiKey || data.anthropicApiKey.length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'ANTHROPIC_API_KEY must be set when using an Anthropic (Claude) model or Anthropic LLM base URL',
-        path: ['anthropicApiKey'],
-      });
-    }
-  } else {
-    if (!data.llmApiKey || data.llmApiKey.length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'LLM_API_KEY must be set when using non-Anthropic or custom LLM models / base URLs',
-        path: ['llmApiKey'],
-      });
-    }
+  if (!data.anthropicApiKey && !data.llmApiKey) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'At least one of ANTHROPIC_API_KEY or LLM_API_KEY must be set',
+      path: ['anthropicApiKey'],
+    });
+  }
+  if (data.llmBaseUrl && !data.llmApiKey) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'LLM_API_KEY must be set when LLM_BASE_URL is provided',
+      path: ['llmApiKey'],
+    });
   }
 });
 
