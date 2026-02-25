@@ -30,7 +30,27 @@ function inferProvider(modelId: string): string {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function resolveModel(spec: string): Model<any> {
+export function resolveModel(spec: string, baseUrl?: string): Model<any> {
+  if (baseUrl) {
+    // Custom OpenAI-compatible endpoint — preserve full spec as model ID
+    // (DeepInfra expects e.g. "meta-llama/Meta-Llama-3.1-70B-Instruct" as model ID)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return {
+      id: spec,
+      name: spec,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      api: 'openai-completions' as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      provider: 'custom' as any,
+      baseUrl,
+      reasoning: false,
+      input: ['text' as const],
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      contextWindow: 128000,
+      maxTokens: 32000,
+    } as Model<any>;
+  }
+
   let provider: string;
   let modelId: string;
 

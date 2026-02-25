@@ -4,7 +4,7 @@
  */
 
 import type { Logger } from 'pino';
-import { streamSimple, getModel, parseStreamingJson } from '@mariozechner/pi-ai';
+import { streamSimple, parseStreamingJson } from '@mariozechner/pi-ai';
 
 /**
  * Categorization result (lightweight mode)
@@ -28,7 +28,7 @@ export interface FullProcessingResult extends CategorizationResult {
  */
 export type ProcessingMode = 'lightweight' | 'full';
 
-import { MODEL_PRESETS } from './model-resolver.js';
+import { MODEL_PRESETS, resolveModel } from './model-resolver.js';
 
 const MODEL_ID = MODEL_PRESETS.fast;
 export { MODEL_ID as DEFAULT_CATEGORIZATION_MODEL };
@@ -43,6 +43,7 @@ export async function categorizeLightweight(
   logger: Logger,
   onProgress?: (message: string) => void,
   modelId: string = MODEL_ID,
+  baseUrl?: string,
 ): Promise<CategorizationResult> {
   logger.debug({ title }, 'Starting lightweight categorization');
 
@@ -64,8 +65,7 @@ Respond with a JSON object in this exact format:
 }`;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const model = getModel('anthropic', modelId as any);
+    const model = resolveModel(modelId, baseUrl);
     const stream = streamSimple(
       model,
       { messages: [{ role: 'user', content: prompt, timestamp: Date.now() }] },
@@ -124,6 +124,7 @@ export async function processFull(
   logger: Logger,
   onProgress?: (message: string) => void,
   modelId: string = MODEL_ID,
+  baseUrl?: string,
 ): Promise<FullProcessingResult> {
   logger.debug({ title }, 'Starting full content processing');
 
@@ -151,8 +152,7 @@ Respond with a JSON object in this exact format:
 }`;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const model = getModel('anthropic', modelId as any);
+    const model = resolveModel(modelId, baseUrl);
     const stream = streamSimple(
       model,
       { messages: [{ role: 'user', content: prompt, timestamp: Date.now() }] },
@@ -229,10 +229,11 @@ export async function categorizeContent(
   logger: Logger,
   onProgress?: (message: string) => void,
   modelId: string = MODEL_ID,
+  baseUrl?: string,
 ): Promise<CategorizationResult | FullProcessingResult> {
   if (mode === 'lightweight') {
-    return categorizeLightweight(title, content, apiKey, logger, onProgress, modelId);
+    return categorizeLightweight(title, content, apiKey, logger, onProgress, modelId, baseUrl);
   } else {
-    return processFull(title, content, apiKey, logger, onProgress, modelId);
+    return processFull(title, content, apiKey, logger, onProgress, modelId, baseUrl);
   }
 }

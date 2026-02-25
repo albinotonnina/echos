@@ -36,4 +36,32 @@ describe('loadConfig', () => {
     const config = loadConfig({ ...validEnv, ALLOWED_USER_IDS: '1, 2, 3' });
     expect(config.allowedUserIds).toEqual([1, 2, 3]);
   });
+
+  it('should accept LLM_API_KEY without ANTHROPIC_API_KEY', () => {
+    const env = { ALLOWED_USER_IDS: '123', LLM_API_KEY: 'gsk_test' };
+    const config = loadConfig(env);
+    expect(config.llmApiKey).toBe('gsk_test');
+    expect(config.anthropicApiKey).toBeUndefined();
+  });
+
+  it('should throw when neither ANTHROPIC_API_KEY nor LLM_API_KEY is set', () => {
+    expect(() => loadConfig({ ALLOWED_USER_IDS: '123' })).toThrow('Invalid configuration');
+  });
+
+  it('should throw when LLM_BASE_URL is set without LLM_API_KEY', () => {
+    expect(() =>
+      loadConfig({ ALLOWED_USER_IDS: '123', LLM_BASE_URL: 'https://api.deepinfra.com/v1/openai' }),
+    ).toThrow('Invalid configuration');
+  });
+
+  it('should accept LLM_BASE_URL together with LLM_API_KEY', () => {
+    const env = {
+      ALLOWED_USER_IDS: '123',
+      LLM_API_KEY: 'di_test',
+      LLM_BASE_URL: 'https://api.deepinfra.com/v1/openai',
+    };
+    const config = loadConfig(env);
+    expect(config.llmApiKey).toBe('di_test');
+    expect(config.llmBaseUrl).toBe('https://api.deepinfra.com/v1/openai');
+  });
 });

@@ -111,6 +111,8 @@ async function main(): Promise<void> {
     config: {
       ...(config.openaiApiKey ? { openaiApiKey: config.openaiApiKey } : {}),
       ...(config.anthropicApiKey ? { anthropicApiKey: config.anthropicApiKey } : {}),
+      ...(config.llmApiKey ? { llmApiKey: config.llmApiKey } : {}),
+      ...(config.llmBaseUrl ? { llmBaseUrl: config.llmBaseUrl } : {}),
       ...(config.webshareProxyUsername ? { webshareProxyUsername: config.webshareProxyUsername } : {}),
       ...(config.webshareProxyPassword ? { webshareProxyPassword: config.webshareProxyPassword } : {}),
       knowledgeDir: config.knowledgeDir,
@@ -126,7 +128,9 @@ async function main(): Promise<void> {
     vectorDb,
     search,
     generateEmbedding,
-    anthropicApiKey: config.anthropicApiKey,
+    ...(config.anthropicApiKey !== undefined ? { anthropicApiKey: config.anthropicApiKey } : {}),
+    ...(config.llmApiKey !== undefined ? { llmApiKey: config.llmApiKey } : {}),
+    ...(config.llmBaseUrl !== undefined ? { llmBaseUrl: config.llmBaseUrl } : {}),
     modelId: config.defaultModel,
     modelPresets: {
       ...(config.modelBalanced ? { balanced: config.modelBalanced } : {}),

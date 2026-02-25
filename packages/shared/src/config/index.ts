@@ -7,14 +7,19 @@ const commaSeparatedNumbers = z
 
 
 
-export const configSchema = z.object({
+export const configSchema = z
+  .object({
   // Required
   telegramBotToken: z.string().optional(), // Required only when enableTelegram=true (checked at runtime)
   allowedUserIds: commaSeparatedNumbers,
-  anthropicApiKey: z.string().min(1),
+  anthropicApiKey: z.string().min(1).optional(),
 
   // Optional
   openaiApiKey: z.string().optional(),
+
+  // Multi-provider LLM support
+  llmApiKey: z.string().optional(),
+  llmBaseUrl: z.string().url().optional(),
 
   // Redis
   redisUrl: z.string().url().default('redis://localhost:6379'),
@@ -64,6 +69,22 @@ export const configSchema = z.object({
     .string()
     .default('false')
     .transform((s) => s === 'true'),
+})
+.superRefine((data, ctx) => {
+  if (!data.anthropicApiKey && !data.llmApiKey) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'At least one of ANTHROPIC_API_KEY or LLM_API_KEY must be set',
+      path: ['anthropicApiKey'],
+    });
+  }
+  if (data.llmBaseUrl && !data.llmApiKey) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'LLM_API_KEY must be set when LLM_BASE_URL is provided',
+      path: ['llmApiKey'],
+    });
+  }
 });
 
 export type Config = z.infer<typeof configSchema>;
@@ -78,6 +99,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     allowedUserIds: env['ALLOWED_USER_IDS'],
     anthropicApiKey: env['ANTHROPIC_API_KEY'],
     openaiApiKey: env['OPENAI_API_KEY'],
+    llmApiKey: env['LLM_API_KEY'],
+    llmBaseUrl: env['LLM_BASE_URL'],
     redisUrl: env['REDIS_URL'],
     knowledgeDir: env['KNOWLEDGE_DIR'],
     dbPath: env['DB_PATH'],

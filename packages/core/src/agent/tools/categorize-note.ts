@@ -11,7 +11,9 @@ export interface CategorizeNoteToolDeps {
   markdown: MarkdownStorage;
   vectorDb: VectorStorage;
   generateEmbedding: (text: string) => Promise<number[]>;
-  anthropicApiKey: string;
+  anthropicApiKey?: string;
+  llmApiKey?: string;
+  llmBaseUrl?: string;
   modelId?: string;
   logger: Logger;
 }
@@ -48,14 +50,16 @@ export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentToo
       const mode: ProcessingMode = params.mode ?? 'lightweight';
 
       try {
+        const apiKey = deps.llmApiKey ?? deps.anthropicApiKey ?? '';
         const result = await categorizeContent(
           noteRow.title,
           noteRow.content,
           mode,
-          deps.anthropicApiKey,
+          apiKey,
           deps.logger,
           undefined,
           deps.modelId,
+          deps.llmBaseUrl,
         );
 
         // Parse existing note - fall back to SQLite content if file is missing
