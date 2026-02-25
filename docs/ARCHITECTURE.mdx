@@ -254,20 +254,21 @@ Each agent instance is assigned a `sessionId` at creation time, forwarded to LLM
 | Web | `web-{userId}` |
 | CLI (`pnpm echos`) | `cli-local` |
 
-EchOS configures prompt caching via `pi-ai`'s `cacheRetention` option, which controls the TTL of the `cache_control` markers applied to the system prompt and conversation history.
+`pi-ai` applies `cache_control` markers to the system prompt and last user message automatically. The TTL is controlled via the `cacheRetention` option passed to `streamSimple` — `pi-ai` also reads a legacy `PI_CACHE_RETENTION` env var for backward compatibility, but EchOS passes it explicitly so behavior is consistent and provider-aware.
 
 ### Cache retention
 
 | `CACHE_RETENTION` | TTL | Description |
 |---|---|---|
 | `long` (default) | 1 hour | Best for normal usage — nearly every message hits the cache |
-| `short` | 5 minutes | Useful for development or low-traffic sessions |
+| `short` | 5 minutes | Matches pi-ai's own default; useful during development |
 | `none` | disabled | No `cache_control` markers sent |
 
 **Provider support:**
 
 - **Anthropic models**: Full prompt caching with configurable TTL. The stable system prompt (~800 tokens + up to 15 injected memories) is cached, reducing input token costs by ~90% on cache hits.
-- **Custom OpenAI-compatible endpoints** (`LLM_BASE_URL` set): `cacheRetention` is forced to `'none'` regardless of `CACHE_RETENTION`. Custom endpoints do not support Anthropic-style prompt caching.
+- **Custom OpenAI-compatible endpoints** (`LLM_BASE_URL` set): `cacheRetention` is forced to `'none'` regardless of `CACHE_RETENTION`. These endpoints do not support Anthropic-style prompt caching.
+- Caching is not applied to the categorization service (`categorize_note` tool) — it has no stable system prompt, so caching would add no value.
 
 ### Startup log
 

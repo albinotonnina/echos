@@ -6,17 +6,19 @@ This document tracks configuration changes and fixes made to ensure the project 
 
 ### New env var: `CACHE_RETENTION`
 
-Controls the TTL of Anthropic prompt cache markers applied to the system prompt and conversation history. Defaults to `long` (1-hour TTL).
+`pi-ai` already supported a `PI_CACHE_RETENTION` env var for controlling Anthropic prompt cache TTL (checked inside `resolveCacheRetention` in the provider), defaulting to `'short'` (5 min) unless `PI_CACHE_RETENTION=long` was set. EchOS now exposes this as a first-class Zod-validated config field, with a default of `'long'` and automatic enforcement of `'none'` for custom endpoints.
 
 ```bash
-CACHE_RETENTION=long    # default — 1h TTL, best cost savings for Anthropic
-CACHE_RETENTION=short   # 5min TTL — useful during development
+CACHE_RETENTION=long    # default — 1h TTL; best cost savings for Anthropic
+CACHE_RETENTION=short   # 5min TTL — matches old pi-ai default
 CACHE_RETENTION=none    # disable prompt caching entirely
 ```
 
-**Important**: This setting only affects Anthropic models. When `LLM_BASE_URL` is set (custom OpenAI-compatible endpoint), `cacheRetention` is forced to `'none'` regardless of this env var, since those endpoints do not support Anthropic-style prompt caching.
+**What changed vs. the old `PI_CACHE_RETENTION` approach:**
+- EchOS now defaults to `'long'` instead of pi-ai's `'short'`
+- When `LLM_BASE_URL` is set (custom OpenAI-compatible endpoint), `cacheRetention` is forced to `'none'` regardless of this env var — those endpoints do not support Anthropic-style prompt caching
+- The effective value is Zod-validated and logged at startup
 
-The effective value is logged at startup:
 ```json
 { "model": "...", "cacheRetention": "long", ... }
 ```
