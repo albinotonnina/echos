@@ -38,9 +38,11 @@ describe('loadConfig', () => {
   });
 
   it('should accept LLM_API_KEY without ANTHROPIC_API_KEY', () => {
-    const env = { ALLOWED_USER_IDS: '123', LLM_API_KEY: 'gsk_test' };
+    // DEFAULT_MODEL must be a non-Anthropic model; otherwise pickApiKey() will throw at agent creation.
+    const env = { ALLOWED_USER_IDS: '123', LLM_API_KEY: 'gsk_test', DEFAULT_MODEL: 'groq/llama-3.3-70b-versatile' };
     const config = loadConfig(env);
     expect(config.llmApiKey).toBe('gsk_test');
+    expect(config.defaultModel).toBe('groq/llama-3.3-70b-versatile');
     expect(config.anthropicApiKey).toBeUndefined();
   });
 
@@ -55,13 +57,16 @@ describe('loadConfig', () => {
   });
 
   it('should accept LLM_BASE_URL together with LLM_API_KEY', () => {
+    // DEFAULT_MODEL is the model ID forwarded as-is to the custom endpoint.
     const env = {
       ALLOWED_USER_IDS: '123',
       LLM_API_KEY: 'di_test',
       LLM_BASE_URL: 'https://api.deepinfra.com/v1/openai',
+      DEFAULT_MODEL: 'meta-llama/Meta-Llama-3.1-70B-Instruct',
     };
     const config = loadConfig(env);
     expect(config.llmApiKey).toBe('di_test');
     expect(config.llmBaseUrl).toBe('https://api.deepinfra.com/v1/openai');
+    expect(config.defaultModel).toBe('meta-llama/Meta-Llama-3.1-70B-Instruct');
   });
 });

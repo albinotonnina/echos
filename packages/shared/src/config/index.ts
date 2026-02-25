@@ -71,6 +71,10 @@ export const configSchema = z
     .transform((s) => s === 'true'),
 })
 .superRefine((data, ctx) => {
+  // Note: we intentionally do NOT validate that the API key matches DEFAULT_MODEL's provider here.
+  // defaultModel has a schema-level default ('claude-haiku-4-5-20251001'), so we cannot distinguish
+  // "user didn't set DEFAULT_MODEL" from "user set it to the default value" after parsing.
+  // Mismatched key+model combos are caught at agent creation by pickApiKey() with a clear error.
   if (!data.anthropicApiKey && !data.llmApiKey) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
