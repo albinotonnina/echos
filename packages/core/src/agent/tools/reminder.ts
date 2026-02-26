@@ -96,7 +96,7 @@ export function completeReminderTool(deps: ReminderToolDeps): AgentTool<typeof c
         content: [
           {
             type: 'text' as const,
-            text: `Completed reminder: "${existing.title}" (${params.id})`,
+            text: `Completed ${existing.kind}: "${existing.title}" (${params.id})`,
           },
         ],
         details: { id: params.id, title: existing.title },
