@@ -9,7 +9,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 // ---------------------------------------------------------------------------
@@ -68,15 +68,22 @@ const nextVersion = bumpVersion(currentVersion, bump);
 
 console.log(`\nBumping ${bump}: ${currentVersion} → ${nextVersion}\n`);
 
+// Discover all workspace packages dynamically to avoid missing newly-added ones
+function discoverWorkspacePackages(dir: string): string[] {
+  try {
+    return readdirSync(resolve(ROOT, dir))
+      .filter((entry) => statSync(resolve(ROOT, dir, entry)).isDirectory())
+      .map((entry) => resolve(ROOT, dir, entry, 'package.json'));
+  } catch {
+    return [];
+  }
+}
+
 // Collect all package.json files to update
 const packageJsonPaths: string[] = [
   rootPkgPath,
-  ...['packages/cli', 'packages/core', 'packages/scheduler', 'packages/shared', 'packages/web', 'packages/telegram'].map(
-    (p) => resolve(ROOT, p, 'package.json'),
-  ),
-  ...['plugins/article', 'plugins/content-creation', 'plugins/youtube'].map(
-    (p) => resolve(ROOT, p, 'package.json'),
-  ),
+  ...discoverWorkspacePackages('packages'),
+  ...discoverWorkspacePackages('plugins'),
 ];
 
 for (const pkgPath of packageJsonPaths) {
