@@ -74,8 +74,21 @@ function discoverWorkspacePackages(dir: string): string[] {
     return readdirSync(resolve(ROOT, dir))
       .filter((entry) => statSync(resolve(ROOT, dir, entry)).isDirectory())
       .map((entry) => resolve(ROOT, dir, entry, 'package.json'));
-  } catch {
-    return [];
+  } catch (err) {
+    const error = err as NodeJS.ErrnoException;
+
+    // If the directory doesn't exist, treat it as having no workspace packages.
+    if (error && error.code === 'ENOENT') {
+      return [];
+    }
+
+    // For all other errors, surface the problem instead of silently skipping packages.
+    console.warn(
+      `Warning: failed to discover workspace packages in "${dir}": ${
+        error && error.message ? error.message : String(error)
+      }`,
+    );
+    throw err;
   }
 }
 
