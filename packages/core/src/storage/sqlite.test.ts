@@ -212,6 +212,7 @@ describe('SQLite Reminders', () => {
       title: 'Buy groceries',
       priority: 'medium',
       completed: false,
+      kind: 'reminder',
       created: '2024-01-01T00:00:00Z',
       updated: '2024-01-01T00:00:00Z',
     };
@@ -221,6 +222,7 @@ describe('SQLite Reminders', () => {
     expect(result).toBeDefined();
     expect(result!.title).toBe('Buy groceries');
     expect(result!.completed).toBe(false);
+    expect(result!.kind).toBe('reminder');
   });
 
   it('should list incomplete reminders', () => {
@@ -229,6 +231,7 @@ describe('SQLite Reminders', () => {
       title: 'A',
       priority: 'low',
       completed: false,
+      kind: 'reminder',
       created: '2024-01-01T00:00:00Z',
       updated: '2024-01-01T00:00:00Z',
     });
@@ -237,6 +240,7 @@ describe('SQLite Reminders', () => {
       title: 'B',
       priority: 'high',
       completed: true,
+      kind: 'reminder',
       created: '2024-01-01T00:00:00Z',
       updated: '2024-01-01T00:00:00Z',
     });
@@ -244,6 +248,73 @@ describe('SQLite Reminders', () => {
     const incomplete = storage.listReminders(false);
     expect(incomplete).toHaveLength(1);
     expect(incomplete[0]!.id).toBe('r1');
+  });
+
+  it('listReminders excludes todos', () => {
+    storage.upsertReminder({
+      id: 'r1',
+      title: 'Reminder item',
+      priority: 'medium',
+      completed: false,
+      kind: 'reminder',
+      created: '2024-01-01T00:00:00Z',
+      updated: '2024-01-01T00:00:00Z',
+    });
+    storage.upsertReminder({
+      id: 't1',
+      title: 'Todo item',
+      priority: 'medium',
+      completed: false,
+      kind: 'todo',
+      created: '2024-01-01T00:00:00Z',
+      updated: '2024-01-01T00:00:00Z',
+    });
+
+    const reminders = storage.listReminders();
+    expect(reminders).toHaveLength(1);
+    expect(reminders[0]!.id).toBe('r1');
+  });
+
+  it('listTodos returns only todos', () => {
+    storage.upsertReminder({
+      id: 'r1',
+      title: 'Reminder item',
+      priority: 'medium',
+      completed: false,
+      kind: 'reminder',
+      created: '2024-01-01T00:00:00Z',
+      updated: '2024-01-01T00:00:00Z',
+    });
+    storage.upsertReminder({
+      id: 't1',
+      title: 'Todo item',
+      priority: 'low',
+      completed: false,
+      kind: 'todo',
+      created: '2024-01-01T00:00:00Z',
+      updated: '2024-01-01T00:00:00Z',
+    });
+    storage.upsertReminder({
+      id: 't2',
+      title: 'Done todo',
+      priority: 'high',
+      completed: true,
+      kind: 'todo',
+      created: '2024-01-01T00:00:00Z',
+      updated: '2024-01-01T00:00:00Z',
+    });
+
+    const all = storage.listTodos();
+    expect(all).toHaveLength(2);
+    expect(all.every((t) => t.kind === 'todo')).toBe(true);
+
+    const pending = storage.listTodos(false);
+    expect(pending).toHaveLength(1);
+    expect(pending[0]!.id).toBe('t1');
+
+    const done = storage.listTodos(true);
+    expect(done).toHaveLength(1);
+    expect(done[0]!.id).toBe('t2');
   });
 });
 

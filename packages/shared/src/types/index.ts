@@ -66,6 +66,7 @@ export interface ReminderEntry {
   dueDate?: string;
   priority: 'low' | 'medium' | 'high';
   completed: boolean;
+  kind: 'reminder' | 'todo';
   created: string;
   updated: string;
 }

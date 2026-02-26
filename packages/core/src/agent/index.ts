@@ -23,6 +23,7 @@ import {
   markContentTool,
   createSetAgentVoiceTool,
   createExportNotesTool,
+  listTodosTool,
 } from './tools/index.js';
 import type { SqliteStorage } from '../storage/sqlite.js';
 import type { MarkdownStorage } from '../storage/markdown.js';
@@ -118,6 +119,7 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     addReminderTool({ sqlite: deps.sqlite }),
     completeReminderTool({ sqlite: deps.sqlite }),
     listRemindersTool({ sqlite: deps.sqlite }),
+    listTodosTool({ sqlite: deps.sqlite }),
     linkNotesTool({ sqlite: deps.sqlite, markdown: deps.markdown }),
     markContentTool({ sqlite: deps.sqlite, markdown: deps.markdown }),
     rememberAboutMeTool({ sqlite: deps.sqlite }),
