@@ -9,7 +9,9 @@ import { processTweet } from './processor.js';
 const schema = Type.Object({
   url: Type.String({ description: 'Twitter/X URL of the tweet or thread to save', format: 'uri' }),
   tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags for the tweet' })),
-  category: Type.Optional(Type.String({ description: 'Category for the tweet', default: 'tweets' })),
+  category: Type.Optional(
+    Type.String({ description: 'Category for the tweet', default: 'tweets' }),
+  ),
   autoCategorize: Type.Optional(
     Type.Boolean({
       description: 'Automatically categorize using AI (default: true)',

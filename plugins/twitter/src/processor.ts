@@ -7,7 +7,9 @@ import type { ProcessedContent } from '@echos/shared';
  * to remove any injected tags — not escape markdown-significant characters.
  */
 function sanitizeTweetText(text: string): string {
-  return text.replace(/<[^>]*>/g, '').trim();
+  // Only strip actual HTML tags (must start with a letter or /) to avoid
+  // stripping legitimate tweet content like "<3" or "1 < 2".
+  return text.replace(/<\/?[a-zA-Z][^>]*>/g, '').trim();
 }
 
 const FETCH_TIMEOUT = 15000; // 15s
@@ -170,8 +172,9 @@ function collectMedia(tweets: FxTweet[]): string {
 /** Format a quoted tweet section. */
 function formatQuoteTweet(quote: FxTweet): string {
   const date = formatDate(quote.created_timestamp);
+  const quotedLines = quote.text.split('\n').map((line) => `> ${line}`).join('\n');
   let section = `### Quoted Tweet\n\n`;
-  section += `> ${quote.text}\n\n`;
+  section += `${quotedLines}\n\n`;
   section += `— @${quote.author.screen_name} (${quote.author.name}), ${date}`;
   return section;
 }
@@ -181,7 +184,8 @@ function formatSingleTweet(tweet: FxTweet, sourceUrl: string): string {
   const date = formatDate(tweet.created_timestamp);
   const engagement = formatEngagement(tweet);
 
-  let markdown = `> ${tweet.text}\n\n`;
+  const tweetLines = tweet.text.split('\n').map((line) => `> ${line}`).join('\n');
+  let markdown = `${tweetLines}\n\n`;
   markdown += `— @${tweet.author.screen_name} (${tweet.author.name}), ${date}\n\n`;
   if (engagement) markdown += `${engagement}\n\n`;
 
@@ -200,11 +204,11 @@ function formatSingleTweet(tweet: FxTweet, sourceUrl: string): string {
 
 /** Format a thread as a clean article. */
 function formatThread(tweets: FxTweet[], sourceUrl: string): string {
-  const author = tweets[0]!;
-  const date = formatDate(author.created_timestamp);
+  const firstTweet = tweets[0]!;
+  const date = formatDate(firstTweet.created_timestamp);
 
   // Join tweet texts into paragraphs, stripping self-reply @mentions
-  const selfMentionPrefix = `@${author.author.screen_name} `;
+  const selfMentionPrefix = `@${firstTweet.author.screen_name} `;
   const paragraphs = tweets.map((t) => {
     let text = t.text;
     // Strip leading self-reply @mention
@@ -217,7 +221,7 @@ function formatThread(tweets: FxTweet[], sourceUrl: string): string {
   let markdown = paragraphs.join('\n\n');
 
   markdown += `\n\n---\n\n`;
-  markdown += `*Thread by @${author.author.screen_name} (${author.author.name}), ${date} — ${tweets.length} tweets*\n`;
+  markdown += `*Thread by @${firstTweet.author.screen_name} (${firstTweet.author.name}), ${date} — ${tweets.length} tweets*\n`;
 
   const engagement = formatEngagement(tweets[0]!);
   if (engagement) markdown += `${engagement}\n`;
