@@ -40,7 +40,7 @@ export function createSaveYoutubeTool(context: PluginContext): AgentTool<typeof 
     name: 'save_youtube',
     label: 'Save YouTube',
     description:
-      'Save a YouTube video transcript. Extracts captions and saves as a note. Optionally auto-categorize with AI.',
+      'Save a YouTube video transcript for any YouTube URL the user shares. Set autoCategorize=true for AI categorization (includes category, tags, gist). Say "saved to your reading list" — not "added to knowledge base".',
     parameters: schema,
     execute: async (_toolCallId, params: Params, _signal, onUpdate) => {
       onUpdate?.({

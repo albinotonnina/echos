@@ -33,7 +33,7 @@ export function searchKnowledgeTool(deps: SearchKnowledgeToolDeps): AgentTool<ty
     name: 'search_knowledge',
     label: 'Search Knowledge',
     description:
-      'Search the knowledge base. Uses hybrid search (keyword + semantic) for best results.',
+      'Search the knowledge base when the user asks questions about their notes, articles, or saved content. Uses hybrid search (keyword + semantic) by default.',
     parameters: schema,
     execute: async (_toolCallId, params: Params) => {
       const mode = params.mode ?? 'hybrid';
