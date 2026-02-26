@@ -41,7 +41,7 @@ export function createNoteTool(deps: CreateNoteToolDeps): AgentTool<typeof schem
     name: 'create_note',
     label: 'Create Note',
     description:
-      'Create a new knowledge note with title, content, and optional tags/category. Use type "note" for general notes, "journal" for diary entries.',
+      'Create a new note, journal entry, or any text the user wants to save. After creating, ALWAYS call categorize_note (mode="lightweight") to assign category and tags. Use type="journal" for diary entries. For voice transcriptions pass inputSource="voice". Journal categories should reflect the topic (e.g. "reflection", "work", "health").',
     parameters: schema,
     execute: async (_toolCallId, params: Params) => {
       const now = new Date().toISOString();

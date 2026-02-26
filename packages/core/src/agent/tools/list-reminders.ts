@@ -21,7 +21,7 @@ export function listRemindersTool(deps: ListRemindersToolDeps): AgentTool<typeof
     return {
         name: 'list_reminders',
         label: 'List Reminders',
-        description: 'List reminders, optionally filtered by completion status.',
+        description: 'List time-based reminders (kind="reminder"). Filter by completed status. Use list_todos for action items.',
         parameters: schema,
         execute: async (_toolCallId, params: Params) => {
             const reminders = deps.sqlite.listReminders(params.completed);

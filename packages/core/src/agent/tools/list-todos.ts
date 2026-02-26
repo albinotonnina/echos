@@ -22,7 +22,7 @@ export function listTodosTool(deps: ListTodosToolDeps): AgentTool<typeof schema>
     name: 'list_todos',
     label: 'List Todos',
     description:
-      'List todo items. Returns ONLY todos — never reminders, notes, or other content. Use when user asks for their todo list, tasks, or things to do.',
+      'List todo items. Returns ONLY todos (kind="todo") — never reminders, notes, or other content. Use list_reminders for time-based reminders.',
     parameters: schema,
     execute: async (_toolCallId, params: Params) => {
       const todos = deps.sqlite.listTodos(params.completed);

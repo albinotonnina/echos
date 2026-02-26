@@ -38,7 +38,8 @@ export function listNotesTool(deps: ListNotesToolDeps): AgentTool<typeof schema>
   return {
     name: 'list_notes',
     label: 'List Notes',
-    description: 'List notes with optional filtering by type. Returns titles, types, and dates.',
+    description:
+      'Browse notes by type, category, or status. Use status="saved" for reading list, status="read" for consumed content. Always normalize user-provided dates to ISO 8601 (e.g. "22/12/2025" → "2025-12-22", "last August" → dateFrom="2025-08-01" dateTo="2025-08-31").',
     parameters: schema,
     execute: async (_toolCallId, params: Params) => {
       const opts: ListNotesOptions = {
