@@ -46,6 +46,9 @@ export interface AgentDeps {
   thinkingLevel?: ThinkingLevel;
   /** Log raw LLM request payloads at debug level (set LOG_LLM_PAYLOADS=true) */
   logLlmPayloads?: boolean;
+  /** Prompt cache retention. Only applies to Anthropic models.
+   *  'long' = 1h TTL (default), 'short' = 5min, 'none' = disabled */
+  cacheRetention?: 'none' | 'short' | 'long';
   /** Additional tools registered by plugins */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pluginTools?: AgentTool<any>[];
@@ -76,6 +79,10 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     deps.llmBaseUrl,
   );
   const apiKey = pickApiKey(model.provider as string, deps);
+
+  // Prompt caching is only supported by Anthropic models
+  const effectiveCacheRetention =
+    (model.provider as string) === 'anthropic' ? (deps.cacheRetention ?? 'long') : 'none';
 
   const storageDeps = {
     sqlite: deps.sqlite,
@@ -147,6 +154,7 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     {
       model: model.id,
       thinkingLevel: deps.thinkingLevel ?? 'off',
+      cacheRetention: effectiveCacheRetention,
       coreTools: coreTools.length,
       pluginTools: (deps.pluginTools ?? []).length,
       totalTools: tools.length,
@@ -176,6 +184,7 @@ export function createEchosAgent(deps: AgentDeps): Agent {
       streamSimple(m, context, {
         ...options,
         ...(apiKey ? { apiKey } : {}),
+        cacheRetention: effectiveCacheRetention,
         ...(deps.logLlmPayloads
           ? { onPayload: (payload) => deps.logger.debug({ payload }, 'LLM request payload') }
           : {}),

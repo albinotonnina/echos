@@ -64,6 +64,9 @@ export const configSchema = z
   // LLM reasoning
   thinkingLevel: z.enum(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']).default('off'),
 
+  // Prompt caching
+  cacheRetention: z.enum(['none', 'short', 'long']).default('long'),
+
   // Debug
   logLlmPayloads: z
     .string()
@@ -122,6 +125,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     modelBalanced: env['MODEL_BALANCED'],
     modelDeep: env['MODEL_DEEP'],
     thinkingLevel: env['THINKING_LEVEL'],
+    cacheRetention: env['CACHE_RETENTION'],
     logLlmPayloads: env['LOG_LLM_PAYLOADS'],
   });
 
