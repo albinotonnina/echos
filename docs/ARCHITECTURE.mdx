@@ -56,10 +56,11 @@ User Input (any interface)
 @echos/core            ← shared (storage, agent, plugin system)
 @echos/telegram        ← shared, core (grammY bot, notification service)
 @echos/web             ← shared, core (Fastify server)
-@echos/cli             ← shared, core (CLI binary — standalone terminal interface)
+@echos/cli             ← shared, core, plugin-article, plugin-youtube, plugin-twitter (CLI binary — standalone terminal interface)
 @echos/scheduler       ← shared, core, plugin-article, plugin-youtube (BullMQ workers)
 @echos/plugin-youtube  ← shared, core (YouTube transcript extraction)
 @echos/plugin-article  ← shared, core (web article extraction)
+@echos/plugin-twitter  ← shared, core (Twitter/X tweet and thread extraction)
 ```
 
 ## Scheduler & Notifications
@@ -132,6 +133,7 @@ Plugins can optionally use the AI categorization service from `@echos/core` to a
 
 - **article**: Web article extraction using Readability
 - **youtube**: YouTube video transcript extraction
+- **twitter**: Twitter/X tweet and thread extraction via FxTwitter API (no API key required)
 - **image**: Image storage with metadata extraction (format, dimensions, EXIF)
 - **content-creation**: Content generation tools
 

@@ -29,7 +29,8 @@
       "@echos/cli": ["./packages/cli/src/index.ts"],
       "@echos/scheduler": ["./packages/scheduler/src/index.ts"],
       "@echos/plugin-youtube": ["./plugins/youtube/src/index.ts"],
-      "@echos/plugin-article": ["./plugins/article/src/index.ts"]
+      "@echos/plugin-article": ["./plugins/article/src/index.ts"],
+      "@echos/plugin-twitter": ["./plugins/twitter/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "dist", "data"]

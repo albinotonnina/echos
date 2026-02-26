@@ -43,7 +43,7 @@ const schema = Type.Object({
   filter: Type.Optional(
     Type.Object({
       type: Type.Optional(
-        StringEnum(['note', 'journal', 'article', 'youtube', 'reminder', 'conversation'], {
+        StringEnum(['note', 'journal', 'article', 'youtube', 'tweet', 'reminder', 'conversation'], {
           description: 'Filter by content type',
         }),
       ),
