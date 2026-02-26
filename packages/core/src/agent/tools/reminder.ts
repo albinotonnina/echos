@@ -28,7 +28,8 @@ export function addReminderTool(deps: ReminderToolDeps): AgentTool<typeof addSch
   return {
     name: 'add_reminder',
     label: 'Add Reminder',
-    description: 'Create a new reminder or todo item with optional due date and priority.',
+    description:
+      'Create a reminder or todo. Use kind="todo" for action items (no due date required). Use kind="reminder" for time-based reminders with a due date.',
     parameters: addSchema,
     execute: async (_toolCallId, params: AddParams) => {
       const now = new Date().toISOString();
@@ -78,7 +79,7 @@ export function completeReminderTool(deps: ReminderToolDeps): AgentTool<typeof c
   return {
     name: 'complete_reminder',
     label: 'Complete Reminder',
-    description: 'Mark a reminder as completed.',
+    description: 'Mark any reminder or todo as done by its id. Works for both kind="todo" and kind="reminder".',
     parameters: completeSchema,
     execute: async (_toolCallId, params: CompleteParams) => {
       const existing = deps.sqlite.getReminder(params.id);

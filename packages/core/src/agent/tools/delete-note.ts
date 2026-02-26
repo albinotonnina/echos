@@ -21,7 +21,7 @@ export function deleteNoteTool(deps: DeleteNoteToolDeps): AgentTool<typeof schem
     name: 'delete_note',
     label: 'Delete Note',
     description:
-      'Permanently delete a note by its ID. The note is removed from storage, index, and vector database.',
+      'Permanently delete a note by ID. Always confirm with the user before deleting. Removes from storage, index, and vector database.',
     parameters: schema,
     execute: async (_toolCallId, params: Params) => {
       const row = deps.sqlite.getNote(params.id);

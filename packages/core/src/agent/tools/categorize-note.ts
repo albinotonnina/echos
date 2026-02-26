@@ -37,7 +37,7 @@ export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentToo
     name: 'categorize_note',
     label: 'Categorize Note',
     description:
-      'Automatically categorize an existing note using AI. Use "lightweight" mode for quick categorization (category + tags) or "full" mode for comprehensive processing (category + tags + summary + gist + key points).',
+      'Categorize an existing note using AI. Use "lightweight" mode for quick categorization (category + tags) — preferred after create_note. Use "full" mode for important content needing summary + gist + key points.',
     parameters: schema,
     execute: async (_toolCallId, params: Params) => {
       const noteRow = deps.sqlite.getNote(params.noteId);

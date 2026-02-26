@@ -29,7 +29,8 @@ export function createManageScheduleTool(deps: ManageScheduleToolDeps) {
   return {
     name: 'manage_schedule',
     label: 'Manage Schedules',
-    description: 'Create, update, enable/disable, or delete scheduled background jobs.',
+    description:
+      'Manage scheduled background jobs (e.g. daily digests). action="list" to see all schedules. action="upsert" with jobType + cron to create/update. action="delete" with id to remove. Always list first before deleting to get the correct id.',
     parameters: InputSchema,
     setScheduleManager(sm: ScheduleManager) {
       deps.scheduleManager = sm;

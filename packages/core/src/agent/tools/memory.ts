@@ -73,7 +73,7 @@ export function recallKnowledgeTool(deps: MemoryToolDeps): AgentTool<typeof reca
     name: 'recall_knowledge',
     label: 'Recall',
     description:
-      'Recall everything known about a topic from memory (facts, preferences, people, projects).',
+      'Recall facts, preferences, or details about the user from long-term memory. Search with relevant keywords (e.g. topic="birthday", topic="coffee preference").',
     parameters: recallSchema,
     execute: async (_toolCallId, params: RecallParams) => {
       const memories = deps.sqlite.searchMemory(params.topic);
