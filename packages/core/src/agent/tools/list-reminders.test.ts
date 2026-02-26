@@ -120,4 +120,15 @@ describe('list_reminders tool', () => {
         expect(text).toContain('[my-id-123]');
         expect(text).toContain('high');
     });
+
+    it('does NOT return todos when listing reminders', async () => {
+        sqlite.upsertReminder(makeReminder({ id: 'r1', title: 'My reminder', kind: 'reminder' }));
+        sqlite.upsertReminder(makeReminder({ id: 't1', title: 'My todo', kind: 'todo' }));
+        const tool = listRemindersTool({ sqlite });
+        const result = await tool.execute('tc', {});
+        const text = (result.content[0] as { type: 'text'; text: string }).text;
+        expect(text).toContain('My reminder');
+        expect(text).not.toContain('My todo');
+        expect((result.details as { count: number }).count).toBe(1);
+    });
 });
