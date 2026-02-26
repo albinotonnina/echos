@@ -151,31 +151,41 @@ Statuses: `saved` (unread, default), `read` (consumed), `archived` (hidden from 
 
 ---
 
-### Reminders
+### Todos & Reminders
 
-#### Add a reminder
+EchOS distinguishes two kinds of time-management items stored in the same underlying table:
+
+| Kind | Description | Due date |
+|------|-------------|----------|
+| **todo** | Action item to do — no specific time required | Optional |
+| **reminder** | Time-anchored item — will trigger a notification when due | Required |
+
+EchOS auto-detects todos: if your message contains first-person intent ("I need to…", "I should…", "remember to…") it will silently capture a todo before responding.
+
+#### Add a reminder or todo
 
 **Tool:** `add_reminder`
 
-Set a reminder with an optional due date and priority. If the scheduler is enabled, EchOS will notify you when it's due.
+Use `kind="todo"` for action items; use `kind="reminder"` (or omit) for time-based reminders. If the scheduler is enabled, reminders will send a notification when due.
 
 ```
 Remind me to review the PR tomorrow at 10am.
 Add a high-priority reminder: renew SSL cert by March 1st.
-Todo: call the dentist — no rush.
+I need to call the dentist.
 ```
 
 ---
 
-#### Complete a reminder
+#### List todos
 
-**Tool:** `complete_reminder`
+**Tool:** `list_todos`
 
-Mark a reminder as done.
+Show your todo list. Returns **only todos** — never mixes in reminders or notes.
 
 ```
-Mark reminder abc-123 as done.
-I've completed that dentist reminder.
+Show my todo list.
+What tasks do I have pending?
+What have I already done?
 ```
 
 ---
@@ -184,12 +194,24 @@ I've completed that dentist reminder.
 
 **Tool:** `list_reminders`
 
-See your pending (or completed) reminders.
+See your time-based pending (or completed) reminders.
 
 ```
 What are my open reminders?
-Show me all completed todos.
 What do I have due this week?
+```
+
+---
+
+#### Complete a reminder or todo
+
+**Tool:** `complete_reminder`
+
+Mark any reminder or todo as done by id.
+
+```
+Mark reminder abc-123 as done.
+I've completed that dentist task.
 ```
 
 ---
@@ -433,9 +455,11 @@ Send me a weekly digest every Sunday.
 | *"List my recent notes"* | `list_notes` |
 | *"Update note abc-123"* | `update_note` |
 | *"Delete note abc-123"* | `delete_note` |
-| *"Remind me to..."* | `add_reminder` |
+| *"Remind me to..."* | `add_reminder` (kind=reminder) |
+| *"I need to / I should..."* | `add_reminder` (kind=todo, auto-detected) |
+| *"What are my todos / tasks?"* | `list_todos` |
 | *"What are my reminders?"* | `list_reminders` |
-| *"Mark reminder done"* | `complete_reminder` |
+| *"Mark reminder/todo done"* | `complete_reminder` |
 | *"Remember that I prefer..."* | `remember_about_me` |
 | *"What do you know about me?"* | `recall_knowledge` |
 | *"Save this conversation"* | `save_conversation` |

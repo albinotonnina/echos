@@ -25,6 +25,7 @@ export interface SqliteStorage {
   upsertReminder(reminder: ReminderEntry): void;
   getReminder(id: string): ReminderEntry | undefined;
   listReminders(completed?: boolean): ReminderEntry[];
+  listTodos(completed?: boolean): ReminderEntry[];
   // Schedules
   upsertSchedule(schedule: ScheduleEntry): void;
   getSchedule(id: string): ScheduleEntry | undefined;
@@ -142,6 +143,7 @@ const SCHEMA = `
     due_date TEXT,
     priority TEXT NOT NULL DEFAULT 'medium',
     completed INTEGER NOT NULL DEFAULT 0,
+    kind TEXT NOT NULL DEFAULT 'reminder',
     created TEXT NOT NULL,
     updated TEXT NOT NULL
   );
@@ -184,6 +186,7 @@ function rowToReminder(row: Record<string, unknown>): ReminderEntry {
     title: row['title'] as string,
     priority: row['priority'] as ReminderEntry['priority'],
     completed: row['completed'] === 1,
+    kind: ((row['kind'] as string | null) ?? 'reminder') as ReminderEntry['kind'],
     created: row['created'] as string,
     updated: row['updated'] as string,
   };
@@ -296,6 +299,13 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
     // Column already exists — that's fine
   }
 
+  // Migration: add kind column to reminders for existing databases
+  try {
+    db.exec(`ALTER TABLE reminders ADD COLUMN kind TEXT NOT NULL DEFAULT 'reminder'`);
+  } catch {
+    // Column already exists — that's fine
+  }
+
   logger.info({ dbPath }, 'SQLite database initialized');
 
   // Prepared statements
@@ -333,15 +343,17 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       LIMIT ?
     `),
     upsertReminder: db.prepare(`
-      INSERT INTO reminders (id, title, description, due_date, priority, completed, created, updated)
-      VALUES (@id, @title, @description, @dueDate, @priority, @completed, @created, @updated)
+      INSERT INTO reminders (id, title, description, due_date, priority, completed, kind, created, updated)
+      VALUES (@id, @title, @description, @dueDate, @priority, @completed, @kind, @created, @updated)
       ON CONFLICT(id) DO UPDATE SET
         title=@title, description=@description, due_date=@dueDate, priority=@priority,
-        completed=@completed, updated=@updated
+        completed=@completed, kind=@kind, updated=@updated
     `),
     getReminder: db.prepare('SELECT * FROM reminders WHERE id = ?'),
-    listReminders: db.prepare('SELECT * FROM reminders WHERE completed = ? ORDER BY due_date ASC'),
-    listAllReminders: db.prepare('SELECT * FROM reminders ORDER BY due_date ASC'),
+    listReminders: db.prepare("SELECT * FROM reminders WHERE kind = ? AND completed = ? ORDER BY due_date ASC"),
+    listAllReminders: db.prepare("SELECT * FROM reminders WHERE kind = ? ORDER BY due_date ASC"),
+    listTodos: db.prepare("SELECT * FROM reminders WHERE kind = ? AND completed = ? ORDER BY created ASC"),
+    listAllTodos: db.prepare("SELECT * FROM reminders WHERE kind = ? ORDER BY created ASC"),
     upsertSchedule: db.prepare(`
       INSERT INTO job_schedules (id, job_type, cron, enabled, description, config, created, updated)
       VALUES (@id, @jobType, @cron, @enabled, @description, @config, @created, @updated)
@@ -478,6 +490,7 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
         dueDate: reminder.dueDate ?? null,
         priority: reminder.priority,
         completed: reminder.completed ? 1 : 0,
+        kind: reminder.kind,
         created: reminder.created,
         updated: reminder.updated,
       });
@@ -492,8 +505,16 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
     listReminders(completed?: boolean): ReminderEntry[] {
       const rows =
         completed === undefined
-          ? (stmts.listAllReminders.all() as Record<string, unknown>[])
-          : (stmts.listReminders.all(completed ? 1 : 0) as Record<string, unknown>[]);
+          ? (stmts.listAllReminders.all('reminder') as Record<string, unknown>[])
+          : (stmts.listReminders.all('reminder', completed ? 1 : 0) as Record<string, unknown>[]);
+      return rows.map(rowToReminder);
+    },
+
+    listTodos(completed?: boolean): ReminderEntry[] {
+      const rows =
+        completed === undefined
+          ? (stmts.listAllTodos.all('todo') as Record<string, unknown>[])
+          : (stmts.listTodos.all('todo', completed ? 1 : 0) as Record<string, unknown>[]);
       return rows.map(rowToReminder);
     },
 

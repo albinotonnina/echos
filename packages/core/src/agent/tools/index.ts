@@ -6,6 +6,7 @@ export { updateNoteTool, type UpdateNoteToolDeps } from './update-note.js';
 export { deleteNoteTool, type DeleteNoteToolDeps } from './delete-note.js';
 export { addReminderTool, completeReminderTool, type ReminderToolDeps } from './reminder.js';
 export { listRemindersTool, type ListRemindersToolDeps } from './list-reminders.js';
+export { listTodosTool, type ListTodosToolDeps } from './list-todos.js';
 export { linkNotesTool, type LinkNotesToolDeps } from './link-notes.js';
 export {
   rememberAboutMeTool,

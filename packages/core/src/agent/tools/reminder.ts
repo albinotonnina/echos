@@ -15,6 +15,11 @@ const addSchema = Type.Object({
   priority: Type.Optional(
     StringEnum(['low', 'medium', 'high'], { description: 'Priority level', default: 'medium' }),
   ),
+  kind: Type.Optional(
+    StringEnum(['reminder', 'todo'], {
+      description: 'Use "todo" for action items to do (no due date required). Use "reminder" for time-based reminders with a due date. Default: "reminder".',
+    }),
+  ),
 });
 
 type AddParams = Static<typeof addSchema>;
@@ -29,11 +34,13 @@ export function addReminderTool(deps: ReminderToolDeps): AgentTool<typeof addSch
       const now = new Date().toISOString();
       const id = uuidv4();
 
+      const kind = (params.kind ?? 'reminder') as ReminderEntry['kind'];
       const entry: ReminderEntry = {
         id,
         title: params.title,
         priority: (params.priority ?? 'medium') as ReminderEntry['priority'],
         completed: false,
+        kind,
         created: now,
         updated: now,
       };
@@ -52,7 +59,7 @@ export function addReminderTool(deps: ReminderToolDeps): AgentTool<typeof addSch
         content: [
           {
             type: 'text' as const,
-            text: `Added reminder: "${params.title}" (id: ${id}, priority: ${entry.priority}${params.due_date ? `, due: ${params.due_date}` : ''})`,
+            text: `Added ${kind}: "${params.title}" (id: ${id}, priority: ${entry.priority}${params.due_date ? `, due: ${params.due_date}` : ''})`,
           },
         ],
         details: { id },
