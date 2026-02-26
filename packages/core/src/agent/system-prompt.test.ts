@@ -78,9 +78,12 @@ describe('tool descriptions contain moved instructions', () => {
     expect(desc).toContain('type="journal"');
   });
 
-  it('search_knowledge: when to use', () => {
+  it('search_knowledge: covers all content types and hybrid search', () => {
     const desc = searchKnowledgeTool(stubDeps).description;
     expect(desc).toContain('hybrid search');
+    expect(desc).toContain('journals');
+    expect(desc).toContain('reminders');
+    expect(desc).toContain('YouTube');
   });
 
   it('list_notes: date normalization and status guidance', () => {
