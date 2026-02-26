@@ -9,7 +9,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 // ---------------------------------------------------------------------------
@@ -74,7 +74,8 @@ function discoverWorkspacePackages(dir: string): string[] {
     return readdirSync(resolve(ROOT, dir), { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map((entry) => resolve(ROOT, dir, entry.name, 'package.json'));
+      .map((entry) => resolve(ROOT, dir, entry.name, 'package.json'))
+      .filter(existsSync);
   } catch (err) {
     const error = err as NodeJS.ErrnoException;
 
@@ -101,11 +102,7 @@ const packageJsonPaths: string[] = [
 ];
 
 for (const pkgPath of packageJsonPaths) {
-  try {
-    updatePackageJson(pkgPath, nextVersion);
-  } catch {
-    // File may not exist (optional plugins); skip silently
-  }
+  updatePackageJson(pkgPath, nextVersion);
 }
 
 // Git operations have been removed in favor of GitHub Actions PR flow.
