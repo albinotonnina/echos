@@ -9,7 +9,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 // ---------------------------------------------------------------------------
@@ -71,9 +71,10 @@ console.log(`\nBumping ${bump}: ${currentVersion} → ${nextVersion}\n`);
 // Discover all workspace packages dynamically to avoid missing newly-added ones
 function discoverWorkspacePackages(dir: string): string[] {
   try {
-    return readdirSync(resolve(ROOT, dir))
-      .filter((entry) => statSync(resolve(ROOT, dir, entry)).isDirectory())
-      .map((entry) => resolve(ROOT, dir, entry, 'package.json'));
+    return readdirSync(resolve(ROOT, dir), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((entry) => resolve(ROOT, dir, entry.name, 'package.json'));
   } catch (err) {
     const error = err as NodeJS.ErrnoException;
 
