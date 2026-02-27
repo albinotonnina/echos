@@ -1,6 +1,6 @@
 {
   "name": "@echos/plugin-digest",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "EchOS digest generation plugin",
   "type": "module",
   "main": "./dist/index.js",
