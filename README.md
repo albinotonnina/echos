@@ -94,7 +94,7 @@ git clone https://github.com/albinotonnina/echos.git && cd echos
 pnpm install && pnpm build
 
 # Setup wizard (browser-based)
-pnpm setup     # opens http://localhost:3456 with guided setup
+pnpm wizard    # opens http://localhost:3456 with guided setup
 
 # Or CLI wizard
 pnpm wizard    # interactive terminal setup
