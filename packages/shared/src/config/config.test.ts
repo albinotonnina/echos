@@ -70,6 +70,13 @@ describe('loadConfig', () => {
     expect(config.defaultModel).toBe('meta-llama/Meta-Llama-3.1-70B-Instruct');
   });
 
+  it('should treat empty string env vars as unset', () => {
+    const env = { ...validEnv, LLM_API_KEY: '', LLM_BASE_URL: '' };
+    const config = loadConfig(env);
+    expect(config.llmApiKey).toBeUndefined();
+    expect(config.llmBaseUrl).toBeUndefined();
+  });
+
   it('defaults cacheRetention to long', () => {
     const config = loadConfig(validEnv);
     expect(config.cacheRetention).toBe('long');

@@ -98,35 +98,42 @@ export type Config = z.infer<typeof configSchema>;
 
 let cachedConfig: Config | null = null;
 
+/** Treat empty strings as unset (undefined) so Zod `.optional()` handles them correctly. */
+function emptyToUndefined(value: string | undefined): string | undefined {
+  return value === '' ? undefined : value;
+}
+
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
   if (cachedConfig) return cachedConfig;
 
+  const e = (key: string): string | undefined => emptyToUndefined(env[key]);
+
   const result = configSchema.safeParse({
-    telegramBotToken: env['TELEGRAM_BOT_TOKEN'],
+    telegramBotToken: e('TELEGRAM_BOT_TOKEN'),
     allowedUserIds: env['ALLOWED_USER_IDS'],
-    anthropicApiKey: env['ANTHROPIC_API_KEY'],
-    openaiApiKey: env['OPENAI_API_KEY'],
-    llmApiKey: env['LLM_API_KEY'],
-    llmBaseUrl: env['LLM_BASE_URL'],
-    redisUrl: env['REDIS_URL'],
-    knowledgeDir: env['KNOWLEDGE_DIR'],
-    dbPath: env['DB_PATH'],
-    sessionDir: env['SESSION_DIR'],
-    defaultModel: env['DEFAULT_MODEL'],
-    embeddingModel: env['EMBEDDING_MODEL'],
-    embeddingDimensions: env['EMBEDDING_DIMENSIONS'],
-    enableTelegram: env['ENABLE_TELEGRAM'],
-    enableWeb: env['ENABLE_WEB'],
-    webPort: env['WEB_PORT'],
-    webApiKey: env['WEB_API_KEY'],
-    enableScheduler: env['ENABLE_SCHEDULER'],
-    webshareProxyUsername: env['WEBSHARE_PROXY_USERNAME'],
-    webshareProxyPassword: env['WEBSHARE_PROXY_PASSWORD'],
-    modelBalanced: env['MODEL_BALANCED'],
-    modelDeep: env['MODEL_DEEP'],
-    thinkingLevel: env['THINKING_LEVEL'],
-    cacheRetention: env['CACHE_RETENTION'],
-    logLlmPayloads: env['LOG_LLM_PAYLOADS'],
+    anthropicApiKey: e('ANTHROPIC_API_KEY'),
+    openaiApiKey: e('OPENAI_API_KEY'),
+    llmApiKey: e('LLM_API_KEY'),
+    llmBaseUrl: e('LLM_BASE_URL'),
+    redisUrl: e('REDIS_URL'),
+    knowledgeDir: e('KNOWLEDGE_DIR'),
+    dbPath: e('DB_PATH'),
+    sessionDir: e('SESSION_DIR'),
+    defaultModel: e('DEFAULT_MODEL'),
+    embeddingModel: e('EMBEDDING_MODEL'),
+    embeddingDimensions: e('EMBEDDING_DIMENSIONS'),
+    enableTelegram: e('ENABLE_TELEGRAM'),
+    enableWeb: e('ENABLE_WEB'),
+    webPort: e('WEB_PORT'),
+    webApiKey: e('WEB_API_KEY'),
+    enableScheduler: e('ENABLE_SCHEDULER'),
+    webshareProxyUsername: e('WEBSHARE_PROXY_USERNAME'),
+    webshareProxyPassword: e('WEBSHARE_PROXY_PASSWORD'),
+    modelBalanced: e('MODEL_BALANCED'),
+    modelDeep: e('MODEL_DEEP'),
+    thinkingLevel: e('THINKING_LEVEL'),
+    cacheRetention: e('CACHE_RETENTION'),
+    logLlmPayloads: e('LOG_LLM_PAYLOADS'),
   });
 
   if (!result.success) {
