@@ -1,17 +1,6 @@
 import type { Logger } from 'pino';
 import type { ProcessedContent } from '@echos/shared';
 
-/**
- * Strip HTML tags from tweet text without re-encoding characters.
- * Tweet text from FxTwitter is plain text (not HTML), so we only need
- * to remove any injected tags — not escape markdown-significant characters.
- */
-function sanitizeTweetText(text: string): string {
-  // Only strip actual HTML tags (must start with a letter or /) to avoid
-  // stripping legitimate tweet content like "<3" or "1 < 2".
-  return text.replace(/<\/?[a-zA-Z][^>]*>/g, '').trim();
-}
-
 const FETCH_TIMEOUT = 15000; // 15s
 const MAX_THREAD_TWEETS = 25;
 
@@ -268,12 +257,6 @@ export async function processTweet(url: string, logger: Logger): Promise<Process
   } else {
     tweets = [tweet];
     isThread = false;
-  }
-
-  // Sanitize raw tweet text (strip injected HTML tags) before formatting
-  for (const t of tweets) {
-    t.text = sanitizeTweetText(t.text);
-    if (t.quote) t.quote.text = sanitizeTweetText(t.quote.text);
   }
 
   const content = isThread
