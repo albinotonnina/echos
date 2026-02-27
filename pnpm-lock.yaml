@@ -26,6 +26,9 @@ importers:
       '@echos/plugin-image':
         specifier: workspace:*
         version: link:plugins/image
+      '@echos/plugin-twitter':
+        specifier: workspace:*
+        version: link:plugins/twitter
       '@echos/plugin-youtube':
         specifier: workspace:*
         version: link:plugins/youtube
@@ -87,6 +90,15 @@ importers:
       '@echos/core':
         specifier: workspace:*
         version: link:../core
+      '@echos/plugin-article':
+        specifier: workspace:*
+        version: link:../../plugins/article
+      '@echos/plugin-twitter':
+        specifier: workspace:*
+        version: link:../../plugins/twitter
+      '@echos/plugin-youtube':
+        specifier: workspace:*
+        version: link:../../plugins/youtube
       '@echos/shared':
         specifier: workspace:*
         version: link:../shared
@@ -402,6 +414,40 @@ importers:
       sharp:
         specifier: ^0.34.5
         version: 0.34.5
+      uuid:
+        specifier: ^13.0.0
+        version: 13.0.0
+    devDependencies:
+      '@types/node':
+        specifier: ^25.3.0
+        version: 25.3.0
+      '@types/uuid':
+        specifier: ^11.0.0
+        version: 11.0.0
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  plugins/twitter:
+    dependencies:
+      '@echos/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@echos/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@mariozechner/pi-agent-core':
+        specifier: ^0.54.2
+        version: 0.54.2(ws@8.19.0)(zod@4.3.6)
+      '@mariozechner/pi-ai':
+        specifier: ^0.54.2
+        version: 0.54.2(ws@8.19.0)(zod@4.3.6)
+      '@sinclair/typebox':
+        specifier: ^0.34.48
+        version: 0.34.48
+      pino:
+        specifier: ^10.3.1
+        version: 10.3.1
       uuid:
         specifier: ^13.0.0
         version: 13.0.0

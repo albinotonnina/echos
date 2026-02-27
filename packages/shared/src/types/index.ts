@@ -1,4 +1,4 @@
-export type ContentType = 'note' | 'journal' | 'article' | 'youtube' | 'reminder' | 'conversation' | 'image';
+export type ContentType = 'note' | 'journal' | 'article' | 'youtube' | 'tweet' | 'reminder' | 'conversation' | 'image';
 
 export type ContentStatus = 'saved' | 'read' | 'archived';
 

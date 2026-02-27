@@ -656,6 +656,48 @@ When set, the Python transcript fetcher automatically routes through `p.webshare
 
 ---
 
+## Twitter / X Issues
+
+### "Unable to save this tweet" / Tweet fetch fails
+
+**Problem**: The Twitter plugin uses the free FxTwitter API (`api.fxtwitter.com`). If the tweet is unavailable or the API is temporarily down, the save will fail.
+
+**Symptoms**:
+
+- Agent responds with "I wasn't able to save that tweet" or similar
+- Logs show: `save_tweet failed` with an error message
+
+**Fixes**:
+
+1. **Check the URL format** — the plugin accepts these formats:
+   - `https://twitter.com/<user>/status/<id>`
+   - `https://x.com/<user>/status/<id>`
+   - `https://mobile.twitter.com/<user>/status/<id>`
+   - `https://fxtwitter.com/<user>/status/<id>` / `https://vxtwitter.com/<user>/status/<id>`
+
+2. **Check that the tweet exists and is public** — private/protected accounts and deleted tweets cannot be fetched.
+
+3. **Enable debug logging** to see the full error from the FxTwitter API:
+
+   ```bash
+   LOG_LEVEL=debug pnpm echos "save this tweet: https://x.com/..."
+   ```
+
+4. **FxTwitter rate limiting** — the FxTwitter API is a free public service and may occasionally rate-limit requests. Wait a moment and try again.
+
+### Agent uses `create_note` instead of `save_tweet`
+
+**Problem**: The agent creates a generic note when given a Twitter URL instead of calling `save_tweet`.
+
+**Fix**: The system prompt includes explicit URL routing. If this happens, it may indicate the system prompt wasn't applied to the session. Try resetting the session:
+
+- **Telegram**: Send `/reset`
+- **CLI**: Exit and restart (`exit` or `Ctrl+D`)
+
+The routing rules in the system prompt direct `twitter.com` and `x.com` URLs to `save_tweet`, not `create_note`.
+
+---
+
 ## Getting Help
 
 If you're still stuck:

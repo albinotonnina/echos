@@ -25,7 +25,11 @@ import {
   createMarkdownStorage,
   createVectorStorage,
   createSearchService,
+  PluginRegistry,
 } from '@echos/core';
+import articlePlugin from '@echos/plugin-article';
+import youtubePlugin from '@echos/plugin-youtube';
+import twitterPlugin from '@echos/plugin-twitter';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -63,6 +67,31 @@ async function runCli(): Promise<void> {
   const search = createSearchService(sqlite, vectorDb, markdown, logger);
   const generateEmbedding = async (_text: string): Promise<number[]> => new Array(1536).fill(0);
 
+  // Register plugins so the CLI has save_article, save_youtube, save_tweet tools
+  const pluginRegistry = new PluginRegistry(logger);
+  pluginRegistry.register(articlePlugin);
+  pluginRegistry.register(youtubePlugin);
+  pluginRegistry.register(twitterPlugin);
+
+  await pluginRegistry.setupAll({
+    sqlite,
+    markdown,
+    vectorDb,
+    generateEmbedding,
+    logger,
+    getAgentDeps: () => undefined as never,
+    getNotificationService: () => ({
+      async sendMessage() {},
+      async broadcast() {},
+    }),
+    config: {
+      ...(anthropicApiKey ? { anthropicApiKey } : {}),
+      ...(process.env['OPENAI_API_KEY'] ? { openaiApiKey: process.env['OPENAI_API_KEY'] } : {}),
+      knowledgeDir,
+      ...(process.env['DEFAULT_MODEL'] ? { defaultModel: process.env['DEFAULT_MODEL'] } : {}),
+    },
+  });
+
   const agent = createEchosAgent({
     sqlite,
     markdown,
@@ -72,6 +101,7 @@ async function runCli(): Promise<void> {
     anthropicApiKey,
     ...(process.env['DEFAULT_MODEL'] ? { modelId: process.env['DEFAULT_MODEL'] } : {}),
     logger,
+    pluginTools: pluginRegistry.getTools(),
   });
   agent.sessionId = 'cli-local';
 
@@ -158,6 +188,7 @@ async function runCli(): Promise<void> {
 
   const cleanup = (): void => {
     unsubscribe();
+    void pluginRegistry.teardownAll();
     sqlite.close();
     vectorDb.close();
   };

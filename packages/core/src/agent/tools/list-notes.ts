@@ -9,7 +9,7 @@ export interface ListNotesToolDeps {
 
 const schema = Type.Object({
   type: Type.Optional(
-    StringEnum(['note', 'journal', 'article', 'youtube', 'reminder', 'conversation'], {
+    StringEnum(['note', 'journal', 'article', 'youtube', 'tweet', 'reminder', 'conversation'], {
       description: 'Filter by content type',
     }),
   ),

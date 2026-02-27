@@ -32,13 +32,28 @@ describe('SYSTEM_PROMPT', () => {
     expect(SYSTEM_PROMPT).toContain('## Formatting');
   });
 
+  it('references tweets in content status section', () => {
+    expect(SYSTEM_PROMPT).toContain('tweets');
+    expect(SYSTEM_PROMPT).toContain('article, tweet, or YouTube video');
+    expect(SYSTEM_PROMPT).toContain('article or tweet');
+    expect(SYSTEM_PROMPT).toContain('article/tweet');
+  });
+
+  it('contains URL routing rules for specialized tools', () => {
+    expect(SYSTEM_PROMPT).toContain('## URL Routing (IMPORTANT)');
+    expect(SYSTEM_PROMPT).toContain('save_tweet');
+    expect(SYSTEM_PROMPT).toContain('save_youtube');
+    expect(SYSTEM_PROMPT).toContain('save_article');
+    expect(SYSTEM_PROMPT).toContain('x.com');
+    expect(SYSTEM_PROMPT).toContain('twitter.com');
+  });
+
   it('does not contain sections moved to tool descriptions', () => {
     expect(SYSTEM_PROMPT).not.toContain('## Capabilities');
     expect(SYSTEM_PROMPT).not.toContain('## Tool Usage');
     expect(SYSTEM_PROMPT).not.toContain('## Voice Messages');
     expect(SYSTEM_PROMPT).not.toContain('## Journal Entries');
     expect(SYSTEM_PROMPT).not.toContain('## Categorization');
-    expect(SYSTEM_PROMPT).not.toContain('### Tool routing');
   });
 });
 
@@ -71,11 +86,12 @@ describe('buildSystemPrompt', () => {
 });
 
 describe('tool descriptions contain moved instructions', () => {
-  it('create_note: categorize after creating, voice, journal guidance', () => {
+  it('create_note: categorize after creating, voice, journal guidance, excludes URLs', () => {
     const desc = createNoteTool(stubDeps).description;
     expect(desc).toContain('categorize_note');
     expect(desc).toContain('inputSource="voice"');
     expect(desc).toContain('type="journal"');
+    expect(desc).toContain('Do NOT use for URLs');
   });
 
   it('search_knowledge: covers all content types and hybrid search', () => {

@@ -336,6 +336,27 @@ Optional: `autoCategorize` (runs AI categorization on save), `processingMode` (`
 
 ---
 
+### Twitter plugin
+
+#### Save a tweet or thread
+
+**Tool:** `save_tweet`
+
+Fetch any Twitter/X URL and save the tweet or thread as a note. Uses the free FxTwitter API — no Twitter API key needed. Threads are automatically unrolled into clean article format.
+
+```
+Save this tweet: https://x.com/user/status/123456789
+Save this thread: https://twitter.com/user/status/123456789
+```
+
+Supported URL formats: `twitter.com`, `x.com`, `mobile.twitter.com`, `fxtwitter.com`, `vxtwitter.com`.
+
+Saved content includes: tweet text, author, date, engagement stats (likes, retweets, replies, views), media URLs, and quote tweets. Threads (chains of same-author replies) are merged into clean article format.
+
+Optional: `autoCategorize` (default: `true` — runs AI categorization automatically), `processingMode` (`lightweight` or `full`), `tags`, `category` (default: `tweets`).
+
+---
+
 ### YouTube plugin
 
 #### Save a YouTube video
@@ -469,6 +490,7 @@ Send me a weekly digest every Sunday.
 | *"Mark article as read"* | `mark_content` |
 | *"Be more concise"* | `set_agent_voice` |
 | *"Save this article: URL"* | `save_article` |
+| *"Save this tweet: URL"* | `save_tweet` |
 | *"Save this YouTube video: URL"* | `save_youtube` |
 | *"Save this image"* | `save_image` |
 | *"Write a blog post about X"* | `create_content` |

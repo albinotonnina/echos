@@ -373,7 +373,46 @@ See [Categorization](CATEGORIZATION) for detailed documentation.
 |--------|---------|-------------|
 | YouTube | `@echos/plugin-youtube` | Transcript extraction via Python + Whisper fallback |
 | Article | `@echos/plugin-article` | Web article extraction via Readability + DOMPurify |
+| Twitter | `@echos/plugin-twitter` | Tweet/thread extraction via FxTwitter API |
 | Image | `@echos/plugin-image` | Image storage with metadata extraction (Sharp) |
+
+### Twitter Plugin
+
+The Twitter plugin (`@echos/plugin-twitter`) provides the `save_tweet` tool for saving tweets and threads from Twitter/X.
+
+**Features:**
+- Save individual tweets with full metadata (text, author, engagement stats, media URLs)
+- Automatic thread unrolling — reply chains by the same author are merged into a clean article
+- Quote tweet extraction
+- Media URLs referenced as markdown links (images and videos)
+- Optional AI categorization for automatic tagging
+- No API key required — uses the free FxTwitter API (`api.fxtwitter.com`)
+
+**Supported URL formats:**
+- `twitter.com/<user>/status/<id>`
+- `x.com/<user>/status/<id>`
+- `mobile.twitter.com/<user>/status/<id>`
+- `fxtwitter.com/<user>/status/<id>`
+- `vxtwitter.com/<user>/status/<id>`
+- All formats support query parameters (`?s=20`, `?t=...`)
+
+**Tool: save_tweet**
+
+```typescript
+{
+  url: string;              // Twitter/X URL (required)
+  tags?: string[];          // Array of tags
+  category?: string;        // Category (default: "tweets")
+  autoCategorize?: boolean; // Use AI to categorize (default: true)
+  processingMode?: 'lightweight' | 'full'; // AI processing mode
+}
+```
+
+**Thread unrolling:**
+- Walks up the reply chain via `replying_to_status` to find earlier tweets by the same author
+- Stops when a different author is reached or the chain exceeds 25 tweets
+- Merges thread tweets into a clean article format, stripping self-reply @mentions
+- Single tweets (no thread) are saved in blockquote format with engagement stats
 
 ### Image Plugin
 
