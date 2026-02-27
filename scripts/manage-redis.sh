@@ -204,7 +204,7 @@ case "$command" in
         echo "  stop    - Stop Redis"
         echo "  health  - Check if Redis is accepting connections"
         echo ""
-        echo "Note: Redis is only required when ENABLE_SCHEDULER=true"
+        echo "Note: Redis is required for EchOS"
         exit 1
         ;;
 esac

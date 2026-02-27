@@ -226,94 +226,83 @@ async function main(): Promise<void> {
   let webAdapterSyncSchedule: ((id: string) => Promise<void>) | undefined = undefined;
   let webAdapterDeleteSchedule: ((id: string) => Promise<boolean>) | undefined = undefined;
 
-  // Scheduler setup (requires Redis, opt-in via ENABLE_SCHEDULER=true)
+  // Scheduler setup (requires Redis)
   let queueService: QueueService | undefined;
   let worker: ReturnType<typeof createWorker> | undefined;
 
-  if (config.enableScheduler) {
-    logger.info('Initializing scheduler...');
+  logger.info('Initializing scheduler...');
 
-    // Pre-flight: verify Redis is reachable before attempting BullMQ setup
-    const redisOk = await checkRedisConnection(config.redisUrl, logger);
-    if (!redisOk) {
-      logger.warn(
-        'Scheduler disabled: Redis is not reachable. Background jobs will not run.\n' +
-          '  To fix: install and start Redis, then restart EchOS.\n' +
-          '  macOS:  brew install redis && brew services start redis\n' +
-          '  Linux:  sudo apt install redis-server && sudo systemctl start redis-server\n' +
-          '  Or set ENABLE_SCHEDULER=false to suppress this warning.',
-      );
-    }
-
-    if (redisOk) {
-      // Get notification service from Telegram or use log-only fallback
-      notificationService = telegramAdapter?.notificationService ?? {
-        async sendMessage(userId: number, text: string): Promise<void> {
-          logger.info({ userId, text }, 'Notification (no delivery channel)');
-        },
-        async broadcast(text: string): Promise<void> {
-          logger.info({ text }, 'Broadcast notification (no delivery channel)');
-        },
-      };
-
-      try {
-        queueService = createQueue({ redisUrl: config.redisUrl, logger });
-
-        const contentProcessor = createContentProcessor({
-          sqlite,
-          markdown,
-          vectorDb,
-          generateEmbedding,
-          logger,
-          ...(config.openaiApiKey ? { openaiApiKey: config.openaiApiKey } : {}),
-        });
-
-        const reminderProcessor = createReminderCheckProcessor({
-          sqlite,
-          notificationService,
-          logger,
-        });
-
-        const exportCleanupProcessor = createExportCleanupProcessor({ exportsDir, logger });
-
-        const scheduleManager = new ScheduleManager(
-          queueService.queue,
-          sqlite,
-          pluginRegistry.getJobs(),
-          logger,
-        );
-        manageScheduleTool.setScheduleManager(scheduleManager);
-
-        webAdapterSyncSchedule = (id: string) => scheduleManager.syncSchedule(id);
-        webAdapterDeleteSchedule = (id: string) => scheduleManager.deleteSchedule(id);
-
-        const jobRouter = createJobRouter({
-          scheduleManager,
-          contentProcessor,
-          reminderProcessor,
-          exportCleanupProcessor,
-          logger,
-        });
-
-        worker = createWorker({
-          redisUrl: config.redisUrl,
-          logger,
-          processor: jobRouter,
-          concurrency: 2,
-        });
-
-        await scheduleManager.syncAll();
-        logger.info('Scheduler initialized');
-      } catch (err) {
-        logger.warn(
-          { err, redisUrl: config.redisUrl },
-          'Scheduler unavailable: Redis connection failed. Running without background jobs.',
-        );
-        queueService = undefined;
-        worker = undefined;
-      }
-    }
+  // Pre-flight: verify Redis is reachable before attempting BullMQ setup
+  const redisOk = await checkRedisConnection(config.redisUrl, logger);
+  if (!redisOk) {
+    logger.fatal(
+      'Redis is not reachable. EchOS requires Redis for background job processing.\n' +
+        '  Install and start Redis, then restart EchOS:\n' +
+        '  macOS:  brew install redis && brew services start redis\n' +
+        '  Linux:  sudo apt install redis-server && sudo systemctl start redis-server\n' +
+        '  Docker: docker run -d -p 6379:6379 redis:7-alpine\n' +
+        '  Manage: pnpm redis:start',
+    );
+    process.exit(1);
   }
+
+  // Get notification service from Telegram or use log-only fallback
+  notificationService = telegramAdapter?.notificationService ?? {
+    async sendMessage(userId: number, text: string): Promise<void> {
+      logger.info({ userId, text }, 'Notification (no delivery channel)');
+    },
+    async broadcast(text: string): Promise<void> {
+      logger.info({ text }, 'Broadcast notification (no delivery channel)');
+    },
+  };
+
+  queueService = createQueue({ redisUrl: config.redisUrl, logger });
+
+  const contentProcessor = createContentProcessor({
+    sqlite,
+    markdown,
+    vectorDb,
+    generateEmbedding,
+    logger,
+    ...(config.openaiApiKey ? { openaiApiKey: config.openaiApiKey } : {}),
+  });
+
+  const reminderProcessor = createReminderCheckProcessor({
+    sqlite,
+    notificationService,
+    logger,
+  });
+
+  const exportCleanupProcessor = createExportCleanupProcessor({ exportsDir, logger });
+
+  const scheduleManager = new ScheduleManager(
+    queueService.queue,
+    sqlite,
+    pluginRegistry.getJobs(),
+    logger,
+  );
+  manageScheduleTool.setScheduleManager(scheduleManager);
+
+  webAdapterSyncSchedule = (id: string) => scheduleManager.syncSchedule(id);
+  webAdapterDeleteSchedule = (id: string) => scheduleManager.deleteSchedule(id);
+
+  const jobRouter = createJobRouter({
+    scheduleManager,
+    contentProcessor,
+    reminderProcessor,
+    exportCleanupProcessor,
+    logger,
+  });
+
+  worker = createWorker({
+    redisUrl: config.redisUrl,
+    logger,
+    processor: jobRouter,
+    concurrency: 2,
+  });
+
+  await scheduleManager.syncAll();
+  logger.info('Scheduler initialized');
 
   if (config.enableWeb) {
     const webOptions: import('@echos/web').WebAdapterOptions = {
@@ -333,7 +322,7 @@ async function main(): Promise<void> {
   }
 
   logger.info(
-    { interfaceCount: interfaces.length, schedulerEnabled: config.enableScheduler },
+    { interfaceCount: interfaces.length },
     'EchOS started',
   );
 

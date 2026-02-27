@@ -47,12 +47,6 @@ export const configSchema = z
   webPort: z.coerce.number().int().positive().default(3000),
   webApiKey: z.string().optional(),
 
-  // Scheduler
-  enableScheduler: z
-    .string()
-    .default('false')
-    .transform((s) => s === 'true'),
-
   // Webshare Proxy (optional)
   webshareProxyUsername: z.string().optional(),
   webshareProxyPassword: z.string().optional(),
@@ -119,7 +113,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     enableWeb: env['ENABLE_WEB'],
     webPort: env['WEB_PORT'],
     webApiKey: env['WEB_API_KEY'],
-    enableScheduler: env['ENABLE_SCHEDULER'],
     webshareProxyUsername: env['WEBSHARE_PROXY_USERNAME'],
     webshareProxyPassword: env['WEBSHARE_PROXY_PASSWORD'],
     modelBalanced: env['MODEL_BALANCED'],

@@ -78,7 +78,7 @@ class Echos < Formula
       Data is stored in #{var}/echos/
       Configuration: #{etc}/echos/.env
 
-      Redis is required for the background scheduler:
+      Redis is required — start it before running EchOS:
         brew services start redis
     EOS
   end

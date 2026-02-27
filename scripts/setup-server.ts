@@ -87,8 +87,7 @@ function stateToEnv(state: Record<string, unknown>): string {
     `DB_PATH=${s('dbPath') || './data/db'}`,
     `SESSION_DIR=${s('sessionDir') || './data/sessions'}`,
     '',
-    '# ── Scheduler (requires Redis) ───────────────────────────────────────────────',
-    `ENABLE_SCHEDULER=${s('enableScheduler')}`,
+    '# ── Redis (required) ─────────────────────────────────────────────────────────',
     `REDIS_URL=${s('redisUrl') || 'redis://localhost:6379'}`,
     s('digestSchedule') ? `DIGEST_SCHEDULE=${s('digestSchedule')}` : '# DIGEST_SCHEDULE=',
     s('reminderCheckSchedule') ? `REMINDER_CHECK_SCHEDULE=${s('reminderCheckSchedule')}` : '# REMINDER_CHECK_SCHEDULE=',
@@ -458,17 +457,11 @@ function getSetupHtml(): string {
       <div id="web-fields" style="display:none">
         <div class="field"><label>Web Port</label><input type="number" id="webPort" value="3000"></div>
       </div>
-      <div class="toggle-row" onclick="toggle('enableScheduler')">
-        <div><div class="toggle-label">Background Scheduler</div><div class="toggle-hint">Requires Redis - digests, reminders, cron jobs</div></div>
-        <div class="toggle" id="toggle-enableScheduler"></div>
-      </div>
-      <div id="scheduler-fields" style="display:none">
-        <div class="field">
-          <label>Redis URL</label>
-          <input type="text" id="redisUrl" value="redis://localhost:6379">
-          <button class="btn-validate" onclick="validateKey('redis')">Test connection</button>
-          <div class="validation" id="redis-status"></div>
-        </div>
+      <div class="field">
+        <label>Redis URL <span class="label-hint">(required — background scheduler)</span></label>
+        <input type="text" id="redisUrl" value="redis://localhost:6379">
+        <button class="btn-validate" onclick="validateKey('redis')">Test connection</button>
+        <div class="validation" id="redis-status"></div>
       </div>
       <div class="collapsible-header" onclick="toggleCollapsible('advanced')">
         <span class="arrow" id="arrow-advanced">&#9654;</span> Advanced options
@@ -508,7 +501,7 @@ function getSetupHtml(): string {
   <script>
     const TOTAL_STEPS = 4;
     let currentStep = 1;
-    const toggles = { enableTelegram: true, enableWeb: false, enableScheduler: false };
+    const toggles = { enableTelegram: true, enableWeb: false };
 
     function renderProgress() {
       const el = document.getElementById('progress');
@@ -559,7 +552,7 @@ function getSetupHtml(): string {
     function toggle(name) {
       toggles[name] = !toggles[name];
       document.getElementById('toggle-' + name).classList.toggle('on', toggles[name]);
-      const fields = { enableTelegram: 'telegram-fields', enableWeb: 'web-fields', enableScheduler: 'scheduler-fields' };
+      const fields = { enableTelegram: 'telegram-fields', enableWeb: 'web-fields' };
       if (fields[name]) document.getElementById(fields[name]).style.display = toggles[name] ? '' : 'none';
     }
 
@@ -603,7 +596,6 @@ function getSetupHtml(): string {
         enableWeb: toggles.enableWeb,
         webPort: parseInt(document.getElementById('webPort').value) || 3000,
         webApiKey: '',
-        enableScheduler: toggles.enableScheduler,
         redisUrl: document.getElementById('redisUrl').value.trim() || 'redis://localhost:6379',
         knowledgeDir: './data/knowledge', dbPath: './data/db', sessionDir: './data/sessions',
         defaultModel: 'claude-haiku-4-5-20251001', embeddingModel: 'text-embedding-3-small',
@@ -620,7 +612,7 @@ function getSetupHtml(): string {
         ['Telegram', s.enableTelegram ? '<span class="badge badge-on">enabled</span>' : '<span class="badge badge-off">disabled</span>'],
         ['Allowed Users', s.allowedUserIds || '(none)'],
         ['Web UI', s.enableWeb ? '<span class="badge badge-on">:' + s.webPort + '</span>' : '<span class="badge badge-off">disabled</span>'],
-        ['Scheduler', s.enableScheduler ? '<span class="badge badge-on">enabled</span> ' + s.redisUrl : '<span class="badge badge-off">disabled</span>'],
+        ['Redis', '<span class="badge badge-on">enabled</span> ' + s.redisUrl],
       ];
       document.getElementById('summary-table').innerHTML = rows.map(([k,v]) => '<tr><td>' + k + '</td><td>' + v + '</td></tr>').join('');
     }

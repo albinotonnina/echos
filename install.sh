@@ -99,17 +99,49 @@ install_node() {
   success "Node.js $(node --version) installed via fnm"
 }
 
-check_redis_soft() {
+ensure_redis() {
   if command -v redis-server >/dev/null 2>&1; then
     REDIS_VER="$(redis-server --version | grep -oE 'v=[0-9.]+' | sed 's/v=//' || echo '?')"
-    success "Redis $REDIS_VER (optional, for background scheduler)"
+    success "Redis $REDIS_VER"
   else
-    warn "Redis not found (optional — only needed for ENABLE_SCHEDULER=true)"
+    info "Redis not found — installing..."
     if [ "$PLATFORM" = "macos" ]; then
-      warn "  Install later: brew install redis && brew services start redis"
+      if command -v brew >/dev/null 2>&1; then
+        brew install redis || fatal "Failed to install Redis via Homebrew"
+        brew services start redis
+        success "Redis installed and started via Homebrew"
+      else
+        fatal "Homebrew not found. Install Redis manually: https://redis.io/docs/getting-started/"
+      fi
     elif [ "$PLATFORM" = "linux" ]; then
-      warn "  Install later: sudo apt install redis-server && sudo systemctl start redis-server"
+      if command -v apt-get >/dev/null 2>&1; then
+        sudo apt-get update -qq && sudo apt-get install -y redis-server || fatal "Failed to install Redis"
+        sudo systemctl enable --now redis-server
+        success "Redis installed and started"
+      else
+        fatal "Cannot auto-install Redis on this Linux distro. Install manually: https://redis.io/docs/getting-started/"
+      fi
     fi
+  fi
+}
+
+start_redis() {
+  # Ensure Redis is running
+  if redis-cli ping >/dev/null 2>&1; then
+    success "Redis is running"
+    return
+  fi
+  info "Starting Redis..."
+  if [ "$PLATFORM" = "macos" ]; then
+    brew services start redis 2>/dev/null || true
+  elif [ "$PLATFORM" = "linux" ]; then
+    sudo systemctl start redis-server 2>/dev/null || sudo systemctl start redis 2>/dev/null || true
+  fi
+  # Verify
+  if redis-cli ping >/dev/null 2>&1; then
+    success "Redis started"
+  else
+    warn "Redis installed but not running. Start it manually before running EchOS."
   fi
 }
 
@@ -186,7 +218,8 @@ main() {
   check_git
   check_node
   check_pnpm
-  check_redis_soft
+  ensure_redis
+  start_redis
   echo ""
 
   echo -e "  ${BOLD}Setting up EchOS…${RESET}"

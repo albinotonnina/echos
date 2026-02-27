@@ -35,7 +35,6 @@ interface WizardState {
   enableWeb: boolean;
   webPort: number;
   webApiKey: string;
-  enableScheduler: boolean;
   redisUrl: string;
   digestSchedule: string;
   reminderCheckSchedule: string;
@@ -240,8 +239,7 @@ function stateToEnv(state: WizardState): string {
     `DB_PATH=${state.dbPath}`,
     `SESSION_DIR=${state.sessionDir}`,
     '',
-    '# ── Scheduler (requires Redis) ───────────────────────────────────────────────',
-    `ENABLE_SCHEDULER=${state.enableScheduler}`,
+    '# ── Redis (required) ─────────────────────────────────────────────────────────',
     `REDIS_URL=${state.redisUrl}`,
     state.digestSchedule ? `DIGEST_SCHEDULE=${state.digestSchedule}` : '# DIGEST_SCHEDULE=',
     state.reminderCheckSchedule
@@ -294,7 +292,6 @@ function runNonInteractive(): WizardState {
       e['ENABLE_WEB'] === 'true'
         ? (e['WEB_API_KEY'] ?? randomBytes(32).toString('hex'))
         : (e['WEB_API_KEY'] ?? ''), // preserve existing key, but don't generate a new one
-    enableScheduler: e['ENABLE_SCHEDULER'] === 'true',
     redisUrl: e['REDIS_URL'] ?? 'redis://localhost:6379',
     digestSchedule: e['DIGEST_SCHEDULE'] ?? '',
     reminderCheckSchedule: e['REMINDER_CHECK_SCHEDULE'] ?? '',
@@ -467,95 +464,81 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
     webPort = parseInt(portRaw as string, 10);
   }
 
-  // ── Step 5: Scheduler ────────────────────────────────────────────────────
+  // ── Step 5: Redis ───────────────────────────────────────────────────────
 
-  clack.log.step('Background Scheduler');
+  clack.log.step('Redis (required)');
 
-  const enableSchedulerBool = await clack.confirm({
-    message: 'Enable Redis background scheduler?',
-    initialValue: existing['ENABLE_SCHEDULER'] === 'true',
-  });
-  if (clack.isCancel(enableSchedulerBool)) cancel();
-  const enableScheduler = enableSchedulerBool as boolean;
+  clack.log.info(
+    pc.dim('Redis is required for background jobs (digests, reminders, cron).\nInstall commands (if not already running):') +
+    '\n  ' +
+    pc.cyan('macOS :') +
+    '  brew install redis && brew services start redis' +
+    '\n  ' +
+    pc.cyan('Ubuntu:') +
+    '  sudo apt install redis-server && sudo systemctl enable --now redis' +
+    '\n  ' +
+    pc.cyan('Docker:') +
+    '  docker run -d -p 6379:6379 --name redis redis:7-alpine',
+  );
 
-  let redisUrl = 'redis://localhost:6379';
-  let digestSchedule = '';
-  let reminderCheckSchedule = '';
-  let newsletterSchedule = '';
-  let trendingSchedule = '';
-
-  if (enableScheduler) {
-    clack.log.info(
-      pc.dim('Redis install commands (if not already running):') +
-      '\n  ' +
-      pc.cyan('macOS :') +
-      '  brew install redis && brew services start redis' +
-      '\n  ' +
-      pc.cyan('Ubuntu:') +
-      '  sudo apt install redis-server && sudo systemctl enable --now redis' +
-      '\n  ' +
-      pc.cyan('Docker:') +
-      '  docker run -d -p 6379:6379 --name redis redis:7-alpine',
-    );
-    const redisRaw = await clack.text({
-      message: 'Redis URL',
-      initialValue: existing['REDIS_URL'] ?? 'redis://localhost:6379',
-      validate: (v) => {
-        try {
-          new URL(v);
-        } catch {
-          return 'Invalid URL';
-        }
-      },
-    });
-    if (clack.isCancel(redisRaw)) cancel();
-    redisUrl = (redisRaw as string).trim();
-
-    if (!SKIP_VALIDATION) {
-      const spin = clack.spinner();
-      spin.start('Checking Redis connectivity…');
-      const result = await validateRedisUrl(redisUrl);
-      if (result.valid) {
-        spin.stop(pc.green('✓ Redis reachable'));
-      } else {
-        spin.stop(pc.yellow(`⚠ Could not connect: ${result.error}`));
-        const proceed = await clack.confirm({ message: 'Continue anyway?' });
-        if (clack.isCancel(proceed) || !proceed) cancel();
+  const redisRaw = await clack.text({
+    message: 'Redis URL',
+    initialValue: existing['REDIS_URL'] ?? 'redis://localhost:6379',
+    validate: (v) => {
+      try {
+        new URL(v);
+      } catch {
+        return 'Invalid URL';
       }
+    },
+  });
+  if (clack.isCancel(redisRaw)) cancel();
+  const redisUrl = (redisRaw as string).trim();
+
+  if (!SKIP_VALIDATION) {
+    const spin = clack.spinner();
+    spin.start('Checking Redis connectivity…');
+    const result = await validateRedisUrl(redisUrl);
+    if (result.valid) {
+      spin.stop(pc.green('✓ Redis reachable'));
+    } else {
+      spin.stop(pc.yellow(`⚠ Could not connect: ${result.error}`));
+      const proceed = await clack.confirm({ message: 'Continue anyway?' });
+      if (clack.isCancel(proceed) || !proceed) cancel();
     }
-
-    clack.log.info(
-      pc.dim('Cron schedules — leave blank to disable. Reference: https://crontab.guru'),
-    );
-
-    const digestRaw = await clack.text({
-      message: `Daily digest cron ${pc.dim('(e.g. 0 8 * * * for 8am daily — leave blank to skip)')}`,
-      initialValue: existing['DIGEST_SCHEDULE'] ?? '',
-    });
-    if (clack.isCancel(digestRaw)) cancel();
-    digestSchedule = ((digestRaw as string | undefined) ?? '').trim();
-
-    const reminderRaw = await clack.text({
-      message: `Reminder check cron ${pc.dim('(e.g. */15 * * * * — leave blank to skip)')}`,
-      initialValue: existing['REMINDER_CHECK_SCHEDULE'] ?? '',
-    });
-    if (clack.isCancel(reminderRaw)) cancel();
-    reminderCheckSchedule = ((reminderRaw as string | undefined) ?? '').trim();
-
-    const newsletterRaw = await clack.text({
-      message: `Newsletter cron ${pc.dim('(leave blank to skip)')}`,
-      initialValue: existing['NEWSLETTER_SCHEDULE'] ?? '',
-    });
-    if (clack.isCancel(newsletterRaw)) cancel();
-    newsletterSchedule = ((newsletterRaw as string | undefined) ?? '').trim();
-
-    const trendingRaw = await clack.text({
-      message: `Trending topics cron ${pc.dim('(leave blank to skip)')}`,
-      initialValue: existing['TRENDING_SCHEDULE'] ?? '',
-    });
-    if (clack.isCancel(trendingRaw)) cancel();
-    trendingSchedule = ((trendingRaw as string | undefined) ?? '').trim();
   }
+
+  clack.log.info(
+    pc.dim('Cron schedules — leave blank to disable. Reference: https://crontab.guru'),
+  );
+
+  const digestRaw = await clack.text({
+    message: `Daily digest cron ${pc.dim('(e.g. 0 8 * * * for 8am daily — leave blank to skip)')}`,
+    initialValue: existing['DIGEST_SCHEDULE'] ?? '',
+  });
+  if (clack.isCancel(digestRaw)) cancel();
+  const digestSchedule = ((digestRaw as string | undefined) ?? '').trim();
+
+  const reminderRaw = await clack.text({
+    message: `Reminder check cron ${pc.dim('(e.g. */15 * * * * — leave blank to skip)')}`,
+    initialValue: existing['REMINDER_CHECK_SCHEDULE'] ?? '',
+  });
+  if (clack.isCancel(reminderRaw)) cancel();
+  const reminderCheckSchedule = ((reminderRaw as string | undefined) ?? '').trim();
+
+  const newsletterRaw = await clack.text({
+    message: `Newsletter cron ${pc.dim('(leave blank to skip)')}`,
+    initialValue: existing['NEWSLETTER_SCHEDULE'] ?? '',
+  });
+  if (clack.isCancel(newsletterRaw)) cancel();
+  const newsletterSchedule = ((newsletterRaw as string | undefined) ?? '').trim();
+
+  const trendingRaw = await clack.text({
+    message: `Trending topics cron ${pc.dim('(leave blank to skip)')}`,
+    initialValue: existing['TRENDING_SCHEDULE'] ?? '',
+  });
+  if (clack.isCancel(trendingRaw)) cancel();
+  const trendingSchedule = ((trendingRaw as string | undefined) ?? '').trim();
 
   // ── Step 6: Storage ──────────────────────────────────────────────────────
 
@@ -603,7 +586,6 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
     enableWeb,
     webPort,
     webApiKey,
-    enableScheduler,
     redisUrl,
     digestSchedule,
     reminderCheckSchedule,
@@ -753,7 +735,7 @@ async function main(): Promise<void> {
       `Telegram         : ${state.enableTelegram ? pc.green('enabled') : pc.dim('disabled')}${state.telegramBotToken ? ` (${maskKey(state.telegramBotToken)})` : ''}`,
       `Web UI           : ${state.enableWeb ? pc.green(`enabled :${state.webPort}`) + pc.dim(` (key: ${state.webApiKey.slice(0, 8)}…)`) : pc.dim('disabled (experimental)')}`,
       `CLI              : ${pc.green('always available')} ${pc.dim('— run `pnpm echos` anytime')}`,
-      `Scheduler        : ${state.enableScheduler ? pc.green(`enabled — ${state.redisUrl}`) : pc.dim('disabled')}`,
+      `Redis            : ${pc.green(state.redisUrl)}`,
       `Storage          : ${state.knowledgeDir}, ${state.dbPath}, ${state.sessionDir}`,
     ].join('\n  ');
 

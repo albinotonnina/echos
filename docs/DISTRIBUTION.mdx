@@ -91,8 +91,8 @@ pnpm setup
 Opens `http://localhost:3456` with a guided wizard that walks you through:
 - API keys (Anthropic required, OpenAI optional)
 - Telegram bot configuration
-- Feature toggles (Web UI, scheduler)
-- Redis connection (for background jobs)
+- Feature toggles (Web UI)
+- Redis connection
 
 ### CLI Setup
 
@@ -118,9 +118,7 @@ Reads from environment variables and writes `.env` without prompts. Useful for C
 ### Required
 - **Node.js 20+** — runtime
 - **pnpm 10+** — package manager
-
-### Optional
-- **Redis** — required only for background scheduler (digests, reminders, cron jobs)
+- **Redis** — background scheduler (digests, reminders, cron jobs)
 
 ### What you DON'T need
 - **No C++ toolchain** — all native modules (better-sqlite3, LanceDB, sharp) ship prebuilt binaries
@@ -150,9 +148,6 @@ pnpm start
 
 # Start with pretty-printed logs
 pnpm start | pnpm exec pino-pretty
-
-# Start with scheduler enabled
-pnpm start:with-scheduler
 
 # Use the CLI (no daemon needed)
 pnpm echos "what did I save yesterday?"

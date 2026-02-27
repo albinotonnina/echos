@@ -16,7 +16,6 @@
     "typecheck": "pnpm -r typecheck",
     "start": "tsx --env-file=.env src/index.ts",
     "start:web-only": "ENABLE_TELEGRAM=false tsx --env-file=.env src/index.ts",
-    "start:with-scheduler": "ENABLE_SCHEDULER=true tsx --env-file=.env src/index.ts",
     "stop": "pkill -f 'tsx.*src/index.ts' || true",
     "redis:status": "./scripts/manage-redis.sh status",
     "redis:start": "./scripts/manage-redis.sh start",

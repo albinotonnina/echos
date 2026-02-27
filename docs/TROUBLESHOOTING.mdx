@@ -379,7 +379,7 @@ Error: connect ECONNREFUSED 127.0.0.1:6379
    # Should return: PONG
    ```
 
-**Note**: Redis is only required when `ENABLE_SCHEDULER=true`. For basic knowledge management, you can disable the scheduler.
+**Note**: Redis is required for EchOS. If Redis is not running at startup, EchOS will exit with an error.
 
 ### Database/Storage Errors
 
