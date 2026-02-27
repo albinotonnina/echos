@@ -194,6 +194,8 @@ install_deps() {
 build_project() {
   info "Building EchOS..."
   pnpm --dir "$ECHOS_INSTALL_DIR" build
+  # Re-link workspace bins now that dist/ exists
+  pnpm --dir "$ECHOS_INSTALL_DIR" install --frozen-lockfile --prefer-offline > /dev/null 2>&1 || true
   success "Build complete"
 }
 
