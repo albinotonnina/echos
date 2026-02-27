@@ -16,6 +16,7 @@ COPY plugins/youtube/package.json plugins/youtube/
 COPY plugins/content-creation/package.json plugins/content-creation/
 COPY plugins/image/package.json plugins/image/
 COPY plugins/digest/package.json plugins/digest/
+COPY plugins/twitter/package.json plugins/twitter/
 RUN pnpm install --frozen-lockfile --prod=false
 
 # Build
@@ -45,6 +46,7 @@ COPY --from=deps /app/plugins/youtube/package.json plugins/youtube/
 COPY --from=deps /app/plugins/content-creation/package.json plugins/content-creation/
 COPY --from=deps /app/plugins/image/package.json plugins/image/
 COPY --from=deps /app/plugins/digest/package.json plugins/digest/
+COPY --from=deps /app/plugins/twitter/package.json plugins/twitter/
 RUN pnpm install --prod --frozen-lockfile
 
 # Copy build artifacts (changes frequently, so last)
