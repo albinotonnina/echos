@@ -1,0 +1,88 @@
+class Echos < Formula
+  desc "Secure, self-hosted, agent-driven personal knowledge management system"
+  homepage "https://github.com/albinotonnina/echos"
+  url "https://github.com/albinotonnina/echos/archive/refs/tags/v0.7.2.tar.gz"
+  # sha256 will be filled by CI/release script
+  # sha256 "PLACEHOLDER"
+  license "MIT"
+  head "https://github.com/albinotonnina/echos.git", branch: "main"
+
+  depends_on "node@20"
+  depends_on "redis"
+
+  def install
+    # Install pnpm via corepack (bundled with Node.js)
+    system "corepack", "enable"
+    system "corepack", "prepare", "pnpm@10.30.1", "--activate"
+
+    # Install dependencies with prebuilt native modules
+    system "pnpm", "install", "--frozen-lockfile"
+
+    # Build all packages
+    system "pnpm", "build"
+
+    # Install into libexec (the full project)
+    libexec.install Dir["*"]
+
+    # Create wrapper script that points to the CLI
+    (bin/"echos").write <<~SH
+      #!/bin/bash
+      export ECHOS_HOME="#{libexec}"
+      export NODE_ENV="${NODE_ENV:-production}"
+      cd "#{libexec}"
+      exec "#{Formula["node@20"].opt_bin}/node" "#{libexec}/packages/cli/dist/index.js" "$@"
+    SH
+
+    # Create a wrapper for the daemon
+    (bin/"echos-daemon").write <<~SH
+      #!/bin/bash
+      export ECHOS_HOME="#{libexec}"
+      export NODE_ENV="${NODE_ENV:-production}"
+      cd "#{libexec}"
+      exec "#{Formula["node@20"].opt_bin}/node" --import tsx "#{libexec}/src/index.ts" "$@"
+    SH
+  end
+
+  def post_install
+    # Create data directories
+    (var/"echos/knowledge").mkpath
+    (var/"echos/db").mkpath
+    (var/"echos/sessions").mkpath
+    (var/"echos/exports").mkpath
+  end
+
+  def caveats
+    <<~EOS
+      To get started with EchOS:
+
+        1. Run the setup wizard:
+           echos setup
+
+        2. Start the daemon:
+           brew services start echos
+
+        3. Use the CLI:
+           echos "search my notes"
+
+      Data is stored in #{var}/echos/
+      Configuration: #{etc}/echos/.env
+
+      Redis is required for the background scheduler:
+        brew services start redis
+    EOS
+  end
+
+  service do
+    run [opt_bin/"echos-daemon"]
+    working_dir var/"echos"
+    keep_alive true
+    log_path var/"log/echos.log"
+    error_log_path var/"log/echos-error.log"
+    environment_variables PATH: std_service_path_env,
+                          NODE_ENV: "production"
+  end
+
+  test do
+    assert_match "echos", shell_output("#{bin}/echos --help 2>&1", 0)
+  end
+end
