@@ -4,10 +4,11 @@ import { createWriteStream } from 'fs';
 import { unlink, mkdir } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import type { Logger } from 'pino';
 import { HttpsProxyAgent } from 'https-proxy-agent';
+import { YouTubeTranscriptApi, WebshareProxyConfig } from 'youtube-transcript-api-js';
+import type { ProxyConfig as TranscriptProxyConfig } from 'youtube-transcript-api-js';
 import { validateUrl, sanitizeHtml, ProcessingError, ExternalServiceError } from '@echos/shared';
 import type { ProcessedContent } from '@echos/shared';
 
@@ -17,6 +18,11 @@ function createProxyAgent(proxyConfig: ProxyConfig): HttpsProxyAgent<string> | u
   if (!proxyConfig) return undefined;
   const proxyUrl = `http://${proxyConfig.username}:${proxyConfig.password}@p.webshare.io:80`;
   return new HttpsProxyAgent(proxyUrl);
+}
+
+function createTranscriptProxyConfig(proxyConfig: ProxyConfig): TranscriptProxyConfig | undefined {
+  if (!proxyConfig) return undefined;
+  return new WebshareProxyConfig(proxyConfig.username, proxyConfig.password);
 }
 
 const WHISPER_MAX_SIZE_BYTES = 25 * 1024 * 1024; // 25MB (OpenAI limit)
@@ -87,129 +93,74 @@ export function extractVideoId(url: string): string {
 }
 
 /**
- * Fetch transcript using Python youtube-transcript-api (more reliable than JS libraries)
+ * Fetch transcript using youtube-transcript-api-js (pure JS, no Python dependency)
  */
 async function fetchYoutubeTranscript(videoId: string, logger: Logger, proxyConfig?: ProxyConfig): Promise<string> {
-  logger.debug({ videoId, hasProxy: !!proxyConfig }, 'Fetching YouTube transcript via Python');
+  logger.debug({ videoId, hasProxy: !!proxyConfig }, 'Fetching YouTube transcript');
 
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
+  const transcriptProxyConfig = createTranscriptProxyConfig(proxyConfig);
+  const api = transcriptProxyConfig
+    ? new YouTubeTranscriptApi(transcriptProxyConfig)
+    : new YouTubeTranscriptApi();
+
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
+    setTimeout(() => {
       reject(new ProcessingError('Transcript fetch timeout', true));
     }, TRANSCRIPT_TIMEOUT_MS);
-
-    const proxyImport = proxyConfig
-      ? `from youtube_transcript_api.proxies import WebshareProxyConfig\n`
-      : '';
-    const apiInit = proxyConfig
-      ? `YouTubeTranscriptApi(proxy_config=WebshareProxyConfig(proxy_username="${proxyConfig.username}", proxy_password="${proxyConfig.password}"))`
-      : `YouTubeTranscriptApi()`;
-
-    const pythonCode = `import json
-${proxyImport}from youtube_transcript_api import YouTubeTranscriptApi
-
-try:
-    api = ${apiInit}
-    transcript_list = api.list('${videoId}')
-    
-    # Try to find transcript in order: manual en, generated en, any english, any available
-    transcript = None
-    try:
-        transcript = transcript_list.find_transcript(['en'])
-    except:
-        try:
-            transcript = transcript_list.find_generated_transcript(['en'])
-        except:
-            # Get any available transcript
-            for t in transcript_list:
-                transcript = t
-                break
-    
-    if transcript is None:
-        raise Exception('No transcript available')
-    
-    transcript_data = transcript.fetch()
-    text = ' '.join([entry.text for entry in transcript_data])
-    print(json.dumps({'success': True, 'text': text, 'segments': len(transcript_data)}))
-except Exception as e:
-    print(json.dumps({'success': False, 'error': str(e)}))
-`;
-
-    const python = spawn('python3', ['-c', pythonCode]);
-    let stdout = '';
-    let stderr = '';
-
-    python.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-
-    python.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-
-    python.on('close', (code) => {
-      clearTimeout(timeout);
-
-      if (code !== 0) {
-        logger.warn({ videoId, stderr, code }, 'Python transcript fetch failed');
-        reject(
-          new ProcessingError(`Python process exited with code ${code}: ${stderr}`, true)
-        );
-        return;
-      }
-
-      try {
-        const result = JSON.parse(stdout.trim());
-
-        if (!result.success) {
-          logger.warn({ videoId, error: result.error }, 'YouTube transcript unavailable');
-          reject(new ProcessingError(`YouTube transcript unavailable: ${result.error}`, true));
-          return;
-        }
-
-        const transcript = result.text;
-
-        if (!transcript || transcript.length === 0) {
-          reject(new ProcessingError('No transcript data returned', true));
-          return;
-        }
-
-        if (transcript.length > MAX_TRANSCRIPT_LENGTH) {
-          reject(
-            new ProcessingError(
-              `Transcript too long: ${transcript.length} characters`,
-              false
-            )
-          );
-          return;
-        }
-
-        logger.info(
-          { videoId, transcriptLength: transcript.length, segments: result.segments },
-          'YouTube transcript fetched successfully'
-        );
-        resolve(transcript);
-      } catch (parseError) {
-        logger.error({ videoId, stdout, parseError }, 'Failed to parse Python output');
-        reject(new ProcessingError('Failed to parse transcript response', true));
-      }
-    });
-
-    python.on('error', (error) => {
-      clearTimeout(timeout);
-      logger.error({ videoId, error }, 'Failed to spawn Python process');
-
-      if (error.message.includes('ENOENT') || error.message.includes('python3')) {
-        reject(
-          new ProcessingError(
-            'Python 3 is required for YouTube transcript extraction. Install youtube-transcript-api: pip3 install youtube-transcript-api',
-            false
-          )
-        );
-      } else {
-        reject(new ProcessingError(`Failed to run Python: ${error.message}`, true));
-      }
-    });
   });
+
+  try {
+    const transcriptList = await Promise.race([
+      api.list(videoId),
+      timeoutPromise,
+    ]);
+
+    // Try to find transcript in order: manual en, generated en, any available
+    let fetchedTranscript;
+    try {
+      const transcript = transcriptList.findTranscript(['en']);
+      fetchedTranscript = await transcript.fetch();
+    } catch {
+      try {
+        const transcript = transcriptList.findGeneratedTranscript(['en']);
+        fetchedTranscript = await transcript.fetch();
+      } catch {
+        // Get any available transcript
+        const allTranscripts = [...transcriptList];
+        if (allTranscripts.length === 0) {
+          throw new ProcessingError('No transcript available', true);
+        }
+        fetchedTranscript = await allTranscripts[0]!.fetch();
+      }
+    }
+
+    const text = fetchedTranscript.snippets.map((s) => s.text).join(' ');
+
+    if (!text || text.length === 0) {
+      throw new ProcessingError('No transcript data returned', true);
+    }
+
+    if (text.length > MAX_TRANSCRIPT_LENGTH) {
+      throw new ProcessingError(
+        `Transcript too long: ${text.length} characters`,
+        false
+      );
+    }
+
+    logger.info(
+      { videoId, transcriptLength: text.length, segments: fetchedTranscript.snippets.length },
+      'YouTube transcript fetched successfully'
+    );
+    return text;
+  } catch (error) {
+    if (error instanceof ProcessingError) {
+      throw error;
+    }
+
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.warn({ videoId, error: errorMessage }, 'YouTube transcript unavailable');
+    throw new ProcessingError(`YouTube transcript unavailable: ${errorMessage}`, true);
+  }
 }
 
 /**
@@ -346,155 +297,71 @@ async function transcribeWithWhisper(
 }
 
 /**
- * Get video metadata — prefers yt-dlp CLI (reliable), falls back to ytdl-core, then dummy title
+ * Get video metadata via YouTube oEmbed API (simple, reliable, no library dependency)
+ * Falls back to ytdl-core if oEmbed fails, then to dummy title.
  */
 async function getVideoMetadata(
   videoId: string,
   logger: Logger,
   proxyConfig?: ProxyConfig
 ): Promise<{ title: string; channel?: string; duration?: number; publishedDate?: string }> {
-  if (proxyConfig) {
-    return getVideoMetadataViaPython(videoId, logger, proxyConfig);
+  // Primary: YouTube oEmbed API — simple HTTP call, very reliable
+  try {
+    const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+    const response = await fetch(oembedUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (response.ok) {
+      const data = await response.json() as { title?: string; author_name?: string };
+      const title = data.title || 'Untitled';
+      const channel = data.author_name || undefined;
+      logger.info({ videoId, title, channel }, 'Metadata fetched via oEmbed');
+      return {
+        title,
+        ...(channel ? { channel } : {}),
+      };
+    }
+
+    logger.warn({ videoId, status: response.status }, 'oEmbed API returned non-OK status');
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.warn({ videoId, error: errorMessage }, 'oEmbed metadata fetch failed');
   }
 
-  // yt-dlp CLI is more reliable than ytdl-core (actively maintained, handles YouTube changes)
-  const ytdlpResult = await getVideoMetadataViaPythonNoProxy(videoId, logger);
-  if (ytdlpResult.title !== `YouTube Video ${videoId}`) {
-    return ytdlpResult;
-  }
-
-  // Last resort: try ytdl-core
-  logger.warn({ videoId }, 'yt-dlp failed, trying ytdl-core as last resort');
+  // Fallback: ytdl-core (less reliable but can provide duration/publishDate)
   try {
     const url = `https://www.youtube.com/watch?v=${videoId}`;
+    const agent = createProxyAgent(proxyConfig);
     const info = await withYtdlCache(async () => ytdl.getInfo(url, {
       requestOptions: {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept-Language': 'en-US,en;q=0.9',
         },
+        ...(agent ? { agent } : {}),
       },
     }));
+
+    const title = info.videoDetails.title || 'Untitled';
+    const channel = info.videoDetails.author.name;
+    const parsedDuration = parseInt(info.videoDetails.lengthSeconds, 10);
+    logger.info({ videoId, title, channel }, 'Metadata fetched via ytdl-core fallback');
+
     return {
-      title: info.videoDetails.title || 'Untitled',
-      channel: info.videoDetails.author.name,
-      duration: parseInt(info.videoDetails.lengthSeconds, 10),
-      publishedDate: info.videoDetails.publishDate,
+      title,
+      ...(channel ? { channel } : {}),
+      ...(Number.isFinite(parsedDuration) ? { duration: parsedDuration } : {}),
+      ...(info.videoDetails.publishDate ? { publishedDate: info.videoDetails.publishDate } : {}),
     };
   } catch (error) {
-    logger.warn({ videoId, error }, 'ytdl-core also failed, using dummy title');
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.warn({ videoId, error: errorMessage }, 'ytdl-core metadata also failed, using dummy title');
     return { title: `YouTube Video ${videoId}` };
   }
-}
-
-/**
- * Fetch video metadata via yt-dlp CLI without proxy
- */
-function getVideoMetadataViaPythonNoProxy(
-  videoId: string,
-  logger: Logger,
-): Promise<{ title: string; channel?: string; duration?: number; publishedDate?: string }> {
-  return new Promise((resolve) => {
-    const url = `https://www.youtube.com/watch?v=${videoId}`;
-    const ytdlp = spawn('yt-dlp', [
-      '--dump-json',
-      '--no-playlist',
-      '--socket-timeout', '30',
-      url,
-    ]);
-
-    let stdout = '';
-    let stderr = '';
-
-    ytdlp.stdout.on('data', (data) => { stdout += data.toString(); });
-    ytdlp.stderr.on('data', (data) => { stderr += data.toString(); });
-
-    ytdlp.on('close', (code) => {
-      if (code !== 0 || !stdout.trim()) {
-        logger.warn({ videoId, stderr, code }, 'yt-dlp CLI metadata fetch failed');
-        resolve({ title: `YouTube Video ${videoId}` });
-        return;
-      }
-
-      try {
-        const info = JSON.parse(stdout.trim());
-        const title = info.title || 'Untitled';
-        const channel = info.uploader || info.channel || undefined;
-        logger.info({ videoId, title, channel }, 'Metadata fetched via yt-dlp CLI');
-        resolve({
-          title,
-          channel,
-          duration: info.duration || undefined,
-          publishedDate: info.upload_date || undefined,
-        });
-      } catch (parseError) {
-        logger.warn({ videoId, parseError }, 'Failed to parse yt-dlp output');
-        resolve({ title: `YouTube Video ${videoId}` });
-      }
-    });
-
-    ytdlp.on('error', (error) => {
-      logger.warn({ videoId, error: error.message }, 'Failed to spawn yt-dlp');
-      resolve({ title: `YouTube Video ${videoId}` });
-    });
-  });
-}
-
-/**
- * Fetch video metadata via yt-dlp (Python) with proxy support
- */
-function getVideoMetadataViaPython(
-  videoId: string,
-  logger: Logger,
-  proxyConfig: NonNullable<ProxyConfig>
-): Promise<{ title: string; channel?: string; duration?: number; publishedDate?: string }> {
-  const proxy = `http://${proxyConfig.username}:${proxyConfig.password}@p.webshare.io:80`;
-  const url = `https://www.youtube.com/watch?v=${videoId}`;
-
-  return new Promise((resolve) => {
-    const ytdlp = spawn('yt-dlp', [
-      '--dump-json',
-      '--no-playlist',
-      '--proxy', proxy,
-      '--socket-timeout', '30',
-      url,
-    ]);
-
-    let stdout = '';
-    let stderr = '';
-
-    ytdlp.stdout.on('data', (data) => { stdout += data.toString(); });
-    ytdlp.stderr.on('data', (data) => { stderr += data.toString(); });
-
-    ytdlp.on('close', (code) => {
-      if (code !== 0 || !stdout.trim()) {
-        logger.warn({ videoId, stderr, code }, 'yt-dlp metadata fetch failed');
-        resolve({ title: `YouTube Video ${videoId}` });
-        return;
-      }
-
-      try {
-        const info = JSON.parse(stdout.trim());
-        const title = info.title || 'Untitled';
-        const channel = info.uploader || info.channel || undefined;
-        logger.info({ videoId, title, channel }, 'Metadata fetched via yt-dlp (proxy)');
-        resolve({
-          title,
-          channel,
-          duration: info.duration || undefined,
-          publishedDate: info.upload_date || undefined,
-        });
-      } catch (parseError) {
-        logger.warn({ videoId, parseError }, 'Failed to parse yt-dlp output');
-        resolve({ title: `YouTube Video ${videoId}` });
-      }
-    });
-
-    ytdlp.on('error', (error) => {
-      logger.warn({ videoId, error: error.message }, 'Failed to spawn yt-dlp');
-      resolve({ title: `YouTube Video ${videoId}` });
-    });
-  });
 }
 
 /**
