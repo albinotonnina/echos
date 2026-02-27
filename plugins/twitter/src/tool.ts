@@ -104,7 +104,7 @@ export function createSaveTweetTool(context: PluginContext): AgentTool<typeof sc
         links: [],
         category,
         sourceUrl: params.url,
-        status: 'saved',
+        status: 'read',
         inputSource: 'url',
       };
       if (processed.metadata.author) metadata.author = processed.metadata.author;
@@ -133,7 +133,7 @@ export function createSaveTweetTool(context: PluginContext): AgentTool<typeof sc
       responseText += `Content: ${processed.content.length} characters\n`;
       responseText += `Category: ${category}\n`;
       responseText += `Tags: [${tags.join(', ')}]\n`;
-      responseText += `Status: saved (mark as read when you've engaged with it)`;
+      responseText += `Status: read`;
       if (gist) {
         responseText += `\nGist: ${gist}`;
       }
