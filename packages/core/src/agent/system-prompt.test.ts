@@ -48,6 +48,12 @@ describe('SYSTEM_PROMPT', () => {
     expect(SYSTEM_PROMPT).toContain('twitter.com');
   });
 
+  it('enforces factual retrieval for exact saved details', () => {
+    expect(SYSTEM_PROMPT).toContain('## Factual Retrieval (CRITICAL)');
+    expect(SYSTEM_PROMPT).toContain('call **get_note**');
+    expect(SYSTEM_PROMPT).toContain('Never invent or guess URLs/IDs');
+  });
+
   it('does not contain sections moved to tool descriptions', () => {
     expect(SYSTEM_PROMPT).not.toContain('## Capabilities');
     expect(SYSTEM_PROMPT).not.toContain('## Tool Usage');
