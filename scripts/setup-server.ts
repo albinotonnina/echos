@@ -199,6 +199,7 @@ function writeConfig(state: Record<string, unknown>): { success: boolean; error?
     if (fs.existsSync(envPath)) {
       const backupPath = `${envPath}.backup.${Date.now()}`;
       fs.copyFileSync(envPath, backupPath);
+      fs.chmodSync(backupPath, 0o600);
     }
 
     const content = stateToEnv(state);
