@@ -230,7 +230,14 @@ function writeConfig(state: Record<string, unknown>): { success: boolean; error?
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', `http://localhost:${PORT}`);
 
-  // Only allow localhost — strict match to prevent DNS rebinding (e.g. localhost.evil.com)
+  // Only allow localhost — validate both remote address and host header
+  // to prevent DNS rebinding attacks (e.g. localhost.evil.com)
+  const remoteAddr = req.socket.remoteAddress || '';
+  if (!['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(remoteAddr)) {
+    res.writeHead(403);
+    res.end('Forbidden');
+    return;
+  }
   const host = req.headers.host || '';
   if (!/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host)) {
     res.writeHead(403);

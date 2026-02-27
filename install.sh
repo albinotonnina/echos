@@ -84,19 +84,32 @@ check_pnpm() {
 }
 
 install_node() {
-  info "Node.js not found — installing via fnm (https://github.com/Schniz/fnm)..."
-  if ! command -v curl >/dev/null 2>&1; then
-    fatal "curl is required to install Node.js. Install curl and re-run."
+  info "Node.js 20+ not found — attempting to install..."
+
+  # Prefer platform package managers over piping remote scripts
+  if command -v brew >/dev/null 2>&1; then
+    info "Installing Node.js 20 via Homebrew..."
+    brew install node@20
+    brew link --overwrite node@20 2>/dev/null || true
+  elif command -v apt-get >/dev/null 2>&1; then
+    info "Installing Node.js 20 via apt..."
+    if command -v curl >/dev/null 2>&1; then
+      curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    else
+      fatal "curl is required to add NodeSource repository. Install curl and re-run."
+    fi
+    sudo apt-get install -y nodejs
+  elif command -v dnf >/dev/null 2>&1; then
+    info "Installing Node.js 20 via dnf..."
+    sudo dnf module install -y nodejs:20
+  else
+    fatal "Could not install Node.js automatically. Please install Node.js 20+ manually:\n  https://nodejs.org/en/download/\nThen re-run this installer."
   fi
-  # Note: piping remote scripts is a supply-chain risk. For production/sensitive
-  # environments, install Node.js via your OS package manager instead.
-  curl -fsSL https://fnm.vercel.app/install | bash
-  # Source fnm into current shell
-  export PATH="$HOME/.local/share/fnm:$HOME/.fnm:$PATH"
-  eval "$(fnm env)" 2>/dev/null || true
-  fnm install 20 || fatal "Failed to install Node.js 20 via fnm"
-  fnm use 20
-  success "Node.js $(node --version) installed via fnm"
+
+  if ! command -v node >/dev/null 2>&1; then
+    fatal "Node.js installation failed. Please install Node.js 20+ manually and re-run."
+  fi
+  success "Node.js $(node --version) installed"
 }
 
 ensure_redis() {
