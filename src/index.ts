@@ -49,8 +49,7 @@ import twitterPlugin from '@echos/plugin-twitter';
 const logger = createLogger('echos');
 
 /**
- * Check if Redis is reachable by sending a PING command.
- * Returns true if Redis responds, false otherwise.
+ * Check if Redis is reachable by sending a PING command via raw TCP.
  */
 async function checkRedisConnection(redisUrl: string, log: typeof logger): Promise<boolean> {
   try {
@@ -74,7 +73,7 @@ async function checkRedisConnection(redisUrl: string, log: typeof logger): Promi
           log.debug({ host, port }, 'Redis pre-flight check passed');
           resolve(true);
         } else {
-          log.debug({ host, port, response }, 'Redis responded but not with PONG');
+          log.debug({ host, port, response }, 'Redis responded unexpectedly');
           resolve(false);
         }
       });
@@ -90,8 +89,7 @@ async function checkRedisConnection(redisUrl: string, log: typeof logger): Promi
         resolve(false);
       });
     });
-  } catch (err) {
-    log.debug({ err }, 'Redis pre-flight URL parse error');
+  } catch {
     return false;
   }
 }
@@ -216,14 +214,15 @@ async function main(): Promise<void> {
     const redisOk = await checkRedisConnection(config.redisUrl, logger);
     if (!redisOk) {
       logger.warn(
-        'Scheduler disabled: Redis is not reachable. Background jobs (content processing, reminders, digest) will not run.\n' +
-        '  To fix: install and start Redis, then restart EchOS.\n' +
-        '  macOS:  brew install redis && brew services start redis\n' +
-        '  Linux:  sudo apt install redis-server && sudo systemctl start redis-server\n' +
-        '  Or set ENABLE_SCHEDULER=false to suppress this warning.',
+        'Scheduler disabled: Redis is not reachable. Background jobs will not run.\n' +
+          '  To fix: install and start Redis, then restart EchOS.\n' +
+          '  macOS:  brew install redis && brew services start redis\n' +
+          '  Linux:  sudo apt install redis-server && sudo systemctl start redis-server\n' +
+          '  Or set ENABLE_SCHEDULER=false to suppress this warning.',
       );
-    } else {
+    }
 
+    if (redisOk) {
     // Get notification service from Telegram or use log-only fallback
     notificationService = telegramAdapter?.notificationService ?? {
       async sendMessage(userId: number, text: string): Promise<void> {
@@ -290,7 +289,7 @@ async function main(): Promise<void> {
       queueService = undefined;
       worker = undefined;
     }
-    }
+    } // redisOk
   }
 
   if (config.enableWeb) {
