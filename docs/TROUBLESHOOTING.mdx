@@ -614,27 +614,33 @@ The history file is `~/.echos_history`. If it doesn't persist:
 
 ### "Unable to save this video" / YouTube transcript fails
 
-**Problem**: The YouTube plugin uses `youtube-transcript-api-js` to extract transcripts. Some videos may not have captions available, or YouTube may block requests from cloud/VPS IPs.
+**Problem**: The YouTube plugin uses `youtube-transcript-api-js` (pure JS) to fetch transcripts. Failures are usually caused by the server IP being blocked by YouTube.
 
 **Symptoms**:
 
-- Bot responds with something like "I was unable to save this video"
-- Logs show: `YouTube transcript unavailable` or `IpBlocked`
+- Bot responds with "I was unable to save this video"
+- Logs show: `YouTube transcript unavailable [IpBlocked]` or `YouTube transcript unavailable [RequestBlocked]`
 
-**Fix**:
+**Fixes**:
 
-1. **Check if the video has captions**: Not all YouTube videos have transcripts available. Videos with auto-generated or manual captions will work.
+1. **Local machine**: No setup required — home IPs are not blocked by YouTube.
 
-2. **Whisper fallback**: If you have an OpenAI API key configured (`OPENAI_API_KEY`), EchOS will automatically download the audio and transcribe it using Whisper when YouTube captions are unavailable.
+2. **Docker / VPS**: The Docker image includes all required JS dependencies. No extra steps needed.
 
-3. **Cloud/VPS deployments**: YouTube may block requests from cloud IPs. Configure Webshare proxy in `.env`:
+**Proxy for cloud deployments**:
 
-   ```bash
-   WEBSHARE_PROXY_USERNAME=your_username
-   WEBSHARE_PROXY_PASSWORD=your_password
-   ```
+YouTube blocks most cloud/datacenter IPs. Configure a [Webshare](https://webshare.io) rotating proxy in `.env`:
 
-   When set, the transcript fetcher routes through Webshare rotating residential proxies (`p.webshare.io`).
+```bash
+WEBSHARE_PROXY_USERNAME=your_username
+WEBSHARE_PROXY_PASSWORD=your_password
+```
+
+<Warning>
+  Use your **base** Webshare username — **without** the `-rotate` suffix. The app appends `-rotate` automatically to enable IP rotation. If you copy the username directly from the Webshare dashboard and it already ends in `-rotate`, remove that suffix before pasting it here.
+</Warning>
+
+When set, transcript requests and audio downloads route through `p.webshare.io:80`.
 
 ---
 
