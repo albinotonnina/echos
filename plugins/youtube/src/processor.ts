@@ -16,12 +16,16 @@ export type ProxyConfig = { username: string; password: string } | undefined;
 
 function createProxyAgent(proxyConfig: ProxyConfig): HttpsProxyAgent<string> | undefined {
   if (!proxyConfig) return undefined;
-  const proxyUrl = `http://${proxyConfig.username}:${proxyConfig.password}@p.webshare.io:80`;
+  // .env stores the base Webshare username (without -rotate).
+  // Append -rotate so the proxy rotates IPs on each request.
+  const proxyUrl = `http://${proxyConfig.username}-rotate:${proxyConfig.password}@p.webshare.io:80`;
   return new HttpsProxyAgent(proxyUrl);
 }
 
 function createTranscriptProxyConfig(proxyConfig: ProxyConfig): TranscriptProxyConfig | undefined {
   if (!proxyConfig) return undefined;
+  // WebshareProxyConfig appends -rotate to the username automatically
+  // and provides retriesWhenBlocked + preventKeepingConnectionsAlive.
   return new WebshareProxyConfig(proxyConfig.username, proxyConfig.password);
 }
 
@@ -158,8 +162,12 @@ async function fetchYoutubeTranscript(videoId: string, logger: Logger, proxyConf
     }
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.warn({ videoId, error: errorMessage }, 'YouTube transcript unavailable');
-    throw new ProcessingError(`YouTube transcript unavailable: ${errorMessage}`, true);
+    const errorName = error instanceof Error ? error.constructor.name : typeof error;
+    logger.warn(
+      { videoId, errorName, error: errorMessage, hasProxy: !!proxyConfig },
+      'YouTube transcript unavailable'
+    );
+    throw new ProcessingError(`YouTube transcript unavailable [${errorName}]: ${errorMessage}`, true);
   }
 }
 
