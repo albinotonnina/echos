@@ -75,7 +75,7 @@ describe('createSaveTweetTool', () => {
       expect.objectContaining({
         id: 'mock-uuid-1234',
         type: 'tweet',
-        status: 'saved',
+        status: 'read',
         sourceUrl: 'https://x.com/testuser/status/123',
         author: '@testuser',
       }),
