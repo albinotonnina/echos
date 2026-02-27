@@ -76,7 +76,7 @@ check_pnpm() {
   fi
   PNPM_VER="$(pnpm --version)"
   PNPM_MAJOR="${PNPM_VER%%.*}"
-  if [ "$PNPM_MAJOR" -lt 9 ]; then
+  if [ "$PNPM_MAJOR" -lt 10 ]; then
     info "Updating pnpm to latest..."
     npm install -g pnpm || fatal "Failed to update pnpm"
   fi
@@ -231,8 +231,28 @@ main() {
   check_git
   check_node
   check_pnpm
-  ensure_redis
-  start_redis
+
+  # Redis is only needed for the background scheduler — install on user request
+  echo ""
+  echo -e "  ${BOLD}Redis (optional — needed for background scheduler)${RESET}"
+  if command -v redis-server >/dev/null 2>&1; then
+    REDIS_VER="$(redis-server --version | grep -oE 'v=[0-9.]+' | sed 's/v=//' || echo '?')"
+    success "Redis $REDIS_VER already installed"
+    start_redis
+  else
+    if [ "$NON_INTERACTIVE" = "1" ]; then
+      info "Skipping Redis install (non-interactive mode). Install manually if needed."
+    else
+      echo -n "  Install Redis now? (y/N) "
+      read -r INSTALL_REDIS
+      if [ "$INSTALL_REDIS" = "y" ] || [ "$INSTALL_REDIS" = "Y" ]; then
+        ensure_redis
+        start_redis
+      else
+        info "Skipping Redis. Install later if you enable the scheduler."
+      fi
+    fi
+  fi
   echo ""
 
   echo -e "  ${BOLD}Setting up EchOS…${RESET}"
