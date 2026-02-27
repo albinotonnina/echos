@@ -257,7 +257,7 @@ main() {
       start_redis
     else
       echo -n "  Redis is required for EchOS to run. Install Redis now? (Y/n) "
-      read -r INSTALL_REDIS
+      read -r INSTALL_REDIS </dev/tty
       if [ -z "$INSTALL_REDIS" ] || [ "$INSTALL_REDIS" = "y" ] || [ "$INSTALL_REDIS" = "Y" ]; then
         ensure_redis
         start_redis
