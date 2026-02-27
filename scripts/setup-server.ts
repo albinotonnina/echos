@@ -7,8 +7,8 @@
  * browser-based setup wizard. Writes .env and creates data directories.
  *
  * Usage:
- *   pnpm setup              # starts server + opens browser
- *   pnpm setup --port 3456  # custom port
+ *   pnpm wizard              # starts server + opens browser
+ *   pnpm wizard --port 3456  # custom port
  */
 
 import * as fs from 'node:fs';
@@ -25,7 +25,7 @@ const PORT = (() => {
 
   const rawPort = args[portArgIndex + 1];
   if (!rawPort || rawPort.startsWith('-')) {
-    console.error('Error: --port flag requires a numeric value.\nUsage: pnpm setup --port 3456');
+    console.error('Error: --port flag requires a numeric value.\nUsage: pnpm wizard --port 3456');
     process.exit(1);
   }
 
@@ -729,7 +729,7 @@ function getSetupHtml(): string {
 
 server.on('error', (err: NodeJS.ErrnoException) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`\n  \x1b[31mError:\x1b[0m Port ${PORT} is already in use.\n  Try a different port: PORT=${PORT + 1} pnpm setup\n`);
+    console.error(`\n  \x1b[31mError:\x1b[0m Port ${PORT} is already in use.\n  Try a different port: PORT=${PORT + 1} pnpm wizard\n`);
   } else {
     console.error(`\n  \x1b[31mServer error:\x1b[0m ${err.message}\n`);
   }
