@@ -222,7 +222,7 @@ launch_wizard() {
     echo ""
     echo -e "  To complete setup, run:"
     echo -e "    ${CYAN}cd $ECHOS_INSTALL_DIR${RESET}"
-    echo -e "    ${CYAN}pnpm wizard:cli${RESET}    # configure API keys + interfaces"
+    echo -e "    ${CYAN}pnpm wizard${RESET}        # open browser setup wizard"
     echo -e "    ${CYAN}pnpm build${RESET}         # compile workspace packages"
     echo -e "    ${CYAN}pnpm start${RESET}         # launch EchOS"
     echo ""
