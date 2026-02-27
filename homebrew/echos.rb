@@ -24,13 +24,16 @@ class Echos < Formula
     # Install into libexec (the full project)
     libexec.install Dir["*"]
 
+    # Create config directory
+    (etc/"echos").mkpath
+
     # Create wrapper script that points to the CLI
     (bin/"echos").write <<~SH
       #!/bin/bash
       export ECHOS_HOME="#{libexec}"
       export NODE_ENV="${NODE_ENV:-production}"
       cd "#{libexec}"
-      exec "#{Formula["node@20"].opt_bin}/node" "#{libexec}/packages/cli/dist/index.js" "$@"
+      exec "#{Formula["node@20"].opt_bin}/node" --env-file="#{etc}/echos/.env" "#{libexec}/packages/cli/dist/index.js" "$@"
     SH
 
     # Create a wrapper for the daemon
@@ -39,7 +42,15 @@ class Echos < Formula
       export ECHOS_HOME="#{libexec}"
       export NODE_ENV="${NODE_ENV:-production}"
       cd "#{libexec}"
-      exec "#{Formula["node@20"].opt_bin}/node" --import tsx "#{libexec}/src/index.ts" "$@"
+      exec "#{Formula["node@20"].opt_bin}/node" --env-file="#{etc}/echos/.env" --import tsx "#{libexec}/src/index.ts" "$@"
+    SH
+
+    # Create a wrapper for the setup wizard
+    (bin/"echos-setup").write <<~SH
+      #!/bin/bash
+      export ECHOS_HOME="#{libexec}"
+      cd "#{libexec}"
+      exec "#{Formula["node@20"].opt_bin}/node" --import tsx "#{libexec}/scripts/setup-server.ts" "$@"
     SH
   end
 
@@ -55,8 +66,8 @@ class Echos < Formula
     <<~EOS
       To get started with EchOS:
 
-        1. Run the setup wizard:
-           echos setup
+        1. Run the setup wizard (opens browser):
+           echos-setup
 
         2. Start the daemon:
            brew services start echos

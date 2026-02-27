@@ -84,10 +84,12 @@ check_pnpm() {
 }
 
 install_node() {
-  info "Node.js not found — installing via fnm..."
+  info "Node.js not found — installing via fnm (https://github.com/Schniz/fnm)..."
   if ! command -v curl >/dev/null 2>&1; then
     fatal "curl is required to install Node.js. Install curl and re-run."
   fi
+  # Note: piping remote scripts is a supply-chain risk. For production/sensitive
+  # environments, install Node.js via your OS package manager instead.
   curl -fsSL https://fnm.vercel.app/install | bash
   # Source fnm into current shell
   export PATH="$HOME/.local/share/fnm:$HOME/.fnm:$PATH"
@@ -97,79 +99,16 @@ install_node() {
   success "Node.js $(node --version) installed via fnm"
 }
 
-ensure_redis() {
+check_redis_soft() {
   if command -v redis-server >/dev/null 2>&1; then
     REDIS_VER="$(redis-server --version | grep -oE 'v=[0-9.]+' | sed 's/v=//' || echo '?')"
-    success "Redis $REDIS_VER"
-    start_redis
-    return
-  fi
-
-  info "Redis not found — installing (needed for background scheduler)..."
-
-  if [ "$PLATFORM" = "macos" ]; then
-    if command -v brew >/dev/null 2>&1; then
-      brew install redis 2>/dev/null && success "Redis installed via Homebrew" || {
-        warn "Failed to install Redis via Homebrew — scheduler won't work without it"
-        warn "Install manually: brew install redis"
-        return
-      }
-    else
-      warn "Homebrew not found — cannot auto-install Redis"
-      warn "Install manually: https://redis.io/docs/getting-started/"
-      return
-    fi
-  elif [ "$PLATFORM" = "linux" ]; then
-    if command -v apt-get >/dev/null 2>&1; then
-      info "Installing redis-server via apt (may ask for sudo password)..."
-      sudo apt-get update -qq && sudo apt-get install -y -qq redis-server 2>/dev/null && {
-        success "Redis installed via apt"
-      } || {
-        warn "Failed to install Redis via apt — scheduler won't work without it"
-        warn "Install manually: sudo apt install redis-server"
-        return
-      }
-    elif command -v dnf >/dev/null 2>&1; then
-      info "Installing redis via dnf (may ask for sudo password)..."
-      sudo dnf install -y redis 2>/dev/null && {
-        success "Redis installed via dnf"
-      } || {
-        warn "Failed to install Redis via dnf"
-        return
-      }
-    else
-      warn "Could not detect package manager (apt/dnf) — cannot auto-install Redis"
-      warn "Install manually: https://redis.io/docs/getting-started/"
-      return
-    fi
-  fi
-
-  start_redis
-}
-
-start_redis() {
-  # Check if Redis is already running
-  if redis-cli ping >/dev/null 2>&1; then
-    success "Redis is running"
-    return
-  fi
-
-  info "Starting Redis..."
-
-  if [ "$PLATFORM" = "macos" ]; then
-    if command -v brew >/dev/null 2>&1; then
-      brew services start redis >/dev/null 2>&1 && success "Redis started via Homebrew services" || {
-        warn "Could not start Redis — start manually: brew services start redis"
-      }
-    fi
-  elif [ "$PLATFORM" = "linux" ]; then
-    if command -v systemctl >/dev/null 2>&1; then
-      sudo systemctl enable --now redis-server >/dev/null 2>&1 \
-        || sudo systemctl enable --now redis >/dev/null 2>&1 \
-        || warn "Could not start Redis — start manually: sudo systemctl start redis-server"
-      if redis-cli ping >/dev/null 2>&1; then
-        success "Redis started via systemd"
-      fi
+    success "Redis $REDIS_VER (optional, for background scheduler)"
+  else
+    warn "Redis not found (optional — only needed for ENABLE_SCHEDULER=true)"
+    if [ "$PLATFORM" = "macos" ]; then
+      warn "  Install later: brew install redis && brew services start redis"
+    elif [ "$PLATFORM" = "linux" ]; then
+      warn "  Install later: sudo apt install redis-server && sudo systemctl start redis-server"
     fi
   fi
 }
@@ -247,7 +186,7 @@ main() {
   check_git
   check_node
   check_pnpm
-  ensure_redis
+  check_redis_soft
   echo ""
 
   echo -e "  ${BOLD}Setting up EchOS…${RESET}"

@@ -49,7 +49,7 @@ import twitterPlugin from '@echos/plugin-twitter';
 const logger = createLogger('echos');
 
 /**
- * Check if Redis is reachable by sending a PING command via raw TCP.
+ * Check if Redis is reachable by sending a PING command via raw TCP (RESP protocol).
  */
 async function checkRedisConnection(redisUrl: string, log: typeof logger): Promise<boolean> {
   try {
@@ -60,32 +60,55 @@ async function checkRedisConnection(redisUrl: string, log: typeof logger): Promi
     const { createConnection } = await import('node:net');
 
     return new Promise((resolve) => {
+      let buffer = '';
+      let settled = false;
+
       const socket = createConnection({ host, port }, () => {
-        socket.write('PING\r\n');
+        // Use RESP array encoding for PING
+        socket.write('*1\r\n$4\r\nPING\r\n');
       });
 
       socket.setTimeout(3000);
 
       socket.on('data', (data) => {
-        const response = data.toString().trim();
+        if (settled) return;
+
+        buffer += data.toString('utf8');
+        const terminatorIndex = buffer.indexOf('\r\n');
+        if (terminatorIndex === -1) return; // wait for more data
+
+        const line = buffer.slice(0, terminatorIndex).trim();
+        settled = true;
         socket.end();
-        if (response === '+PONG') {
+
+        if (line === '+PONG') {
           log.debug({ host, port }, 'Redis pre-flight check passed');
           resolve(true);
         } else {
-          log.debug({ host, port, response }, 'Redis responded unexpectedly');
+          log.debug({ host, port, response: line }, 'Redis responded unexpectedly');
           resolve(false);
         }
       });
 
       socket.on('error', (err) => {
+        if (settled) return;
+        settled = true;
         log.debug({ host, port, error: err.message }, 'Redis pre-flight check failed');
         resolve(false);
       });
 
       socket.on('timeout', () => {
+        if (settled) return;
+        settled = true;
         socket.destroy();
         log.debug({ host, port }, 'Redis pre-flight check timed out');
+        resolve(false);
+      });
+
+      socket.on('end', () => {
+        if (settled) return;
+        settled = true;
+        log.debug({ host, port }, 'Redis connection ended before response');
         resolve(false);
       });
     });
@@ -223,73 +246,73 @@ async function main(): Promise<void> {
     }
 
     if (redisOk) {
-    // Get notification service from Telegram or use log-only fallback
-    notificationService = telegramAdapter?.notificationService ?? {
-      async sendMessage(userId: number, text: string): Promise<void> {
-        logger.info({ userId, text }, 'Notification (no delivery channel)');
-      },
-      async broadcast(text: string): Promise<void> {
-        logger.info({ text }, 'Broadcast notification (no delivery channel)');
-      },
-    };
+      // Get notification service from Telegram or use log-only fallback
+      notificationService = telegramAdapter?.notificationService ?? {
+        async sendMessage(userId: number, text: string): Promise<void> {
+          logger.info({ userId, text }, 'Notification (no delivery channel)');
+        },
+        async broadcast(text: string): Promise<void> {
+          logger.info({ text }, 'Broadcast notification (no delivery channel)');
+        },
+      };
 
-    try {
-      queueService = createQueue({ redisUrl: config.redisUrl, logger });
+      try {
+        queueService = createQueue({ redisUrl: config.redisUrl, logger });
 
-      const contentProcessor = createContentProcessor({
-        sqlite,
-        markdown,
-        vectorDb,
-        generateEmbedding,
-        logger,
-        ...(config.openaiApiKey ? { openaiApiKey: config.openaiApiKey } : {}),
-      });
+        const contentProcessor = createContentProcessor({
+          sqlite,
+          markdown,
+          vectorDb,
+          generateEmbedding,
+          logger,
+          ...(config.openaiApiKey ? { openaiApiKey: config.openaiApiKey } : {}),
+        });
 
-      const reminderProcessor = createReminderCheckProcessor({
-        sqlite,
-        notificationService,
-        logger,
-      });
+        const reminderProcessor = createReminderCheckProcessor({
+          sqlite,
+          notificationService,
+          logger,
+        });
 
-      const exportCleanupProcessor = createExportCleanupProcessor({ exportsDir, logger });
+        const exportCleanupProcessor = createExportCleanupProcessor({ exportsDir, logger });
 
-      const scheduleManager = new ScheduleManager(
-        queueService.queue,
-        sqlite,
-        pluginRegistry.getJobs(),
-        logger,
-      );
-      manageScheduleTool.setScheduleManager(scheduleManager);
+        const scheduleManager = new ScheduleManager(
+          queueService.queue,
+          sqlite,
+          pluginRegistry.getJobs(),
+          logger,
+        );
+        manageScheduleTool.setScheduleManager(scheduleManager);
 
-      webAdapterSyncSchedule = (id: string) => scheduleManager.syncSchedule(id);
-      webAdapterDeleteSchedule = (id: string) => scheduleManager.deleteSchedule(id);
+        webAdapterSyncSchedule = (id: string) => scheduleManager.syncSchedule(id);
+        webAdapterDeleteSchedule = (id: string) => scheduleManager.deleteSchedule(id);
 
-      const jobRouter = createJobRouter({
-        scheduleManager,
-        contentProcessor,
-        reminderProcessor,
-        exportCleanupProcessor,
-        logger,
-      });
+        const jobRouter = createJobRouter({
+          scheduleManager,
+          contentProcessor,
+          reminderProcessor,
+          exportCleanupProcessor,
+          logger,
+        });
 
-      worker = createWorker({
-        redisUrl: config.redisUrl,
-        logger,
-        processor: jobRouter,
-        concurrency: 2,
-      });
+        worker = createWorker({
+          redisUrl: config.redisUrl,
+          logger,
+          processor: jobRouter,
+          concurrency: 2,
+        });
 
-      await scheduleManager.syncAll();
-      logger.info('Scheduler initialized');
-    } catch (err) {
-      logger.warn(
-        { err, redisUrl: config.redisUrl },
-        'Scheduler unavailable: Redis connection failed. Running without background jobs.',
-      );
-      queueService = undefined;
-      worker = undefined;
+        await scheduleManager.syncAll();
+        logger.info('Scheduler initialized');
+      } catch (err) {
+        logger.warn(
+          { err, redisUrl: config.redisUrl },
+          'Scheduler unavailable: Redis connection failed. Running without background jobs.',
+        );
+        queueService = undefined;
+        worker = undefined;
+      }
     }
-    } // redisOk
   }
 
   if (config.enableWeb) {
