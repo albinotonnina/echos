@@ -520,9 +520,11 @@ function getSetupHtml(): string {
         if (!key) { showV('anthropic-status', 'error', 'Anthropic API key is required'); return; }
         if (!key.startsWith('sk-ant-')) { showV('anthropic-status', 'error', 'Key should start with sk-ant-'); return; }
       }
-      if (currentStep === 2 && toggles.enableTelegram) {
-        const token = document.getElementById('telegramBotToken').value.trim();
-        if (!token) { showV('telegram-status', 'error', 'Bot token is required when Telegram is enabled'); return; }
+      if (currentStep === 2) {
+        if (toggles.enableTelegram) {
+          const token = document.getElementById('telegramBotToken').value.trim();
+          if (!token) { showV('telegram-status', 'error', 'Bot token is required when Telegram is enabled'); return; }
+        }
         const ids = document.getElementById('allowedUserIds').value.trim();
         if (!ids) { showV('userid-hint', 'error', 'At least one user ID is required'); return; }
       }
