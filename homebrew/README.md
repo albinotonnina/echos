@@ -32,5 +32,5 @@ When releasing a new version:
 To test the formula locally:
 
 ```bash
-brew install --build-from-source ./homebrew/echos.rb
+brew install --build-from-source --HEAD ./homebrew/echos.rb
 ```

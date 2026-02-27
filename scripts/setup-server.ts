@@ -379,7 +379,7 @@ function getSetupHtml(): string {
       padding: 0.75rem; background: var(--surface); border: 1px solid var(--border);
       border-radius: 6px; margin-bottom: 1rem; cursor: pointer;
     }
-    .toggle-row:hover { border-color: var(--accent); }
+    .toggle-row:hover, .toggle-row:focus-visible { border-color: var(--accent); outline: none; }
     .toggle-label { font-size: 0.875rem; }
     .toggle-hint { font-size: 0.75rem; color: var(--text-dim); }
     .toggle {
@@ -457,7 +457,7 @@ function getSetupHtml(): string {
     <div class="step" id="step-2">
       <div class="step-header"><span class="step-number">2</span> Telegram Bot</div>
       <p class="step-desc">Set up your Telegram bot for messaging. Create one via <a href="https://t.me/BotFather" target="_blank">@BotFather</a>.</p>
-      <div class="toggle-row" onclick="toggle('enableTelegram')">
+      <div class="toggle-row" role="button" tabindex="0" id="btn-enableTelegram" aria-pressed="true" onclick="toggle('enableTelegram')" onkeydown="if(event.key==='Enter'||event.key===' '){toggle('enableTelegram');event.preventDefault();}">
         <div><div class="toggle-label">Enable Telegram</div><div class="toggle-hint">Recommended primary interface</div></div>
         <div class="toggle on" id="toggle-enableTelegram"></div>
       </div>
@@ -480,7 +480,7 @@ function getSetupHtml(): string {
     <div class="step" id="step-3">
       <div class="step-header"><span class="step-number">3</span> Features</div>
       <p class="step-desc">Enable additional interfaces and background features.</p>
-      <div class="toggle-row" onclick="toggle('enableWeb')">
+      <div class="toggle-row" role="button" tabindex="0" id="btn-enableWeb" aria-pressed="false" onclick="toggle('enableWeb')" onkeydown="if(event.key==='Enter'||event.key===' '){toggle('enableWeb');event.preventDefault();}">
         <div><div class="toggle-label">Web UI</div><div class="toggle-hint">REST API + web interface (experimental)</div></div>
         <div class="toggle" id="toggle-enableWeb"></div>
       </div>
@@ -592,6 +592,8 @@ function getSetupHtml(): string {
     function toggle(name) {
       toggles[name] = !toggles[name];
       document.getElementById('toggle-' + name).classList.toggle('on', toggles[name]);
+      const btn = document.getElementById('btn-' + name);
+      if (btn) btn.setAttribute('aria-pressed', String(toggles[name]));
       const fields = { enableTelegram: 'telegram-fields', enableWeb: 'web-fields' };
       if (fields[name]) document.getElementById(fields[name]).style.display = toggles[name] ? '' : 'none';
     }
@@ -724,6 +726,15 @@ function getSetupHtml(): string {
 }
 
 // ─── Start server ─────────────────────────────────────────────────────────────
+
+server.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n  \x1b[31mError:\x1b[0m Port ${PORT} is already in use.\n  Try a different port: PORT=${PORT + 1} pnpm setup\n`);
+  } else {
+    console.error(`\n  \x1b[31mServer error:\x1b[0m ${err.message}\n`);
+  }
+  process.exit(1);
+});
 
 server.listen(PORT, '127.0.0.1', () => {
   const url = `http://127.0.0.1:${PORT}/setup`;

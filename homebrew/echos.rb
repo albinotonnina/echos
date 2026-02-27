@@ -1,9 +1,9 @@
 class Echos < Formula
   desc "Secure, self-hosted, agent-driven personal knowledge management system"
   homepage "https://github.com/albinotonnina/echos"
-  url "https://github.com/albinotonnina/echos/archive/refs/tags/v0.7.4.tar.gz"
-  # sha256 will be filled by CI/release script
-  # sha256 "PLACEHOLDER"
+  # Stable URL is disabled until a release provides the tarball sha256.
+  # url "https://github.com/albinotonnina/echos/archive/refs/tags/v0.7.4.tar.gz"
+  # sha256 "will be set by the release process"
   license "MIT"
   head "https://github.com/albinotonnina/echos.git", branch: "main"
 
