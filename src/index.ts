@@ -93,6 +93,7 @@ async function checkRedisConnection(redisUrl: string, log: typeof logger): Promi
       socket.on('error', (err) => {
         if (settled) return;
         settled = true;
+        socket.destroy();
         log.debug({ host, port, error: err.message }, 'Redis pre-flight check failed');
         resolve(false);
       });

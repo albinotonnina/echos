@@ -291,19 +291,27 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (url.pathname === '/api/setup/validate-anthropic') {
-        json(res, await validateAnthropic(body));
+        const key = body['key'];
+        if (typeof key !== 'string') { json(res, { error: 'Missing or invalid "key"' }, 400); return; }
+        json(res, await validateAnthropic({ key }));
         return;
       }
       if (url.pathname === '/api/setup/validate-openai') {
-        json(res, await validateOpenai(body));
+        const key = body['key'];
+        if (typeof key !== 'string') { json(res, { error: 'Missing or invalid "key"' }, 400); return; }
+        json(res, await validateOpenai({ key }));
         return;
       }
       if (url.pathname === '/api/setup/validate-telegram') {
-        json(res, await validateTelegram(body));
+        const token = body['token'];
+        if (typeof token !== 'string') { json(res, { error: 'Missing or invalid "token"' }, 400); return; }
+        json(res, await validateTelegram({ token }));
         return;
       }
       if (url.pathname === '/api/setup/validate-redis') {
-        json(res, await validateRedis(body));
+        const redisUrl = body['url'];
+        if (typeof redisUrl !== 'string') { json(res, { error: 'Missing or invalid "url"' }, 400); return; }
+        json(res, await validateRedis({ url: redisUrl }));
         return;
       }
       if (url.pathname === '/api/setup/generate-key') {

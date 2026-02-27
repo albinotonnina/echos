@@ -93,12 +93,21 @@ install_node() {
     brew link --overwrite node@20 2>/dev/null || true
   elif command -v apt-get >/dev/null 2>&1; then
     info "Installing Node.js 20 via apt..."
-    if command -v curl >/dev/null 2>&1; then
-      curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    # Use distro-provided nodejs or the official Debian/Ubuntu package
+    if apt-cache show nodejs 2>/dev/null | grep -q '^Version: 2[0-9]'; then
+      sudo apt-get install -y nodejs
     else
-      fatal "curl is required to add NodeSource repository. Install curl and re-run."
+      # nodejs in distro repos is too old — install from official Debian/Ubuntu PPA
+      # (uses signed apt repo, not a piped script)
+      sudo apt-get install -y ca-certificates gnupg
+      sudo mkdir -p /etc/apt/keyrings
+      curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+        | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+      echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" \
+        | sudo tee /etc/apt/sources.list.d/nodesource.list > /dev/null
+      sudo apt-get update -qq
+      sudo apt-get install -y nodejs
     fi
-    sudo apt-get install -y nodejs
   elif command -v dnf >/dev/null 2>&1; then
     info "Installing Node.js 20 via dnf..."
     sudo dnf module install -y nodejs:20
@@ -232,24 +241,27 @@ main() {
   check_node
   check_pnpm
 
-  # Redis is only needed for the background scheduler — install on user request
+  # Redis is required — EchOS exits at startup if Redis is unreachable
   echo ""
-  echo -e "  ${BOLD}Redis (optional — needed for background scheduler)${RESET}"
+  echo -e "  ${BOLD}Redis (required)${RESET}"
   if command -v redis-server >/dev/null 2>&1; then
     REDIS_VER="$(redis-server --version | grep -oE 'v=[0-9.]+' | sed 's/v=//' || echo '?')"
     success "Redis $REDIS_VER already installed"
     start_redis
   else
     if [ "$NON_INTERACTIVE" = "1" ]; then
-      info "Skipping Redis install (non-interactive mode). Install manually if needed."
+      info "Redis not found. Attempting non-interactive install..."
+      ensure_redis
+      start_redis
     else
-      echo -n "  Install Redis now? (y/N) "
+      echo -n "  Redis is required for EchOS to run. Install Redis now? (Y/n) "
       read -r INSTALL_REDIS
-      if [ "$INSTALL_REDIS" = "y" ] || [ "$INSTALL_REDIS" = "Y" ]; then
+      if [ -z "$INSTALL_REDIS" ] || [ "$INSTALL_REDIS" = "y" ] || [ "$INSTALL_REDIS" = "Y" ]; then
         ensure_redis
         start_redis
       else
-        info "Skipping Redis. Install later if you enable the scheduler."
+        error "Cannot continue without Redis. Install Redis and re-run."
+        exit 1
       fi
     fi
   fi
