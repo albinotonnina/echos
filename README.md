@@ -86,12 +86,21 @@ The only outbound calls are to the AI APIs you configure — and only when you a
 ## Get started
 
 ```bash
-# Local
-git clone https://github.com/albinotonnina/echos.git && cd echos
-pnpm install && pnpm wizard && pnpm build && pnpm start
-
-# VPS (one-liner)
+# One-liner (macOS + Linux) — installs Node.js if needed, clones, builds, launches setup
 curl -sSL https://raw.githubusercontent.com/albinotonnina/echos/main/install.sh | bash
+
+# Or manually
+git clone https://github.com/albinotonnina/echos.git && cd echos
+pnpm install && pnpm build
+
+# Setup wizard (browser-based)
+pnpm setup     # opens http://localhost:3456 with guided setup
+
+# Or CLI wizard
+pnpm wizard    # interactive terminal setup
+
+# Start
+pnpm start
 ```
 
 You'll need an LLM API key — either Anthropic (`ANTHROPIC_API_KEY`, pay-as-you-go, not a Claude subscription) or any other provider supported by pi-ai (`LLM_API_KEY`). Custom OpenAI-compatible endpoints (DeepInfra, local Ollama, etc.) are supported via `LLM_BASE_URL`. Everything else is optional.

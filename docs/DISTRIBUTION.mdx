@@ -1,310 +1,184 @@
 ---
-title: "Distribution"
-description: "Docker image publishing and install script delivery."
+title: "Distribution & Installation"
+description: "How to install EchOS — one-liner, Homebrew, Docker, or manual setup."
 ---
 
-# Distribution Options for EchOS
+# Installing EchOS
 
-This document explores different ways to distribute EchOS for easy installation, comparing the npm global install approach (like openclaw) with alternatives.
+EchOS can be installed in several ways, from a one-line command to manual git clone.
 
 ---
 
-## 1. The OpenClaw Approach (npm global install)
+## Quick Install (Recommended)
 
-### How it works
-
-OpenClaw distributes as an npm package with a CLI entry point:
-
-```json
-{
-  "name": "openclaw",
-  "version": "2026.2.16",
-  "bin": {
-    "openclaw": "openclaw.mjs"
-  },
-  "type": "module",
-  "files": [
-    "openclaw.mjs",
-    "dist/",
-    "extensions/",
-    "skills/"
-  ]
-}
-```
-
-Users can install globally and run commands:
+### One-liner (macOS + Linux)
 
 ```bash
-npm install -g openclaw@latest
-# or
-pnpm add -g openclaw@latest
-
-openclaw onboard --install-daemon
+curl -sSL https://raw.githubusercontent.com/albinotonnina/echos/main/install.sh | bash
 ```
 
-### What would be needed for EchOS
+This script will:
+1. Install Node.js 20+ via [fnm](https://github.com/Schniz/fnm) if not present
+2. Install pnpm if not present
+3. Clone the repository
+4. Install dependencies (prebuilt native modules, no C++ toolchain needed)
+5. Build all packages
+6. Launch the setup wizard
 
-To adopt this approach, EchOS would need:
+**Environment overrides:**
 
-1. **Add a `bin` field to root `package.json`**:
-   ```json
-   {
-     "bin": {
-       "echos": "./dist/index.js"
-     }
-   }
-   ```
-
-2. **Build the package for distribution** (compile TypeScript to JS)
-
-3. **Handle environment configuration** - currently EchOS requires `.env` file. Options:
-   - Interactive setup wizard (like openclaw's `onboard`)
-   - Default configuration with required env vars
-   - First-run configuration prompt
-
-4. **Handle data directory** - currently uses `./data` relative to CWD
-
-### Challenges for EchOS
-
-| Challenge | Severity | Solution |
-|-----------|----------|----------|
-| Native dependencies (`better-sqlite3`, `lancedb`) | High | Use prebuild binaries, or switch to pure JS alternatives |
-| Environment configuration | Medium | Interactive CLI wizard or defaults |
-| Multiple interfaces (Telegram, Web, CLI) | Medium | Allow selecting interfaces via flags |
-| Redis dependency for scheduler | Low | Make optional, graceful degradation |
-| pnpm workspace structure | High | Restructure as single package or use workspaces properly |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ECHOS_INSTALL_DIR` | `./echos` | Installation directory |
+| `ECHOS_BRANCH` | `main` | Git branch to checkout |
+| `ECHOS_NON_INTERACTIVE` | `0` | Set to `1` to skip the wizard |
 
 ---
 
-## 2. Alternative Distribution Methods
+### Homebrew (macOS)
 
-### Option A: Standalone Script (Quickest)
-
-Create a shell script that handles installation:
-
-```bash
-#!/bin/bash
-# install-echos.sh
-
-set -e
-
-echo "Installing EchOS..."
-
-# Check Node.js
-if ! command -v node &> /dev/null; then
-    echo "Error: Node.js 20+ required"
-    exit 1
-fi
-
-# Clone or use existing
-if [ ! -d "echos" ]; then
-    git clone https://github.com/albinotonnina/echos.git echos
-fi
-
-cd echos
-pnpm install
-pnpm build
-
-echo "EchOS installed! Copy .env.example to .env and configure."
-```
-
-**Pros**: Simple, no restructuring needed
-**Cons**: Requires git, pnpm, building from source
-
----
-
-### Option B: Homebrew Tap (macOS)
-
-```ruby
-# Formula/echos.rb
-class EchOS < Formula
-  desc "Agent-driven personal knowledge management"
-  homepage "https://github.com/albinotonnina/echos"
-  url "https://github.com/albinotonnina/echos/archive/refs/tags/v0.1.0.tar.gz"
-  sha256 "..."
-  license "MIT"
-  
-  depends_on "node@20"
-  depends_on "pnpm"
-  
-  def install
-    system "pnpm", "install"
-    system "pnpm", "build"
-    bin.install "src/index.ts"
-  end
-end
-```
-
-**Usage**:
 ```bash
 brew tap albinotonnina/echos
 brew install echos
-echos start
+```
+
+The formula:
+- Installs Node.js 20 and Redis as dependencies
+- Builds all packages with prebuilt native modules
+- Registers a launchd service for auto-start
+
+After installing:
+
+```bash
+echos setup           # opens browser-based setup wizard
+brew services start echos  # start the daemon
+echos "search my notes"    # use the CLI
 ```
 
 ---
 
-### Option C: Docker (Already Implemented ✅)
-
-EchOS already has Docker support:
+### Docker
 
 ```bash
-# From docker/
+cd docker
 docker-compose up -d
-
-# Or build manually
-docker build -t echos .
-docker run -it -p 3000:3000 --env-file .env echos
 ```
 
-**Pros**: Works now, handles all dependencies
-**Cons**: Requires Docker, less "app-like" feel
+Docker handles all dependencies (Node.js, Redis) in containers. See [Deployment](https://docs.echos.sh/DEPLOYMENT) for full Docker setup.
 
 ---
 
-### Option D: Systemd Service + Deb/RPM Package
-
-For Linux servers:
+## Manual Install
 
 ```bash
-# echos.deb / echos.rpm
-# Installs to /usr/bin/echos
-# Creates user 'echos'
-# Sets up systemd service
-# Config: /etc/echos/echos.conf
-# Data: /var/lib/echos/
+git clone https://github.com/albinotonnina/echos.git && cd echos
+pnpm install
+pnpm build
 ```
 
 ---
 
-### Option E: NPX (No Install)
+## Setup Wizard
+
+After installation, configure EchOS with one of these methods:
+
+### Browser-based Setup (Recommended)
 
 ```bash
-npx echos@latest
-# or
-pnpm dlx echos@latest
+pnpm setup
 ```
 
-**Limitation**: Doesn't work well for long-running services (Telegram bot)
+Opens `http://localhost:3456` with a guided wizard that walks you through:
+- API keys (Anthropic required, OpenAI optional)
+- Telegram bot configuration
+- Feature toggles (Web UI, scheduler)
+- Redis connection (for background jobs)
+
+### CLI Setup
+
+```bash
+pnpm wizard
+```
+
+Interactive terminal wizard with the same configuration steps.
+
+### Non-interactive Setup
+
+```bash
+# Set environment variables, then:
+pnpm wizard --non-interactive
+```
+
+Reads from environment variables and writes `.env` without prompts. Useful for CI/automation.
 
 ---
 
-### Option F: Hybrid - CLI Tool + Optional Daemon
+## Dependencies
 
-This is similar to what you're asking about:
+### Required
+- **Node.js 20+** — runtime
+- **pnpm 10+** — package manager
 
-```bash
-# Install just the CLI
-npm install -g @echos/cli
+### Optional
+- **Redis** — required only for background scheduler (digests, reminders, cron jobs)
 
-# Run commands
-echos init          # Create config in ~/.echos/
-echos start         # Start the daemon
-echos status        # Check daemon status
-echos stop          # Stop daemon
-echos logs          # View logs
-echos telegram      # Start Telegram bot only
-echos web           # Start web interface only
-```
-
-This separates the CLI tool from the running service.
+### What you DON'T need
+- **No C++ toolchain** — all native modules (better-sqlite3, LanceDB, sharp) ship prebuilt binaries
+- **No Python** — YouTube transcript extraction uses a pure JavaScript library
 
 ---
 
-## 3. Recommended Path for EchOS
+## Native Modules
 
-Given the current architecture, here's what I'd recommend:
+EchOS uses three native Node.js modules, all with prebuilt binary support:
 
-### Phase 1: Minimal Changes (Quick Win)
+| Module | Used For | Prebuilt Strategy |
+|--------|----------|-------------------|
+| `better-sqlite3` | Metadata database | `prebuild-install` (prebuilt binaries for all platforms) |
+| `@lancedb/lancedb` | Vector search | Platform-specific optional deps (`@lancedb/lancedb-darwin-arm64`, etc.) |
+| `sharp` | Image processing | Platform-specific optional deps (`@img/sharp-darwin-arm64`, etc.) |
 
-Add a simple install script that works with existing structure:
+No compilation is needed on macOS (ARM64/x64), Linux (x64/ARM64), or Windows.
 
-```bash
-#!/bin/bash
-# install.sh
-curl -sL https://github.com/albinotonnina/echos/raw/main/scripts/install.sh | bash
-```
+---
 
-The script would:
-1. Check Node.js/pnpm versions
-2. Clone the repo (or extract tarball)
-3. Run `pnpm install && pnpm build`
-4. Guide user through `.env` setup
-
-### Phase 2: Add CLI Entry Point
-
-Add to root `package.json`:
-
-```json
-{
-  "bin": {
-    "echos": "./dist/index.js"
-  }
-}
-```
-
-After building, users can:
-```bash
-pnpm install -g .
-echos --help
-```
-
-### Phase 3: Build & Publish to npm
+## Starting EchOS
 
 ```bash
-npm publish --access public
-# or
-pnpm publish
-```
+# Start the daemon (Telegram + Web interfaces)
+pnpm start
 
-Then:
-```bash
-npm install -g echos
-echos start
+# Start with pretty-printed logs
+pnpm start | pnpm exec pino-pretty
+
+# Start with scheduler enabled
+pnpm start:with-scheduler
+
+# Use the CLI (no daemon needed)
+pnpm echos "what did I save yesterday?"
 ```
 
 ---
 
-## 4. Comparison Matrix
+## Updating
 
-| Method | Ease of Use | Dev Effort | User Experience | Works for EchOS? |
-|--------|-------------|------------|------------------|------------------|
-| npm global | ⭐⭐⭐⭐⭐ | Medium | ⭐⭐⭐⭐⭐ | ⚠️ Needs native deps handling |
-| Docker | ⭐⭐⭐ | Low | ⭐⭐⭐ | ✅ Done |
-| Homebrew | ⭐⭐⭐⭐ | Medium | ⭐⭐⭐⭐ | ⚠️ macOS only |
-| Script | ⭐⭐⭐ | Low | ⭐⭐⭐ | ✅ Simple |
-| Deb/RPM | ⭐⭐⭐⭐ | High | ⭐⭐⭐⭐ | Linux servers |
+```bash
+# If installed via install.sh or git clone
+cd echos
+git pull
+pnpm install
+pnpm build
 
----
-
-## 5. OpenClaw Deep Dive
-
-Looking at openclaw's approach more closely:
-
-### Key elements that make it work:
-
-1. **Pre-built binaries**: Their `openclaw.mjs` is bundled (using tsdown)
-2. **Self-contained**: No external build step needed for users
-3. **Extensions system**: Separate from core, can be added later
-4. **Platform detection**: Handles macOS, Linux, Windows differently
-
-### What they'd need to change for full npm distribution:
-
-- Bundle all TypeScript to JS
-- Handle `better-sqlite3` / `lancedb` native rebuilds
-- Add interactive onboarding
-- Set up proper npm org/package
+# If installed via Homebrew
+brew upgrade echos
+```
 
 ---
 
-## 6. Next Steps
+## Future Distribution Methods
 
-If you want to pursue the npm approach:
+These are planned but not yet implemented:
 
-1. **Test the build**: Ensure `pnpm build` produces working JS
-2. **Add bin entry**: Modify root `package.json`
-3. **Create onboarding**: Interactive CLI for `.env` setup
-4. **Handle native deps**: Test on clean machines
-5. **Publish**: Set up npm account and publish
-
-Would you like me to implement any of these options?
+- **Tauri desktop app** — `.dmg` for macOS with menu bar icon and auto-updates
+- **Docker Desktop Extension** — one-click install from Docker Hub
+- **npm global package** — `npm install -g echos`

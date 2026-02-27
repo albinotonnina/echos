@@ -614,45 +614,27 @@ The history file is `~/.echos_history`. If it doesn't persist:
 
 ### "Unable to save this video" / YouTube transcript fails
 
-**Problem**: The YouTube plugin relies on a Python subprocess (`youtube-transcript-api`) to extract transcripts. If the Python package is missing, all YouTube saves fail silently and the agent reports inability to save.
+**Problem**: The YouTube plugin uses `youtube-transcript-api-js` to extract transcripts. Some videos may not have captions available, or YouTube may block requests from cloud/VPS IPs.
 
 **Symptoms**:
 
 - Bot responds with something like "I was unable to save this video"
-- Logs show: `Python process exited with code 1` or `ModuleNotFoundError: No module named 'youtube_transcript_api'`
+- Logs show: `YouTube transcript unavailable` or `IpBlocked`
 
 **Fix**:
 
-1. **Install the Python package** (required on local machine):
+1. **Check if the video has captions**: Not all YouTube videos have transcripts available. Videos with auto-generated or manual captions will work.
+
+2. **Whisper fallback**: If you have an OpenAI API key configured (`OPENAI_API_KEY`), EchOS will automatically download the audio and transcribe it using Whisper when YouTube captions are unavailable.
+
+3. **Cloud/VPS deployments**: YouTube may block requests from cloud IPs. Configure Webshare proxy in `.env`:
 
    ```bash
-   pip3 install youtube-transcript-api
+   WEBSHARE_PROXY_USERNAME=your_username
+   WEBSHARE_PROXY_PASSWORD=your_password
    ```
 
-   On macOS with externally managed Python (PEP 668):
-
-   ```bash
-   pip3 install youtube-transcript-api --break-system-packages
-   ```
-
-2. **Verify installation**:
-
-   ```bash
-   python3 -c "from youtube_transcript_api import YouTubeTranscriptApi; print('OK')"
-   ```
-
-3. **Docker**: The Dockerfile already installs the package. No action needed for Docker deployments.
-
-**Proxy for cloud deployments**:
-
-YouTube may block requests from cloud IPs. Configure Webshare proxy in `.env`:
-
-```bash
-WEBSHARE_PROXY_USERNAME=your_username
-WEBSHARE_PROXY_PASSWORD=your_password
-```
-
-When set, the Python transcript fetcher automatically routes through `p.webshare.io:80`.
+   When set, the transcript fetcher routes through Webshare rotating residential proxies (`p.webshare.io`).
 
 ---
 

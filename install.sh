@@ -49,12 +49,15 @@ detect_platform() {
 
 check_node() {
   if ! command -v node >/dev/null 2>&1; then
-    fatal "Node.js not found. Install Node.js 20+ from https://nodejs.org/"
+    install_node
+    return
   fi
   NODE_VER="$(node --version | sed 's/v//')"
   NODE_MAJOR="${NODE_VER%%.*}"
   if [ "$NODE_MAJOR" -lt 20 ]; then
-    fatal "Node.js $NODE_VER is too old. Requires Node.js 20+."
+    warn "Node.js $NODE_VER is too old (requires 20+) — installing newer version..."
+    install_node
+    return
   fi
   success "Node.js $NODE_VER"
 }
@@ -80,12 +83,94 @@ check_pnpm() {
   success "pnpm $(pnpm --version)"
 }
 
-check_python_soft() {
-  if ! python3 -c "from youtube_transcript_api import YouTubeTranscriptApi" >/dev/null 2>&1; then
-    warn "youtube-transcript-api not found — YouTube plugin will fail"
-    warn "Fix later: pip3 install youtube-transcript-api"
-  else
-    success "youtube-transcript-api available"
+install_node() {
+  info "Node.js not found — installing via fnm..."
+  if ! command -v curl >/dev/null 2>&1; then
+    fatal "curl is required to install Node.js. Install curl and re-run."
+  fi
+  curl -fsSL https://fnm.vercel.app/install | bash
+  # Source fnm into current shell
+  export PATH="$HOME/.local/share/fnm:$HOME/.fnm:$PATH"
+  eval "$(fnm env)" 2>/dev/null || true
+  fnm install 20 || fatal "Failed to install Node.js 20 via fnm"
+  fnm use 20
+  success "Node.js $(node --version) installed via fnm"
+}
+
+ensure_redis() {
+  if command -v redis-server >/dev/null 2>&1; then
+    REDIS_VER="$(redis-server --version | grep -oE 'v=[0-9.]+' | sed 's/v=//' || echo '?')"
+    success "Redis $REDIS_VER"
+    start_redis
+    return
+  fi
+
+  info "Redis not found — installing (needed for background scheduler)..."
+
+  if [ "$PLATFORM" = "macos" ]; then
+    if command -v brew >/dev/null 2>&1; then
+      brew install redis 2>/dev/null && success "Redis installed via Homebrew" || {
+        warn "Failed to install Redis via Homebrew — scheduler won't work without it"
+        warn "Install manually: brew install redis"
+        return
+      }
+    else
+      warn "Homebrew not found — cannot auto-install Redis"
+      warn "Install manually: https://redis.io/docs/getting-started/"
+      return
+    fi
+  elif [ "$PLATFORM" = "linux" ]; then
+    if command -v apt-get >/dev/null 2>&1; then
+      info "Installing redis-server via apt (may ask for sudo password)..."
+      sudo apt-get update -qq && sudo apt-get install -y -qq redis-server 2>/dev/null && {
+        success "Redis installed via apt"
+      } || {
+        warn "Failed to install Redis via apt — scheduler won't work without it"
+        warn "Install manually: sudo apt install redis-server"
+        return
+      }
+    elif command -v dnf >/dev/null 2>&1; then
+      info "Installing redis via dnf (may ask for sudo password)..."
+      sudo dnf install -y redis 2>/dev/null && {
+        success "Redis installed via dnf"
+      } || {
+        warn "Failed to install Redis via dnf"
+        return
+      }
+    else
+      warn "Could not detect package manager (apt/dnf) — cannot auto-install Redis"
+      warn "Install manually: https://redis.io/docs/getting-started/"
+      return
+    fi
+  fi
+
+  start_redis
+}
+
+start_redis() {
+  # Check if Redis is already running
+  if redis-cli ping >/dev/null 2>&1; then
+    success "Redis is running"
+    return
+  fi
+
+  info "Starting Redis..."
+
+  if [ "$PLATFORM" = "macos" ]; then
+    if command -v brew >/dev/null 2>&1; then
+      brew services start redis >/dev/null 2>&1 && success "Redis started via Homebrew services" || {
+        warn "Could not start Redis — start manually: brew services start redis"
+      }
+    fi
+  elif [ "$PLATFORM" = "linux" ]; then
+    if command -v systemctl >/dev/null 2>&1; then
+      sudo systemctl enable --now redis-server >/dev/null 2>&1 \
+        || sudo systemctl enable --now redis >/dev/null 2>&1 \
+        || warn "Could not start Redis — start manually: sudo systemctl start redis-server"
+      if redis-cli ping >/dev/null 2>&1; then
+        success "Redis started via systemd"
+      fi
+    fi
   fi
 }
 
@@ -111,6 +196,12 @@ install_deps() {
   info "Installing dependencies (this may take a few minutes)..."
   pnpm --dir "$ECHOS_INSTALL_DIR" install --frozen-lockfile
   success "Dependencies installed"
+}
+
+build_project() {
+  info "Building EchOS..."
+  pnpm --dir "$ECHOS_INSTALL_DIR" build
+  success "Build complete"
 }
 
 # ─── TTY detection and wizard launch ─────────────────────────────────────────
@@ -156,12 +247,13 @@ main() {
   check_git
   check_node
   check_pnpm
-  check_python_soft
+  ensure_redis
   echo ""
 
   echo -e "  ${BOLD}Setting up EchOS…${RESET}"
   clone_or_update
   install_deps
+  build_project
   echo ""
 
   echo -e "  ${GREEN}${BOLD}Installation complete!${RESET}"

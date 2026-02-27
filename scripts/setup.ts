@@ -80,22 +80,6 @@ function checkPnpm(): PrereqResult {
   }
 }
 
-function checkPython(): PrereqResult {
-  try {
-    execSync('python3 -c "from youtube_transcript_api import YouTubeTranscriptApi"', {
-      stdio: 'pipe',
-    });
-    return { ok: true, message: 'youtube-transcript-api available', fatal: false };
-  } catch {
-    return {
-      ok: false,
-      message:
-        'youtube-transcript-api not found (YouTube plugin will fail) — run: pip3 install youtube-transcript-api',
-      fatal: false,
-    };
-  }
-}
-
 function checkDiskSpace(): PrereqResult {
   try {
     // df -k returns 1K blocks; check current directory
@@ -689,7 +673,6 @@ async function main(): Promise<void> {
     const checks: PrereqResult[] = [
       checkNodeVersion(),
       checkPnpm(),
-      checkPython(),
       checkDiskSpace(),
     ];
 

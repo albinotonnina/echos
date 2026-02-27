@@ -48,6 +48,54 @@ import twitterPlugin from '@echos/plugin-twitter';
 
 const logger = createLogger('echos');
 
+/**
+ * Check if Redis is reachable by sending a PING command.
+ * Returns true if Redis responds, false otherwise.
+ */
+async function checkRedisConnection(redisUrl: string, log: typeof logger): Promise<boolean> {
+  try {
+    const url = new URL(redisUrl);
+    const host = url.hostname || '127.0.0.1';
+    const port = parseInt(url.port || '6379', 10);
+
+    const { createConnection } = await import('node:net');
+
+    return new Promise((resolve) => {
+      const socket = createConnection({ host, port }, () => {
+        socket.write('PING\r\n');
+      });
+
+      socket.setTimeout(3000);
+
+      socket.on('data', (data) => {
+        const response = data.toString().trim();
+        socket.end();
+        if (response === '+PONG') {
+          log.debug({ host, port }, 'Redis pre-flight check passed');
+          resolve(true);
+        } else {
+          log.debug({ host, port, response }, 'Redis responded but not with PONG');
+          resolve(false);
+        }
+      });
+
+      socket.on('error', (err) => {
+        log.debug({ host, port, error: err.message }, 'Redis pre-flight check failed');
+        resolve(false);
+      });
+
+      socket.on('timeout', () => {
+        socket.destroy();
+        log.debug({ host, port }, 'Redis pre-flight check timed out');
+        resolve(false);
+      });
+    });
+  } catch (err) {
+    log.debug({ err }, 'Redis pre-flight URL parse error');
+    return false;
+  }
+}
+
 async function main(): Promise<void> {
   const config = loadConfig();
   logger.info('Starting EchOS...');
@@ -164,6 +212,18 @@ async function main(): Promise<void> {
   if (config.enableScheduler) {
     logger.info('Initializing scheduler...');
 
+    // Pre-flight: verify Redis is reachable before attempting BullMQ setup
+    const redisOk = await checkRedisConnection(config.redisUrl, logger);
+    if (!redisOk) {
+      logger.warn(
+        'Scheduler disabled: Redis is not reachable. Background jobs (content processing, reminders, digest) will not run.\n' +
+        '  To fix: install and start Redis, then restart EchOS.\n' +
+        '  macOS:  brew install redis && brew services start redis\n' +
+        '  Linux:  sudo apt install redis-server && sudo systemctl start redis-server\n' +
+        '  Or set ENABLE_SCHEDULER=false to suppress this warning.',
+      );
+    } else {
+
     // Get notification service from Telegram or use log-only fallback
     notificationService = telegramAdapter?.notificationService ?? {
       async sendMessage(userId: number, text: string): Promise<void> {
@@ -229,6 +289,7 @@ async function main(): Promise<void> {
       );
       queueService = undefined;
       worker = undefined;
+    }
     }
   }
 
