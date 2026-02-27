@@ -36,10 +36,6 @@ interface WizardState {
   webPort: number;
   webApiKey: string;
   redisUrl: string;
-  digestSchedule: string;
-  reminderCheckSchedule: string;
-  newsletterSchedule: string;
-  trendingSchedule: string;
   knowledgeDir: string;
   dbPath: string;
   sessionDir: string;
@@ -257,14 +253,6 @@ function stateToEnv(state: WizardState): string {
     '',
     '# ── Redis (required) ─────────────────────────────────────────────────────────',
     envLine('REDIS_URL', state.redisUrl),
-    state.digestSchedule ? envLine('DIGEST_SCHEDULE', state.digestSchedule) : '# DIGEST_SCHEDULE=',
-    state.reminderCheckSchedule
-      ? envLine('REMINDER_CHECK_SCHEDULE', state.reminderCheckSchedule)
-      : '# REMINDER_CHECK_SCHEDULE=',
-    state.newsletterSchedule
-      ? envLine('NEWSLETTER_SCHEDULE', state.newsletterSchedule)
-      : '# NEWSLETTER_SCHEDULE=',
-    state.trendingSchedule ? envLine('TRENDING_SCHEDULE', state.trendingSchedule) : '# TRENDING_SCHEDULE=',
     '',
     '# ── Models ───────────────────────────────────────────────────────────────────',
     envLine('DEFAULT_MODEL', state.defaultModel),
@@ -309,10 +297,6 @@ function runNonInteractive(): WizardState {
         ? (e['WEB_API_KEY'] ?? randomBytes(32).toString('hex'))
         : (e['WEB_API_KEY'] ?? ''), // preserve existing key, but don't generate a new one
     redisUrl: e['REDIS_URL'] ?? 'redis://localhost:6379',
-    digestSchedule: e['DIGEST_SCHEDULE'] ?? '',
-    reminderCheckSchedule: e['REMINDER_CHECK_SCHEDULE'] ?? '',
-    newsletterSchedule: e['NEWSLETTER_SCHEDULE'] ?? '',
-    trendingSchedule: e['TRENDING_SCHEDULE'] ?? '',
     knowledgeDir: e['KNOWLEDGE_DIR'] ?? './data/knowledge',
     dbPath: e['DB_PATH'] ?? './data/db',
     sessionDir: e['SESSION_DIR'] ?? './data/sessions',
@@ -524,38 +508,6 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
     }
   }
 
-  clack.log.info(
-    pc.dim('Cron schedules — leave blank to disable. Reference: https://crontab.guru'),
-  );
-
-  const digestRaw = await clack.text({
-    message: `Daily digest cron ${pc.dim('(e.g. 0 8 * * * for 8am daily — leave blank to skip)')}`,
-    initialValue: existing['DIGEST_SCHEDULE'] ?? '',
-  });
-  if (clack.isCancel(digestRaw)) cancel();
-  const digestSchedule = ((digestRaw as string | undefined) ?? '').trim();
-
-  const reminderRaw = await clack.text({
-    message: `Reminder check cron ${pc.dim('(e.g. */15 * * * * — leave blank to skip)')}`,
-    initialValue: existing['REMINDER_CHECK_SCHEDULE'] ?? '',
-  });
-  if (clack.isCancel(reminderRaw)) cancel();
-  const reminderCheckSchedule = ((reminderRaw as string | undefined) ?? '').trim();
-
-  const newsletterRaw = await clack.text({
-    message: `Newsletter cron ${pc.dim('(leave blank to skip)')}`,
-    initialValue: existing['NEWSLETTER_SCHEDULE'] ?? '',
-  });
-  if (clack.isCancel(newsletterRaw)) cancel();
-  const newsletterSchedule = ((newsletterRaw as string | undefined) ?? '').trim();
-
-  const trendingRaw = await clack.text({
-    message: `Trending topics cron ${pc.dim('(leave blank to skip)')}`,
-    initialValue: existing['TRENDING_SCHEDULE'] ?? '',
-  });
-  if (clack.isCancel(trendingRaw)) cancel();
-  const trendingSchedule = ((trendingRaw as string | undefined) ?? '').trim();
-
   // ── Step 6: Storage ──────────────────────────────────────────────────────
 
   clack.log.step('Storage Paths');
@@ -603,10 +555,6 @@ async function runInteractiveWizard(existing: Record<string, string>): Promise<W
     webPort,
     webApiKey,
     redisUrl,
-    digestSchedule,
-    reminderCheckSchedule,
-    newsletterSchedule,
-    trendingSchedule,
     knowledgeDir,
     dbPath,
     sessionDir,
