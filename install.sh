@@ -49,12 +49,15 @@ detect_platform() {
 
 check_node() {
   if ! command -v node >/dev/null 2>&1; then
-    fatal "Node.js not found. Install Node.js 20+ from https://nodejs.org/"
+    install_node
+    return
   fi
   NODE_VER="$(node --version | sed 's/v//')"
   NODE_MAJOR="${NODE_VER%%.*}"
   if [ "$NODE_MAJOR" -lt 20 ]; then
-    fatal "Node.js $NODE_VER is too old. Requires Node.js 20+."
+    warn "Node.js $NODE_VER is too old (requires 20+) — installing newer version..."
+    install_node
+    return
   fi
   success "Node.js $NODE_VER"
 }
@@ -73,19 +76,94 @@ check_pnpm() {
   fi
   PNPM_VER="$(pnpm --version)"
   PNPM_MAJOR="${PNPM_VER%%.*}"
-  if [ "$PNPM_MAJOR" -lt 9 ]; then
+  if [ "$PNPM_MAJOR" -lt 10 ]; then
     info "Updating pnpm to latest..."
     npm install -g pnpm || fatal "Failed to update pnpm"
   fi
   success "pnpm $(pnpm --version)"
 }
 
-check_python_soft() {
-  if ! python3 -c "from youtube_transcript_api import YouTubeTranscriptApi" >/dev/null 2>&1; then
-    warn "youtube-transcript-api not found — YouTube plugin will fail"
-    warn "Fix later: pip3 install youtube-transcript-api"
+install_node() {
+  info "Node.js 20+ not found — attempting to install..."
+
+  # Prefer platform package managers over piping remote scripts
+  if command -v brew >/dev/null 2>&1; then
+    info "Installing Node.js 20 via Homebrew..."
+    brew install node@20
+    brew link --overwrite node@20 2>/dev/null || true
+  elif command -v apt-get >/dev/null 2>&1; then
+    info "Installing Node.js 20 via apt..."
+    # Use distro-provided nodejs or the official Debian/Ubuntu package
+    if apt-cache show nodejs 2>/dev/null | grep -q '^Version: 2[0-9]'; then
+      sudo apt-get install -y nodejs
+    else
+      # nodejs in distro repos is too old — install from official Debian/Ubuntu PPA
+      # (uses signed apt repo, not a piped script)
+      sudo apt-get install -y ca-certificates gnupg
+      sudo mkdir -p /etc/apt/keyrings
+      curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+        | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+      echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" \
+        | sudo tee /etc/apt/sources.list.d/nodesource.list > /dev/null
+      sudo apt-get update -qq
+      sudo apt-get install -y nodejs
+    fi
+  elif command -v dnf >/dev/null 2>&1; then
+    info "Installing Node.js 20 via dnf..."
+    sudo dnf module install -y nodejs:20
   else
-    success "youtube-transcript-api available"
+    fatal "Could not install Node.js automatically. Please install Node.js 20+ manually:\n  https://nodejs.org/en/download/\nThen re-run this installer."
+  fi
+
+  if ! command -v node >/dev/null 2>&1; then
+    fatal "Node.js installation failed. Please install Node.js 20+ manually and re-run."
+  fi
+  success "Node.js $(node --version) installed"
+}
+
+ensure_redis() {
+  if command -v redis-server >/dev/null 2>&1; then
+    REDIS_VER="$(redis-server --version | grep -oE 'v=[0-9.]+' | sed 's/v=//' || echo '?')"
+    success "Redis $REDIS_VER"
+  else
+    info "Redis not found — installing..."
+    if [ "$PLATFORM" = "macos" ]; then
+      if command -v brew >/dev/null 2>&1; then
+        brew install redis || fatal "Failed to install Redis via Homebrew"
+        brew services start redis
+        success "Redis installed and started via Homebrew"
+      else
+        fatal "Homebrew not found. Install Redis manually: https://redis.io/docs/getting-started/"
+      fi
+    elif [ "$PLATFORM" = "linux" ]; then
+      if command -v apt-get >/dev/null 2>&1; then
+        sudo apt-get update -qq && sudo apt-get install -y redis-server || fatal "Failed to install Redis"
+        sudo systemctl enable --now redis-server
+        success "Redis installed and started"
+      else
+        fatal "Cannot auto-install Redis on this Linux distro. Install manually: https://redis.io/docs/getting-started/"
+      fi
+    fi
+  fi
+}
+
+start_redis() {
+  # Ensure Redis is running
+  if redis-cli ping >/dev/null 2>&1; then
+    success "Redis is running"
+    return
+  fi
+  info "Starting Redis..."
+  if [ "$PLATFORM" = "macos" ]; then
+    brew services start redis 2>/dev/null || true
+  elif [ "$PLATFORM" = "linux" ]; then
+    sudo systemctl start redis-server 2>/dev/null || sudo systemctl start redis 2>/dev/null || true
+  fi
+  # Verify
+  if redis-cli ping >/dev/null 2>&1; then
+    success "Redis started"
+  else
+    warn "Redis installed but not running. Start it manually before running EchOS."
   fi
 }
 
@@ -111,6 +189,12 @@ install_deps() {
   info "Installing dependencies (this may take a few minutes)..."
   pnpm --dir "$ECHOS_INSTALL_DIR" install --frozen-lockfile
   success "Dependencies installed"
+}
+
+build_project() {
+  info "Building EchOS..."
+  pnpm --dir "$ECHOS_INSTALL_DIR" build
+  success "Build complete"
 }
 
 # ─── TTY detection and wizard launch ─────────────────────────────────────────
@@ -156,12 +240,37 @@ main() {
   check_git
   check_node
   check_pnpm
-  check_python_soft
+
+  # Redis is required — EchOS exits at startup if Redis is unreachable
+  echo ""
+  echo -e "  ${BOLD}Redis (required)${RESET}"
+  if command -v redis-server >/dev/null 2>&1; then
+    REDIS_VER="$(redis-server --version | grep -oE 'v=[0-9.]+' | sed 's/v=//' || echo '?')"
+    success "Redis $REDIS_VER already installed"
+    start_redis
+  else
+    if [ "$NON_INTERACTIVE" = "1" ]; then
+      info "Redis not found. Attempting non-interactive install..."
+      ensure_redis
+      start_redis
+    else
+      echo -n "  Redis is required for EchOS to run. Install Redis now? (Y/n) "
+      read -r INSTALL_REDIS
+      if [ -z "$INSTALL_REDIS" ] || [ "$INSTALL_REDIS" = "y" ] || [ "$INSTALL_REDIS" = "Y" ]; then
+        ensure_redis
+        start_redis
+      else
+        error "Cannot continue without Redis. Install Redis and re-run."
+        exit 1
+      fi
+    fi
+  fi
   echo ""
 
   echo -e "  ${BOLD}Setting up EchOS…${RESET}"
   clone_or_update
   install_deps
+  build_project
   echo ""
 
   echo -e "  ${GREEN}${BOLD}Installation complete!${RESET}"

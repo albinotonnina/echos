@@ -16,7 +16,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-        required: false   # allows EchOS to start without Redis when scheduler is disabled
+        required: true
     env_file:
       - ../.env
     environment:

@@ -9,20 +9,18 @@ Background job processing for digests, reminder notifications, and content proce
 
 ## Overview
 
-The scheduler uses BullMQ with Redis to run periodic jobs. It is **disabled by default** and opt-in via the `ENABLE_SCHEDULER=true` environment variable. When disabled, the app starts normally without requiring Redis, and you can still manage schedules in the database for later use.
+The scheduler uses BullMQ with Redis to run periodic jobs. It is **always enabled** — Redis is a required dependency. If Redis is unreachable at startup, EchOS exits with an actionable error message.
 
 ## Prerequisites
 
 - Redis instance running (default: `redis://localhost:6379`)
-- `ENABLE_SCHEDULER=true` in your environment
 
 ## Configuration
 
-Scheduling relies on the database and dynamic APIs. Only the enablement and connection variables are maintained in `.env`:
+Scheduling relies on the database and dynamic APIs. Only the connection variable is maintained in `.env`:
 
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
-| `ENABLE_SCHEDULER` | Enable background job processing | `false` | `true` |
 | `REDIS_URL` | Redis connection URL | `redis://localhost:6379` | `redis://myhost:6379` |
 
 ### Managing Schedules

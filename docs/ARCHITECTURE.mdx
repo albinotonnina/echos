@@ -65,7 +65,7 @@ User Input (any interface)
 
 ## Scheduler & Notifications
 
-The scheduler package (`@echos/scheduler`) runs background jobs via BullMQ + Redis. It is opt-in via `ENABLE_SCHEDULER=true` and requires a running Redis instance.
+The scheduler package (`@echos/scheduler`) runs background jobs via BullMQ + Redis. It is always enabled and requires a running Redis instance.
 
 Notification delivery is decoupled via `NotificationService` (defined in `@echos/shared`). The Telegram package provides the concrete implementation; the scheduler receives it via dependency injection and never imports `@echos/telegram` directly. When Telegram is disabled, a log-only fallback is used.
 

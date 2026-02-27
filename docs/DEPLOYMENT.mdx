@@ -37,10 +37,8 @@ docker compose down
 ```
 
 Services:
-- **redis**: Redis 7 for BullMQ job queue (optional — only started if EchOS depends on it)
+- **redis**: Redis 7 for BullMQ job queue (required)
 - **echos**: The EchOS application (healthcheck: GET /health)
-
-The `echos` service has `required: false` on Redis, so EchOS starts cleanly when `ENABLE_SCHEDULER=false`.
 
 Data is persisted via volume mounts to `./data/`.
 
@@ -245,10 +243,8 @@ Optional:
 - `OPENAI_API_KEY` - Required for embeddings and Whisper transcription
 - `CACHE_RETENTION` - Prompt cache TTL for Anthropic models: `long` (1h, default), `short` (5min), `none` (off). Always `none` for custom endpoints.
 
-Scheduler (requires Redis):
-- `ENABLE_SCHEDULER` - Set to `true` to enable background jobs (default: `false`)
-- `DIGEST_SCHEDULE` - Cron expression for AI daily digest (e.g. `0 8 * * *` for 8am daily)
-- `REMINDER_CHECK_SCHEDULE` - Cron expression for due reminder checks (e.g. `*/15 * * * *` for every 15min)
+Redis (required):
+- `REDIS_URL` - Redis connection URL (default: `redis://localhost:6379`)
 
 See [Scheduler](./SCHEDULER) for details.
 

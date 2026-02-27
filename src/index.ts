@@ -48,6 +48,105 @@ import twitterPlugin from '@echos/plugin-twitter';
 
 const logger = createLogger('echos');
 
+/**
+ * Check if Redis is reachable by sending a PING command via raw TCP (RESP protocol).
+ */
+interface RedisCheckResult {
+  ok: boolean;
+  error?: string;
+}
+
+async function checkRedisConnection(redisUrl: string, log: typeof logger): Promise<RedisCheckResult> {
+  try {
+    const url = new URL(redisUrl);
+    const host = url.hostname || '127.0.0.1';
+    const port = parseInt(url.port || '6379', 10);
+    const password = url.password ? decodeURIComponent(url.password) : undefined;
+    const isTls = url.protocol === 'rediss:';
+
+    const { createConnection } = await import('node:net');
+    const tls = await import('node:tls');
+
+    return new Promise((resolve) => {
+      let buffer = '';
+      let settled = false;
+      let authPending = !!password;
+
+      const socket = isTls
+        ? tls.connect({ host, port })
+        : createConnection({ host, port });
+
+      function sendPing() {
+        if (password && authPending) {
+          const encodedLen = Buffer.byteLength(password, 'utf8');
+          socket.write(`*2\r\n$4\r\nAUTH\r\n$${encodedLen}\r\n${password}\r\n`);
+        } else {
+          socket.write('*1\r\n$4\r\nPING\r\n');
+        }
+      }
+
+      socket.once('connect', sendPing);
+      socket.once('secureConnect', sendPing);
+
+      socket.setTimeout(3000);
+
+      socket.on('data', (data: Buffer) => {
+        if (settled) return;
+
+        buffer += data.toString('utf8');
+        const terminatorIndex = buffer.indexOf('\r\n');
+        if (terminatorIndex === -1) return;
+
+        const line = buffer.slice(0, terminatorIndex).trim();
+
+        if (authPending && line === '+OK') {
+          authPending = false;
+          buffer = buffer.slice(terminatorIndex + 2);
+          socket.write('*1\r\n$4\r\nPING\r\n');
+          return;
+        }
+
+        settled = true;
+        socket.end();
+
+        if (line === '+PONG') {
+          log.debug({ host, port }, 'Redis pre-flight check passed');
+          resolve({ ok: true });
+        } else {
+          const errMsg = line.startsWith('-') ? line.slice(1).trim() : `unexpected response: ${line}`;
+          log.debug({ host, port, response: line }, 'Redis responded unexpectedly');
+          resolve({ ok: false, error: errMsg });
+        }
+      });
+
+      socket.on('error', (err: Error) => {
+        if (settled) return;
+        settled = true;
+        socket.destroy();
+        log.debug({ host, port, error: err.message }, 'Redis pre-flight check failed');
+        resolve({ ok: false, error: err.message });
+      });
+
+      socket.on('timeout', () => {
+        if (settled) return;
+        settled = true;
+        socket.destroy();
+        log.debug({ host, port }, 'Redis pre-flight check timed out');
+        resolve({ ok: false, error: 'connection timed out' });
+      });
+
+      socket.on('end', () => {
+        if (settled) return;
+        settled = true;
+        log.debug({ host, port }, 'Redis connection ended before response');
+        resolve({ ok: false, error: 'connection closed unexpectedly' });
+      });
+    });
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 async function main(): Promise<void> {
   const config = loadConfig();
   logger.info('Starting EchOS...');
@@ -157,80 +256,84 @@ async function main(): Promise<void> {
   let webAdapterSyncSchedule: ((id: string) => Promise<void>) | undefined = undefined;
   let webAdapterDeleteSchedule: ((id: string) => Promise<boolean>) | undefined = undefined;
 
-  // Scheduler setup (requires Redis, opt-in via ENABLE_SCHEDULER=true)
+  // Scheduler setup (requires Redis)
   let queueService: QueueService | undefined;
   let worker: ReturnType<typeof createWorker> | undefined;
 
-  if (config.enableScheduler) {
-    logger.info('Initializing scheduler...');
+  logger.info('Initializing scheduler...');
 
-    // Get notification service from Telegram or use log-only fallback
-    notificationService = telegramAdapter?.notificationService ?? {
-      async sendMessage(userId: number, text: string): Promise<void> {
-        logger.info({ userId, text }, 'Notification (no delivery channel)');
-      },
-      async broadcast(text: string): Promise<void> {
-        logger.info({ text }, 'Broadcast notification (no delivery channel)');
-      },
-    };
-
-    try {
-      queueService = createQueue({ redisUrl: config.redisUrl, logger });
-
-      const contentProcessor = createContentProcessor({
-        sqlite,
-        markdown,
-        vectorDb,
-        generateEmbedding,
-        logger,
-        ...(config.openaiApiKey ? { openaiApiKey: config.openaiApiKey } : {}),
-      });
-
-      const reminderProcessor = createReminderCheckProcessor({
-        sqlite,
-        notificationService,
-        logger,
-      });
-
-      const exportCleanupProcessor = createExportCleanupProcessor({ exportsDir, logger });
-
-      const scheduleManager = new ScheduleManager(
-        queueService.queue,
-        sqlite,
-        pluginRegistry.getJobs(),
-        logger,
-      );
-      manageScheduleTool.setScheduleManager(scheduleManager);
-
-      webAdapterSyncSchedule = (id: string) => scheduleManager.syncSchedule(id);
-      webAdapterDeleteSchedule = (id: string) => scheduleManager.deleteSchedule(id);
-
-      const jobRouter = createJobRouter({
-        scheduleManager,
-        contentProcessor,
-        reminderProcessor,
-        exportCleanupProcessor,
-        logger,
-      });
-
-      worker = createWorker({
-        redisUrl: config.redisUrl,
-        logger,
-        processor: jobRouter,
-        concurrency: 2,
-      });
-
-      await scheduleManager.syncAll();
-      logger.info('Scheduler initialized');
-    } catch (err) {
-      logger.warn(
-        { err, redisUrl: config.redisUrl },
-        'Scheduler unavailable: Redis connection failed. Running without background jobs.',
-      );
-      queueService = undefined;
-      worker = undefined;
-    }
+  // Pre-flight: verify Redis is reachable before attempting BullMQ setup
+  const redisResult = await checkRedisConnection(config.redisUrl, logger);
+  if (!redisResult.ok) {
+    logger.fatal(
+      { redisError: redisResult.error },
+      'Redis is not reachable. EchOS requires Redis for background job processing.\n' +
+        '  Install and start Redis, then restart EchOS:\n' +
+        '  macOS:  brew install redis && brew services start redis\n' +
+        '  Linux:  sudo apt install redis-server && sudo systemctl start redis-server\n' +
+        '  Docker: docker run -d -p 6379:6379 redis:7-alpine\n' +
+        '  Manage: pnpm redis:start',
+    );
+    process.exit(1);
   }
+
+  // Get notification service from Telegram or use log-only fallback
+  notificationService = telegramAdapter?.notificationService ?? {
+    async sendMessage(userId: number, text: string): Promise<void> {
+      logger.info({ userId, text }, 'Notification (no delivery channel)');
+    },
+    async broadcast(text: string): Promise<void> {
+      logger.info({ text }, 'Broadcast notification (no delivery channel)');
+    },
+  };
+
+  queueService = createQueue({ redisUrl: config.redisUrl, logger });
+
+  const contentProcessor = createContentProcessor({
+    sqlite,
+    markdown,
+    vectorDb,
+    generateEmbedding,
+    logger,
+    ...(config.openaiApiKey ? { openaiApiKey: config.openaiApiKey } : {}),
+  });
+
+  const reminderProcessor = createReminderCheckProcessor({
+    sqlite,
+    notificationService,
+    logger,
+  });
+
+  const exportCleanupProcessor = createExportCleanupProcessor({ exportsDir, logger });
+
+  const scheduleManager = new ScheduleManager(
+    queueService.queue,
+    sqlite,
+    pluginRegistry.getJobs(),
+    logger,
+  );
+  manageScheduleTool.setScheduleManager(scheduleManager);
+
+  webAdapterSyncSchedule = (id: string) => scheduleManager.syncSchedule(id);
+  webAdapterDeleteSchedule = (id: string) => scheduleManager.deleteSchedule(id);
+
+  const jobRouter = createJobRouter({
+    scheduleManager,
+    contentProcessor,
+    reminderProcessor,
+    exportCleanupProcessor,
+    logger,
+  });
+
+  worker = createWorker({
+    redisUrl: config.redisUrl,
+    logger,
+    processor: jobRouter,
+    concurrency: 2,
+  });
+
+  await scheduleManager.syncAll();
+  logger.info('Scheduler initialized');
 
   if (config.enableWeb) {
     const webOptions: import('@echos/web').WebAdapterOptions = {
@@ -250,7 +353,7 @@ async function main(): Promise<void> {
   }
 
   logger.info(
-    { interfaceCount: interfaces.length, schedulerEnabled: config.enableScheduler },
+    { interfaceCount: interfaces.length },
     'EchOS started',
   );
 

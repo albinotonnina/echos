@@ -1,6 +1,27 @@
 import { Queue, Worker, type Job } from 'bullmq';
 import type { Logger } from 'pino';
 
+interface RedisConnectionOptions {
+  host: string;
+  port: number;
+  password?: string;
+  db?: number;
+  tls?: Record<never, never>;
+}
+
+export function parseRedisUrl(redisUrl: string): RedisConnectionOptions {
+  const url = new URL(redisUrl);
+  const opts: RedisConnectionOptions = {
+    host: url.hostname || '127.0.0.1',
+    port: parseInt(url.port || '6379', 10),
+  };
+  if (url.password) opts.password = decodeURIComponent(url.password);
+  const db = parseInt(url.pathname.slice(1), 10);
+  if (!isNaN(db) && db > 0) opts.db = db;
+  if (url.protocol === 'rediss:') opts.tls = {};
+  return opts;
+}
+
 export interface QueueConfig {
   redisUrl: string;
   logger: Logger;
@@ -23,11 +44,7 @@ export interface QueueService {
 }
 
 export function createQueue(config: QueueConfig): QueueService {
-  const url = new URL(config.redisUrl);
-  const connection = {
-    host: url.hostname,
-    port: parseInt(url.port || '6379', 10),
-  };
+  const connection = parseRedisUrl(config.redisUrl);
 
   const queue = new Queue('echos', { connection });
 
@@ -63,11 +80,7 @@ export interface WorkerConfig {
 }
 
 export function createWorker(config: WorkerConfig): Worker<JobData> {
-  const url = new URL(config.redisUrl);
-  const connection = {
-    host: url.hostname,
-    port: parseInt(url.port || '6379', 10),
-  };
+  const connection = parseRedisUrl(config.redisUrl);
 
   const worker = new Worker<JobData>(
     'echos',
