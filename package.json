@@ -23,7 +23,7 @@
     "redis:health": "./scripts/manage-redis.sh health",
     "echos": "tsx --env-file=.env packages/cli/src/index.ts",
     "cli": "tsx packages/core/src/cli.ts",
-    "setup": "tsx scripts/setup-server.ts",
+    "wizard": "tsx scripts/setup-server.ts",
     "wizard": "tsx scripts/setup.ts",
     "wizard:check": "tsx scripts/setup.ts --check-only",
     "update-echos": "./scripts/update.sh",
