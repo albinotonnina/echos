@@ -542,6 +542,16 @@ function getSetupHtml(): string {
         }
         const ids = document.getElementById('allowedUserIds').value.trim();
         if (!ids) { showV('userid-hint', 'error', 'At least one user ID is required (used for access control)'); return; }
+        const idParts = ids.split(',').map(function (p) { return p.trim(); }).filter(function (p) { return p.length > 0; });
+        if (!idParts.length) {
+          showV('userid-hint', 'error', 'Please enter at least one numeric user ID (comma-separated).');
+          return;
+        }
+        var invalidId = idParts.find(function (p) { return !/^[1-9]\d*$/.test(p); });
+        if (invalidId) {
+          showV('userid-hint', 'error', 'Allowed user IDs must be comma-separated positive integers (e.g. 12345,67890).');
+          return;
+        }
       }
       if (currentStep === TOTAL_STEPS) { writeConfig(); return; }
       showStep(currentStep + 1);
