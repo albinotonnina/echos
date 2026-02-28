@@ -111,7 +111,7 @@ pnpm start
 
 You'll need an LLM API key — either Anthropic (`ANTHROPIC_API_KEY`, pay-as-you-go, not a Claude subscription) or any other provider supported by pi-ai (`LLM_API_KEY`). Custom OpenAI-compatible endpoints (DeepInfra, local Ollama, etc.) are supported via `LLM_BASE_URL`. Everything else is optional.
 
-**[→ Full setup guide at docs.echos.sh/SETUP_FIXES](https://docs.echos.sh/SETUP_FIXES)**
+**[→ Full setup guide at docs.echos.sh/DISTRIBUTION](https://docs.echos.sh/DISTRIBUTION)**
 
 ---
 
