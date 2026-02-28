@@ -27,6 +27,24 @@ function expandTilde(p: string): string {
   return p;
 }
 
+/**
+ * Resolve symlinks by walking up to the nearest existing ancestor.
+ * This prevents symlink-based escapes when the target directory doesn't exist yet
+ * (e.g. ~/evil-symlink/newdir where ~/evil-symlink → /tmp).
+ */
+function realpathWithAncestor(p: string): string {
+  let current = p;
+  const pending: string[] = [];
+  while (!fs.existsSync(current)) {
+    pending.unshift(path.basename(current));
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  const realAncestor = fs.realpathSync(current);
+  return pending.length > 0 ? path.join(realAncestor, ...pending) : realAncestor;
+}
+
 /** Escape a string for safe embedding in HTML attributes/content. */
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -239,9 +257,10 @@ function writeConfig(state: Record<string, unknown>): { success: boolean; error?
     const echosHome = path.resolve(expandTilde(rawHome));
 
     // Validate: must be an absolute path under (not equal to) the user's home directory.
-    // Use realpathSync to resolve symlinks so a symlinked path can't bypass the check.
+    // Resolve symlinks on the nearest existing ancestor to prevent symlink-based escapes
+    // (e.g. ~/evil-symlink/newdir where ~/evil-symlink → /tmp).
     const realHome = fs.realpathSync(homedir());
-    const realEchosHome = fs.existsSync(echosHome) ? fs.realpathSync(echosHome) : echosHome;
+    const realEchosHome = realpathWithAncestor(echosHome);
     if (realEchosHome === realHome) {
       return { success: false, error: 'Data directory must be a subdirectory of your home directory (e.g. ~/echos), not the home directory itself' };
     }
@@ -285,7 +304,7 @@ function writeConfig(state: Record<string, unknown>): { success: boolean; error?
     }
 
     // Persist ECHOS_HOME so Homebrew wrappers can find it
-    const configDir = path.join(home, '.config', 'echos');
+    const configDir = path.join(realHome, '.config', 'echos');
     if (!fs.existsSync(configDir)) {
       fs.mkdirSync(configDir, { recursive: true });
     }
@@ -340,7 +359,7 @@ const server = http.createServer(async (req, res) => {
           const expanded = expandTilde(persisted);
           const resolved = path.resolve(expanded);
           const realUserHome = fs.realpathSync(homedir());
-          const realResolved = fs.existsSync(resolved) ? fs.realpathSync(resolved) : resolved;
+          const realResolved = realpathWithAncestor(resolved);
           const isUnderHome =
             realResolved.startsWith(realUserHome + path.sep);
           if (isUnderHome) {
@@ -692,6 +711,11 @@ function getSetupHtml(): string {
       <div class="success-screen">
         <h2>Setup Complete</h2>
         <p style="color:var(--text-dim);margin-bottom:0.5rem">Your .env file has been written and data directories created.</p>
+        <div id="echos-home-hint" style="display:none;background:var(--surface-alt,#1a1a2e);border:1px solid var(--border,#333);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem">
+          <div style="color:var(--accent,#f9a825);margin-bottom:0.25rem">⚠ Custom data directory</div>
+          <div style="color:var(--text-dim)">Add this to your shell profile (<code>~/.zshrc</code> or <code>~/.bashrc</code>):</div>
+          <code id="echos-home-export" style="margin-top:0.5rem"></code>
+        </div>
         ${IS_BREW_INSTALL ? `
         <button class="btn-start" id="btn-start-service" onclick="startService()">
           <span id="start-icon">▶</span> Start EchOS
@@ -911,7 +935,19 @@ function getSetupHtml(): string {
       btn.disabled = true; btn.textContent = 'Writing...';
       try {
         const r = await fetch('/api/setup/write-config', { method: 'POST', headers: {'Content-Type':'application/json', ...csrfHeaders}, body: JSON.stringify(state) }).then(r => r.json());
-        if (r.success) showStep(6);
+        if (r.success) {
+          showStep(6);
+          // Show ECHOS_HOME hint if user chose a non-default directory
+          const defaultHome = ${JSON.stringify(DEFAULT_ECHOS_HOME).replace(/</g, '\\u003c')};
+          if (state.echosHome && state.echosHome !== defaultHome) {
+            const hint = document.getElementById('echos-home-hint');
+            const exp = document.getElementById('echos-home-export');
+            if (hint && exp) {
+              exp.textContent = 'export ECHOS_HOME="' + state.echosHome + '"';
+              hint.style.display = 'block';
+            }
+          }
+        }
         else { btn.disabled = false; btn.textContent = 'Write .env & Finish'; alert('Error: ' + r.error); }
       } catch (e) { btn.disabled = false; btn.textContent = 'Write .env & Finish'; alert('Failed: ' + (e instanceof Error ? e.message : String(e))); }
     }
