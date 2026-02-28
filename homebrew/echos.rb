@@ -48,7 +48,9 @@ class Echos < Formula
       if [ -f "$ECHOS_HOME/.env" ]; then
         exec "#{Formula["node@20"].opt_bin}/node" "--env-file=$ECHOS_HOME/.env" --import tsx "#{libexec}/src/index.ts" "$@"
       else
-        exec "#{Formula["node@20"].opt_bin}/node" --import tsx "#{libexec}/src/index.ts" "$@"
+        echo "ECHOS_HOME is set to '$ECHOS_HOME', but no .env file was found at '$ECHOS_HOME/.env'." >&2
+        echo "Please run 'echos-setup' to initialize your configuration before starting the echos-daemon service." >&2
+        exit 1
       fi
     SH
 
