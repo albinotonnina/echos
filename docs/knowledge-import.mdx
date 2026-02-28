@@ -15,7 +15,7 @@ Notion exports.
 
 Point Obsidian at the knowledge directory and everything works immediately:
 
-1. In Obsidian: **Open folder as vault** → select `~/echos/knowledge/` (or wherever `KNOWLEDGE_DIR` points in your `.env`)
+1. In Obsidian: **Open folder as vault** → select your `KNOWLEDGE_DIR` (defaults to `~/echos/knowledge/`, or wherever configured in your `.env`)
 2. All notes open with their frontmatter properties visible in Obsidian's Properties panel
 3. Live edits in Obsidian are picked up automatically by EchOS's file watcher — no restart needed
 
@@ -27,7 +27,7 @@ Point Obsidian at the knowledge directory and everything works immediately:
 
 Any `.md` file that already has the required EchOS frontmatter is indexed automatically:
 
-1. Copy/paste the file into any folder under `~/echos/knowledge/` (folder structure is free-form)
+1. Copy/paste the file into any folder under your knowledge directory (defaults to `~/echos/knowledge/`, folder structure is free-form)
 2. Either wait for the file watcher to pick it up (if EchOS is running), or run:
    ```bash
    pnpm reconcile

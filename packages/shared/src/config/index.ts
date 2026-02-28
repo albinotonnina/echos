@@ -1,14 +1,21 @@
 import { z } from 'zod';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 const commaSeparatedNumbers = z
   .string()
   .transform((s) => s.split(',').map((id) => parseInt(id.trim(), 10)))
   .pipe(z.array(z.number().int().positive()));
 
+/** Expand a leading `~` to the user's home directory. */
+function expandTilde(p: string): string {
+  if (p === '~') return homedir();
+  if (p.startsWith('~/')) return join(homedir(), p.slice(2));
+  return p;
+}
+
 /** Root directory for all EchOS data. Defaults to ~/echos. */
-export const ECHOS_HOME = process.env['ECHOS_HOME'] || join(homedir(), 'echos');
+export const ECHOS_HOME = resolve(expandTilde(process.env['ECHOS_HOME'] || join(homedir(), 'echos')));
 
 export const configSchema = z
   .object({

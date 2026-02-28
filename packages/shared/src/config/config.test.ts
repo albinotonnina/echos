@@ -24,6 +24,8 @@ describe('loadConfig', () => {
     const config = loadConfig(validEnv);
     expect(config.redisUrl).toBe('redis://localhost:6379');
     expect(config.knowledgeDir).toBe(join(ECHOS_HOME, 'knowledge'));
+    expect(config.dbPath).toBe(join(ECHOS_HOME, 'db'));
+    expect(config.sessionDir).toBe(join(ECHOS_HOME, 'sessions'));
     expect(config.enableTelegram).toBe(true);
     expect(config.enableWeb).toBe(false);
     expect(config.webPort).toBe(3000);

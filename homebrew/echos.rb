@@ -27,28 +27,35 @@ class Echos < Formula
     # Create wrapper script that points to the CLI
     (bin/"echos").write <<~SH
       #!/bin/bash
+      [ -f "$HOME/.config/echos/home" ] && ECHOS_HOME="${ECHOS_HOME:-$(cat "$HOME/.config/echos/home")}"
       export ECHOS_HOME="${ECHOS_HOME:-$HOME/echos}"
       export NODE_ENV="${NODE_ENV:-production}"
       cd "#{libexec}"
-      ENV_FLAG=""
-      [ -f "$ECHOS_HOME/.env" ] && ENV_FLAG="--env-file=$ECHOS_HOME/.env"
-      exec "#{Formula["node@20"].opt_bin}/node" $ENV_FLAG "#{libexec}/packages/cli/dist/index.js" "$@"
+      if [ -f "$ECHOS_HOME/.env" ]; then
+        exec "#{Formula["node@20"].opt_bin}/node" "--env-file=$ECHOS_HOME/.env" "#{libexec}/packages/cli/dist/index.js" "$@"
+      else
+        exec "#{Formula["node@20"].opt_bin}/node" "#{libexec}/packages/cli/dist/index.js" "$@"
+      fi
     SH
 
     # Create a wrapper for the daemon
     (bin/"echos-daemon").write <<~SH
       #!/bin/bash
+      [ -f "$HOME/.config/echos/home" ] && ECHOS_HOME="${ECHOS_HOME:-$(cat "$HOME/.config/echos/home")}"
       export ECHOS_HOME="${ECHOS_HOME:-$HOME/echos}"
       export NODE_ENV="${NODE_ENV:-production}"
       cd "#{libexec}"
-      ENV_FLAG=""
-      [ -f "$ECHOS_HOME/.env" ] && ENV_FLAG="--env-file=$ECHOS_HOME/.env"
-      exec "#{Formula["node@20"].opt_bin}/node" $ENV_FLAG --import tsx "#{libexec}/src/index.ts" "$@"
+      if [ -f "$ECHOS_HOME/.env" ]; then
+        exec "#{Formula["node@20"].opt_bin}/node" "--env-file=$ECHOS_HOME/.env" --import tsx "#{libexec}/src/index.ts" "$@"
+      else
+        exec "#{Formula["node@20"].opt_bin}/node" --import tsx "#{libexec}/src/index.ts" "$@"
+      fi
     SH
 
     # Create a wrapper for the setup wizard
     (bin/"echos-setup").write <<~SH
       #!/bin/bash
+      [ -f "$HOME/.config/echos/home" ] && ECHOS_HOME="${ECHOS_HOME:-$(cat "$HOME/.config/echos/home")}"
       export ECHOS_HOME="${ECHOS_HOME:-$HOME/echos}"
       mkdir -p "$ECHOS_HOME"
       cd "$ECHOS_HOME"
