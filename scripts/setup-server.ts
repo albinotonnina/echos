@@ -52,6 +52,11 @@ function escapeHtml(s: string): string {
 
 const DEFAULT_ECHOS_HOME = path.resolve(expandTilde(process.env['ECHOS_HOME'] || path.join(homedir(), 'echos')));
 
+/** OS-critical directories that must never be used as an EchOS data directory. */
+const FORBIDDEN_SYSTEM_DIRS = ['/', '/etc', '/usr', '/bin', '/sbin', '/lib', '/lib64', '/boot', '/dev', '/proc', '/sys', '/run'].map(
+  (p) => path.resolve(p)
+);
+
 /** CSRF token required for all POST requests. */
 const CSRF_TOKEN = randomBytes(32).toString('hex');
 
@@ -256,16 +261,20 @@ function writeConfig(state: Record<string, unknown>): { success: boolean; error?
     const rawHome = String(state['echosHome'] || DEFAULT_ECHOS_HOME);
     const echosHome = path.resolve(expandTilde(rawHome));
 
-    // Validate: must be an absolute path under (not equal to) the user's home directory.
+    // Validate: must be an absolute path that is not a dangerous system directory.
     // Resolve symlinks on the nearest existing ancestor to prevent symlink-based escapes
     // (e.g. ~/evil-symlink/newdir where ~/evil-symlink → /tmp).
+    if (!path.isAbsolute(echosHome)) {
+      return { success: false, error: 'Data directory must be an absolute path' };
+    }
     const realHome = fs.realpathSync(homedir());
     const realEchosHome = realpathWithAncestor(echosHome);
     if (realEchosHome === realHome) {
-      return { success: false, error: 'Data directory must be a subdirectory of your home directory (e.g. ~/echos), not the home directory itself' };
+      return { success: false, error: 'Data directory must not be your home directory itself — use a subdirectory (e.g. ~/echos)' };
     }
-    if (!realEchosHome.startsWith(realHome + path.sep)) {
-      return { success: false, error: 'Data directory must be under your home directory' };
+    // Prevent writing into OS-critical directories
+    if (FORBIDDEN_SYSTEM_DIRS.some((fp) => realEchosHome === fp || realEchosHome.startsWith(fp + path.sep))) {
+      return { success: false, error: 'Data directory must not be a system directory' };
     }
 
     const envPath = path.join(echosHome, '.env');
@@ -358,11 +367,7 @@ const server = http.createServer(async (req, res) => {
         if (persisted) {
           const expanded = expandTilde(persisted);
           const resolved = path.resolve(expanded);
-          const realUserHome = fs.realpathSync(homedir());
-          const realResolved = realpathWithAncestor(resolved);
-          const isUnderHome =
-            realResolved.startsWith(realUserHome + path.sep);
-          if (isUnderHome) {
+          if (path.isAbsolute(resolved)) {
             echosHomeForExisting = resolved;
           }
         }
