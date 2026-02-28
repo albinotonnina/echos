@@ -17,6 +17,26 @@
       "url": "https://github.com/albinotonnina/echos"
     }
   ],
+  "redirects": [
+    { "source": "/DEPLOYMENT", "destination": "/deployment" },
+    { "source": "/ARCHITECTURE", "destination": "/architecture" },
+    { "source": "/INTERFACES", "destination": "/interfaces" },
+    { "source": "/PLUGINS", "destination": "/plugins" },
+    { "source": "/TOOLS", "destination": "/tools" },
+    { "source": "/CATEGORIZATION", "destination": "/categorization" },
+    { "source": "/KNOWLEDGE_IMPORT", "destination": "/knowledge-import" },
+    { "source": "/SLASH_COMMANDS", "destination": "/slash-commands" },
+    { "source": "/WRITING", "destination": "/writing" },
+    { "source": "/SCHEDULER", "destination": "/scheduler" },
+    { "source": "/IMAGES", "destination": "/images" },
+    { "source": "/REMOTE_ACCESS", "destination": "/remote-access" },
+    { "source": "/ORACLE_CLOUD_VAULT", "destination": "/oracle-cloud-vault" },
+    { "source": "/RELEASING", "destination": "/releasing" },
+    { "source": "/DISTRIBUTION", "destination": "/distribution" },
+    { "source": "/SECURITY", "destination": "/security" },
+    { "source": "/TROUBLESHOOTING", "destination": "/troubleshooting" },
+    { "source": "/SETUP_FIXES", "destination": "/setup-fixes" }
+  ],
   "navigation": [
     {
       "group": "Getting Started",
