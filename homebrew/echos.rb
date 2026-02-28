@@ -1,9 +1,8 @@
 class Echos < Formula
   desc "Secure, self-hosted, agent-driven personal knowledge management system"
   homepage "https://github.com/albinotonnina/echos"
-  # Stable URL is disabled until a release provides the tarball sha256.
-  # url "https://github.com/albinotonnina/echos/archive/refs/tags/v0.7.4.tar.gz"
-  # sha256 "will be set by the release process"
+  url "https://github.com/albinotonnina/echos/archive/refs/tags/v0.7.4.tar.gz"
+  sha256 "f725e400c2bde06bf8be29394abd42cfa701296aaee32d048e66b017b445ba3f"
   license "MIT"
   head "https://github.com/albinotonnina/echos.git", branch: "main"
 
@@ -11,9 +10,10 @@ class Echos < Formula
   depends_on "redis"
 
   def install
-    # Install pnpm via corepack (bundled with Node.js)
-    system "corepack", "enable"
-    system "corepack", "prepare", "pnpm@10.30.1", "--activate"
+    # Install pnpm into a local prefix to avoid writing into Homebrew's Node cellar
+    pnpm_prefix = buildpath/"pnpm-global"
+    system "npm", "install", "-g", "pnpm@10.30.1", "--prefix", pnpm_prefix
+    ENV.prepend_path "PATH", pnpm_prefix/"bin"
 
     # Install dependencies with prebuilt native modules
     system "pnpm", "install", "--frozen-lockfile"

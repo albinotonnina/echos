@@ -85,21 +85,27 @@ The only outbound calls are to the AI APIs you configure — and only when you a
 
 ## Get started
 
-```bash
-# One-liner (macOS + Linux) — installs Node.js if needed, clones, builds, launches setup
-curl -sSL https://raw.githubusercontent.com/albinotonnina/echos/main/install.sh | bash
+**macOS (Homebrew)**
 
-# Or manually
+```bash
+brew tap albinotonnina/echos
+brew install echos
+echos-setup          # browser-based setup wizard
+brew services start echos
+```
+
+**One-liner (macOS + Linux)**
+
+```bash
+curl -sSL https://raw.githubusercontent.com/albinotonnina/echos/main/install.sh | bash
+```
+
+**Manual**
+
+```bash
 git clone https://github.com/albinotonnina/echos.git && cd echos
 pnpm install && pnpm build
-
-# Setup wizard (browser-based, recommended)
 pnpm wizard         # opens http://localhost:3456 with guided setup
-
-# Or terminal wizard
-pnpm wizard:cli     # interactive terminal setup
-
-# Start
 pnpm start
 ```
 
