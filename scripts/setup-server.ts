@@ -16,8 +16,9 @@ import * as path from 'node:path';
 import * as http from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { createConnection } from 'node:net';
-import { exec, execSync } from 'node:child_process';
+import { exec } from 'node:child_process';
 import { homedir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 
 /** Expand a leading `~` to the user's home directory. */
 function expandTilde(p: string): string {
@@ -38,11 +39,14 @@ const CSRF_TOKEN = randomBytes(32).toString('hex');
 
 const args = process.argv.slice(2);
 
-// Detect Homebrew install by checking if echos-daemon wrapper exists in PATH
+// Detect Homebrew install by checking if this script lives under a Homebrew
+// libexec directory, rather than relying on PATH (which could misclassify a
+// source checkout on a machine that also has a Homebrew install).
 const IS_BREW_INSTALL = (() => {
   try {
-    execSync('which echos-daemon', { stdio: 'ignore' });
-    return true;
+    const scriptPath = fs.realpathSync(fileURLToPath(import.meta.url));
+    const libexecSeg = `${path.sep}libexec${path.sep}`;
+    return scriptPath.includes(libexecSeg);
   } catch {
     return false;
   }
@@ -234,12 +238,14 @@ function writeConfig(state: Record<string, unknown>): { success: boolean; error?
     const rawHome = String(state['echosHome'] || DEFAULT_ECHOS_HOME);
     const echosHome = path.resolve(expandTilde(rawHome));
 
-    // Validate: must be an absolute path under (not equal to) the user's home directory
-    const home = homedir();
-    if (echosHome === home) {
+    // Validate: must be an absolute path under (not equal to) the user's home directory.
+    // Use realpathSync to resolve symlinks so a symlinked path can't bypass the check.
+    const realHome = fs.realpathSync(homedir());
+    const realEchosHome = fs.existsSync(echosHome) ? fs.realpathSync(echosHome) : echosHome;
+    if (realEchosHome === realHome) {
       return { success: false, error: 'Data directory must be a subdirectory of your home directory (e.g. ~/echos), not the home directory itself' };
     }
-    if (!echosHome.startsWith(home + path.sep)) {
+    if (!realEchosHome.startsWith(realHome + path.sep)) {
       return { success: false, error: 'Data directory must be under your home directory' };
     }
 
@@ -333,11 +339,10 @@ const server = http.createServer(async (req, res) => {
         if (persisted) {
           const expanded = expandTilde(persisted);
           const resolved = path.resolve(expanded);
-          const userHome = homedir();
-          const normalizedHome = path.resolve(userHome);
+          const realUserHome = fs.realpathSync(homedir());
+          const realResolved = fs.existsSync(resolved) ? fs.realpathSync(resolved) : resolved;
           const isUnderHome =
-            resolved === normalizedHome ||
-            resolved.startsWith(normalizedHome + path.sep);
+            realResolved.startsWith(realUserHome + path.sep);
           if (isUnderHome) {
             echosHomeForExisting = resolved;
           }

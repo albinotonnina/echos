@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { loadConfig, resetConfig, ECHOS_HOME } from './index.js';
+import { loadConfig, resetConfig } from './index.js';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 
 afterEach(() => {
   resetConfig();
@@ -23,10 +23,13 @@ describe('loadConfig', () => {
 
   it('should apply defaults for optional fields', () => {
     const config = loadConfig(validEnv);
+    // Use explicit path (not ECHOS_HOME export) to avoid flakiness when
+    // ECHOS_HOME is set in the test runner environment.
+    const expectedHome = join(homedir(), 'echos');
     expect(config.redisUrl).toBe('redis://localhost:6379');
-    expect(config.knowledgeDir).toBe(join(ECHOS_HOME, 'knowledge'));
-    expect(config.dbPath).toBe(join(ECHOS_HOME, 'db'));
-    expect(config.sessionDir).toBe(join(ECHOS_HOME, 'sessions'));
+    expect(config.knowledgeDir).toBe(join(expectedHome, 'knowledge'));
+    expect(config.dbPath).toBe(join(expectedHome, 'db'));
+    expect(config.sessionDir).toBe(join(expectedHome, 'sessions'));
     expect(config.enableTelegram).toBe(true);
     expect(config.enableWeb).toBe(false);
     expect(config.webPort).toBe(3000);
