@@ -85,4 +85,11 @@ describe('loadConfig', () => {
       expect(config.cacheRetention).toBe(v);
     }
   });
+
+  it('resolves ECHOS_HOME from env parameter for storage defaults', () => {
+    const config = loadConfig({ ...validEnv, ECHOS_HOME: '/tmp/custom-echos' });
+    expect(config.knowledgeDir).toBe('/tmp/custom-echos/knowledge');
+    expect(config.dbPath).toBe('/tmp/custom-echos/db');
+    expect(config.sessionDir).toBe('/tmp/custom-echos/sessions');
+  });
 });

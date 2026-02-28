@@ -26,6 +26,11 @@ function expandTilde(p: string): string {
   return p;
 }
 
+/** Escape a string for safe embedding in HTML attributes/content. */
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 const DEFAULT_ECHOS_HOME = path.resolve(expandTilde(process.env['ECHOS_HOME'] || path.join(homedir(), 'echos')));
 
 /** CSRF token required for all POST requests. */
@@ -238,25 +243,24 @@ function writeConfig(state: Record<string, unknown>): { success: boolean; error?
       fs.chmodSync(backupPath, 0o600);
     }
 
-    // Ensure storage paths are populated (fall back to echosHome-relative)
-    state['knowledgeDir'] = state['knowledgeDir'] || path.join(echosHome, 'knowledge');
-    state['dbPath'] = state['dbPath'] || path.join(echosHome, 'db');
-    state['sessionDir'] = state['sessionDir'] || path.join(echosHome, 'sessions');
+    // Derive storage paths server-side from the validated echosHome
+    // (ignore any client-provided values to prevent path traversal)
+    const knowledgeDir = path.join(echosHome, 'knowledge');
+    const dbPath = path.join(echosHome, 'db');
+    const sessionDir = path.join(echosHome, 'sessions');
+    state['knowledgeDir'] = knowledgeDir;
+    state['dbPath'] = dbPath;
+    state['sessionDir'] = sessionDir;
 
     const content = stateToEnv(state);
     fs.writeFileSync(envPath, content, { encoding: 'utf8', mode: 0o600 });
     fs.chmodSync(envPath, 0o600);
 
     // Create data directories
-    const dirs = [
-      String(state['knowledgeDir']),
-      String(state['dbPath']),
-      String(state['sessionDir']),
-    ];
+    const dirs = [knowledgeDir, dbPath, sessionDir];
     for (const dir of dirs) {
-      const resolved = path.resolve(expandTilde(dir));
-      if (!fs.existsSync(resolved)) {
-        fs.mkdirSync(resolved, { recursive: true });
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
       }
     }
 
@@ -302,7 +306,14 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && url.pathname === '/api/setup/existing') {
-      const envPath = path.join(DEFAULT_ECHOS_HOME, '.env');
+      // Resolve the actual ECHOS_HOME: check persisted config, then env, then default
+      let echosHomeForExisting = DEFAULT_ECHOS_HOME;
+      const persistedHomePath = path.join(homedir(), '.config', 'echos', 'home');
+      if (fs.existsSync(persistedHomePath)) {
+        const persisted = fs.readFileSync(persistedHomePath, 'utf8').trim();
+        if (persisted) echosHomeForExisting = persisted;
+      }
+      const envPath = path.join(echosHomeForExisting, '.env');
       if (!fs.existsSync(envPath)) {
         json(res, { exists: false, config: {} });
         return;
@@ -487,7 +498,7 @@ function getSetupHtml(): string {
       <p class="step-desc">Choose where EchOS stores your notes, database, and config. This folder will be visible in Finder — you can point Obsidian or other tools at the knowledge subfolder.</p>
       <div class="field">
         <label>EchOS Home <span class="label-hint">(directory path)</span></label>
-        <input type="text" id="echosHome" placeholder="${DEFAULT_ECHOS_HOME}">
+        <input type="text" id="echosHome" placeholder="${escapeHtml(DEFAULT_ECHOS_HOME)}">
         <div class="validation" id="echos-home-hint" style="color:var(--text-dim)">Subdirectories: knowledge/, db/, sessions/</div>
       </div>
     </div>
@@ -588,7 +599,7 @@ function getSetupHtml(): string {
 
   <script>
     const TOTAL_STEPS = 5;
-    const CSRF_TOKEN = '${CSRF_TOKEN}';
+    const CSRF_TOKEN = ${JSON.stringify(CSRF_TOKEN)};
     const csrfHeaders = { 'x-csrf-token': CSRF_TOKEN };
     let currentStep = 1;
     const toggles = { enableTelegram: true, enableWeb: false };
@@ -689,7 +700,7 @@ function getSetupHtml(): string {
     }
 
     function getState() {
-      const home = document.getElementById('echosHome').value.trim() || '${DEFAULT_ECHOS_HOME}';
+      const home = document.getElementById('echosHome').value.trim() || ${JSON.stringify(DEFAULT_ECHOS_HOME)};
       return {
         echosHome: home,
         anthropicApiKey: document.getElementById('anthropicApiKey').value.trim(),
@@ -772,7 +783,7 @@ function getSetupHtml(): string {
     async function writeConfig() {
       const state = getState();
       if (state.enableWeb && !state.webApiKey) {
-        const r = await fetch('/api/setup/generate-key', { method: 'POST', headers: csrfHeaders }).then(r => r.json());
+        const r = await fetch('/api/setup/generate-key', { method: 'POST', headers: { 'Content-Type': 'application/json', ...csrfHeaders }, body: '{}' }).then(r => r.json());
         state.webApiKey = r.key;
       }
       const btn = document.getElementById('btn-next');

@@ -14,8 +14,13 @@ function expandTilde(p: string): string {
   return p;
 }
 
+/** Resolve ECHOS_HOME from an env record. */
+function resolveEchosHome(env: Record<string, string | undefined>): string {
+  return resolve(expandTilde(env['ECHOS_HOME'] || join(homedir(), 'echos')));
+}
+
 /** Root directory for all EchOS data. Defaults to ~/echos. */
-export const ECHOS_HOME = resolve(expandTilde(process.env['ECHOS_HOME'] || join(homedir(), 'echos')));
+export const ECHOS_HOME = resolveEchosHome(process.env);
 
 export const configSchema = z
   .object({
@@ -105,6 +110,10 @@ let cachedConfig: Config | null = null;
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
   if (cachedConfig) return cachedConfig;
 
+  // Resolve ECHOS_HOME from the provided env so callers (including tests)
+  // that pass a custom env object get correct storage defaults.
+  const echosHome = resolveEchosHome(env);
+
   const result = configSchema.safeParse({
     telegramBotToken: env['TELEGRAM_BOT_TOKEN'],
     allowedUserIds: env['ALLOWED_USER_IDS'],
@@ -113,9 +122,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     llmApiKey: env['LLM_API_KEY'],
     llmBaseUrl: env['LLM_BASE_URL'],
     redisUrl: env['REDIS_URL'],
-    knowledgeDir: env['KNOWLEDGE_DIR'],
-    dbPath: env['DB_PATH'],
-    sessionDir: env['SESSION_DIR'],
+    knowledgeDir: env['KNOWLEDGE_DIR'] || join(echosHome, 'knowledge'),
+    dbPath: env['DB_PATH'] || join(echosHome, 'db'),
+    sessionDir: env['SESSION_DIR'] || join(echosHome, 'sessions'),
     defaultModel: env['DEFAULT_MODEL'],
     embeddingModel: env['EMBEDDING_MODEL'],
     embeddingDimensions: env['EMBEDDING_DIMENSIONS'],
