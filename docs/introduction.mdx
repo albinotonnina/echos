@@ -38,27 +38,27 @@ EchOS:  [drafts a post grounded in your actual notes, in your voice]
 
 ## Quick start
 
-<CardGroup cols={3}>
-  <Card title="Homebrew" icon="apple">
-    ```bash
-    brew tap albinotonnina/echos
-    brew install echos
-    echos-setup
-    ```
-  </Card>
-  <Card title="One-liner" icon="terminal">
-    ```bash
-    curl -sSL https://raw.githubusercontent.com/albinotonnina/echos/main/install.sh | bash
-    ```
-  </Card>
-  <Card title="Manual" icon="code">
-    ```bash
-    git clone https://github.com/albinotonnina/echos.git
-    cd echos && pnpm install && pnpm build
-    pnpm wizard
-    ```
-  </Card>
-</CardGroup>
+**Homebrew (macOS)**
+
+```bash
+brew tap albinotonnina/echos
+brew install echos
+echos-setup
+```
+
+**One-liner (macOS + Linux)**
+
+```bash
+curl -sSL https://raw.githubusercontent.com/albinotonnina/echos/main/install.sh | bash
+```
+
+**Manual**
+
+```bash
+git clone https://github.com/albinotonnina/echos.git
+cd echos && pnpm install && pnpm build
+pnpm wizard
+```
 
 You'll need an LLM API key — either Anthropic (`ANTHROPIC_API_KEY`) or any provider supported by pi-ai (`LLM_API_KEY`). Custom OpenAI-compatible endpoints are supported via `LLM_BASE_URL`. Everything else is optional.
 
