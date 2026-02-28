@@ -24,42 +24,41 @@ class Echos < Formula
     # Install into libexec (the full project)
     libexec.install Dir["*"]
 
-    # Create config directory
-    (etc/"echos").mkpath
-
     # Create wrapper script that points to the CLI
     (bin/"echos").write <<~SH
       #!/bin/bash
-      export ECHOS_HOME="#{libexec}"
+      export ECHOS_HOME="${ECHOS_HOME:-$HOME/echos}"
       export NODE_ENV="${NODE_ENV:-production}"
       cd "#{libexec}"
-      exec "#{Formula["node@20"].opt_bin}/node" --env-file="#{etc}/echos/.env" "#{libexec}/packages/cli/dist/index.js" "$@"
+      ENV_FLAG=""
+      [ -f "$ECHOS_HOME/.env" ] && ENV_FLAG="--env-file=$ECHOS_HOME/.env"
+      exec "#{Formula["node@20"].opt_bin}/node" $ENV_FLAG "#{libexec}/packages/cli/dist/index.js" "$@"
     SH
 
     # Create a wrapper for the daemon
     (bin/"echos-daemon").write <<~SH
       #!/bin/bash
-      export ECHOS_HOME="#{libexec}"
+      export ECHOS_HOME="${ECHOS_HOME:-$HOME/echos}"
       export NODE_ENV="${NODE_ENV:-production}"
       cd "#{libexec}"
-      exec "#{Formula["node@20"].opt_bin}/node" --env-file="#{etc}/echos/.env" --import tsx "#{libexec}/src/index.ts" "$@"
+      ENV_FLAG=""
+      [ -f "$ECHOS_HOME/.env" ] && ENV_FLAG="--env-file=$ECHOS_HOME/.env"
+      exec "#{Formula["node@20"].opt_bin}/node" $ENV_FLAG --import tsx "#{libexec}/src/index.ts" "$@"
     SH
 
     # Create a wrapper for the setup wizard
     (bin/"echos-setup").write <<~SH
       #!/bin/bash
-      export ECHOS_HOME="#{libexec}"
-      cd "#{libexec}"
+      export ECHOS_HOME="${ECHOS_HOME:-$HOME/echos}"
+      mkdir -p "$ECHOS_HOME"
+      cd "$ECHOS_HOME"
       exec "#{Formula["node@20"].opt_bin}/node" --import tsx "#{libexec}/scripts/setup-server.ts" "$@"
     SH
   end
 
   def post_install
-    # Create data directories
-    (var/"echos/knowledge").mkpath
-    (var/"echos/db").mkpath
-    (var/"echos/sessions").mkpath
-    (var/"echos/exports").mkpath
+    # No data directories created here — ECHOS_HOME (~/echos) is managed
+    # by the setup wizard and created at runtime.
   end
 
   def caveats
@@ -75,8 +74,8 @@ class Echos < Formula
         3. Use the CLI:
            echos "search my notes"
 
-      Data is stored in #{var}/echos/
-      Configuration: #{etc}/echos/.env
+      Data is stored in ~/echos/ (override with ECHOS_HOME)
+      Configuration: ~/echos/.env
 
       Redis is required — start it before running EchOS:
         brew services start redis
@@ -85,7 +84,6 @@ class Echos < Formula
 
   service do
     run [opt_bin/"echos-daemon"]
-    working_dir var/"echos"
     keep_alive true
     log_path var/"log/echos.log"
     error_log_path var/"log/echos-error.log"

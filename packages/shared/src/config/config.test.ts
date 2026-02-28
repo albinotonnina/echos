@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { loadConfig, resetConfig } from './index.js';
+import { loadConfig, resetConfig, ECHOS_HOME } from './index.js';
+import { join } from 'node:path';
 
 afterEach(() => {
   resetConfig();
@@ -22,7 +23,7 @@ describe('loadConfig', () => {
   it('should apply defaults for optional fields', () => {
     const config = loadConfig(validEnv);
     expect(config.redisUrl).toBe('redis://localhost:6379');
-    expect(config.knowledgeDir).toBe('./data/knowledge');
+    expect(config.knowledgeDir).toBe(join(ECHOS_HOME, 'knowledge'));
     expect(config.enableTelegram).toBe(true);
     expect(config.enableWeb).toBe(false);
     expect(config.webPort).toBe(3000);

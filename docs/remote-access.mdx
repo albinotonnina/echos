@@ -5,7 +5,7 @@ description: "Access your knowledge files from a local machine."
 
 # Accessing Your Knowledge Base Remotely
 
-When EchOS runs on a VPS, the knowledge files live at `data/knowledge/` on the server. This guide covers the main ways to access that directory from your local machine so you can open it in Obsidian, back it up, or work with the files directly.
+When EchOS runs on a VPS, the knowledge files live at `~/echos/knowledge/` on the server. This guide covers the main ways to access that directory from your local machine so you can open it in Obsidian, back it up, or work with the files directly.
 
 ---
 
@@ -34,7 +34,7 @@ sudo dnf install fuse-sshfs     # Fedora
 ```bash
 mkdir -p ~/Echos-Knowledge
 
-sshfs user@your-server:/home/user/echos/data/knowledge ~/Echos-Knowledge \
+sshfs user@your-server:/home/user/echos/knowledge ~/Echos-Knowledge \
   -o IdentityFile=~/.ssh/your-key \
   -o volname=Echos \
   -o defer_permissions \
@@ -54,7 +54,7 @@ Add to your `~/.zshrc` or `~/.bashrc`:
 
 ```bash
 alias mount-echos="umount ~/Echos-Knowledge 2>/dev/null; \
-  sshfs user@your-server:/home/user/echos/data/knowledge ~/Echos-Knowledge \
+  sshfs user@your-server:/home/user/echos/knowledge ~/Echos-Knowledge \
   -o IdentityFile=~/.ssh/your-key \
   -o volname=Echos \
   -o defer_permissions \
@@ -80,7 +80,7 @@ rsync copies files from the server to your local machine (or vice versa). It's n
 
 ```bash
 rsync -avz --delete \
-  user@your-server:/home/user/echos/data/knowledge/ \
+  user@your-server:/home/user/echos/knowledge/ \
   ~/Echos-Knowledge/
 ```
 
@@ -91,7 +91,7 @@ The trailing `/` on the source path matters — it syncs the contents, not the d
 ```bash
 rsync -avz --delete \
   ~/Echos-Knowledge/ \
-  user@your-server:/home/user/echos/data/knowledge/
+  user@your-server:/home/user/echos/knowledge/
 ```
 
 <Warning>`--delete` removes files on the destination that no longer exist on the source. If EchOS has added new notes since your last pull, push carefully — pull first, then push. Or omit `--delete` if you only want to push additions.</Warning>
@@ -103,7 +103,7 @@ Run a pull every 15 minutes:
 ```bash
 crontab -e
 # add:
-*/15 * * * * rsync -az user@your-server:/home/user/echos/data/knowledge/ ~/Echos-Knowledge/
+*/15 * * * * rsync -az user@your-server:/home/user/echos/knowledge/ ~/Echos-Knowledge/
 ```
 
 Or on macOS with launchd, create `~/Library/LaunchAgents/com.echos.sync.plist`:
@@ -120,7 +120,7 @@ Or on macOS with launchd, create `~/Library/LaunchAgents/com.echos.sync.plist`:
   <array>
     <string>/usr/bin/rsync</string>
     <string>-az</string>
-    <string>user@your-server:/home/user/echos/data/knowledge/</string>
+    <string>user@your-server:/home/user/echos/knowledge/</string>
     <string>/Users/you/Echos-Knowledge/</string>
   </array>
   <key>StartInterval</key>
@@ -172,7 +172,7 @@ Linux: same as server above, or via your package manager.
 1. Open the Syncthing web UI on the server: `http://your-server:8384` (you may need to SSH tunnel: `ssh -L 8384:localhost:8384 user@your-server`)
 2. Open the Syncthing web UI locally: `http://localhost:8384`
 3. Add the server as a remote device (copy the device ID from the web UI)
-4. Share the `data/knowledge/` folder from the server with your local device
+4. Share the `~/echos/knowledge/` folder from the server with your local device
 5. Accept the share on the local side, set the local path to `~/Echos-Knowledge`
 
 Syncthing handles conflicts, retries, and compression automatically.

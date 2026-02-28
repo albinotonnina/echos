@@ -1,11 +1,14 @@
 import { z } from 'zod';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 
 const commaSeparatedNumbers = z
   .string()
   .transform((s) => s.split(',').map((id) => parseInt(id.trim(), 10)))
   .pipe(z.array(z.number().int().positive()));
 
-
+/** Root directory for all EchOS data. Defaults to ~/echos. */
+export const ECHOS_HOME = process.env['ECHOS_HOME'] || join(homedir(), 'echos');
 
 export const configSchema = z
   .object({
@@ -24,10 +27,10 @@ export const configSchema = z
   // Redis
   redisUrl: z.string().url().default('redis://localhost:6379'),
 
-  // Storage paths
-  knowledgeDir: z.string().default('./data/knowledge'),
-  dbPath: z.string().default('./data/db'),
-  sessionDir: z.string().default('./data/sessions'),
+  // Storage paths (resolve relative to ECHOS_HOME)
+  knowledgeDir: z.string().default(join(ECHOS_HOME, 'knowledge')),
+  dbPath: z.string().default(join(ECHOS_HOME, 'db')),
+  sessionDir: z.string().default(join(ECHOS_HOME, 'sessions')),
 
   // LLM
   defaultModel: z.string().default('claude-haiku-4-5-20251001'),

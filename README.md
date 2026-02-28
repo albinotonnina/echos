@@ -77,7 +77,7 @@ The only outbound calls are to the AI APIs you configure — and only when you a
 
 **Write in your voice.** Tell it to write a blog post, a thread, an email. It reads your notes for source material and matches the way you actually write — not generic AI prose.
 
-**Obsidian-compatible, always.** Every note is a plain `.md` file. Open `data/knowledge/` in Obsidian and your entire knowledge base is right there. Live sync, bidirectional.
+**Obsidian-compatible, always.** Every note is a plain `.md` file. Open `~/echos/knowledge/` in Obsidian and your entire knowledge base is right there. Live sync, bidirectional.
 
 **Remembers how you want it to talk.** Tell it to be concise, warmer, more technical. It adapts immediately and stays that way.
 

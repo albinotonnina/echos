@@ -1,4 +1,4 @@
-export { loadConfig, resetConfig, type Config, configSchema } from './config/index.js';
+export { loadConfig, resetConfig, ECHOS_HOME, type Config, configSchema } from './config/index.js';
 export {
   AppError,
   ValidationError,

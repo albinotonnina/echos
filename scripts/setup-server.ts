@@ -17,6 +17,9 @@ import * as http from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { createConnection } from 'node:net';
 import { exec } from 'node:child_process';
+import { homedir } from 'node:os';
+
+const DEFAULT_ECHOS_HOME = process.env['ECHOS_HOME'] || path.join(homedir(), 'echos');
 
 const args = process.argv.slice(2);
 const PORT = (() => {
@@ -93,9 +96,9 @@ function stateToEnv(state: Record<string, unknown>): string {
     s('telegramBotToken') ? `TELEGRAM_BOT_TOKEN=${s('telegramBotToken')}` : '# TELEGRAM_BOT_TOKEN=',
     '',
     '# ── Storage ──────────────────────────────────────────────────────────────────',
-    `KNOWLEDGE_DIR=${s('knowledgeDir') || './data/knowledge'}`,
-    `DB_PATH=${s('dbPath') || './data/db'}`,
-    `SESSION_DIR=${s('sessionDir') || './data/sessions'}`,
+    `KNOWLEDGE_DIR=${s('knowledgeDir')}`,
+    `DB_PATH=${s('dbPath')}`,
+    `SESSION_DIR=${s('sessionDir')}`,
     '',
     '# ── Redis (required) ─────────────────────────────────────────────────────────',
     `REDIS_URL=${s('redisUrl') || 'redis://localhost:6379'}`,
@@ -201,7 +204,13 @@ function validateRedis(body: { url: string }): Promise<{ valid: boolean; error?:
 
 function writeConfig(state: Record<string, unknown>): { success: boolean; error?: string } {
   try {
-    const envPath = path.resolve('.env');
+    const echosHome = String(state['echosHome'] || DEFAULT_ECHOS_HOME);
+    const envPath = path.join(echosHome, '.env');
+
+    // Ensure ECHOS_HOME exists
+    if (!fs.existsSync(echosHome)) {
+      fs.mkdirSync(echosHome, { recursive: true });
+    }
 
     // Backup existing .env
     if (fs.existsSync(envPath)) {
@@ -216,9 +225,9 @@ function writeConfig(state: Record<string, unknown>): { success: boolean; error?
 
     // Create data directories
     const dirs = [
-      String(state['knowledgeDir'] || './data/knowledge'),
-      String(state['dbPath'] || './data/db'),
-      String(state['sessionDir'] || './data/sessions'),
+      String(state['knowledgeDir']),
+      String(state['dbPath']),
+      String(state['sessionDir']),
     ];
     for (const dir of dirs) {
       const resolved = path.resolve(dir);
@@ -262,7 +271,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && url.pathname === '/api/setup/existing') {
-      const envPath = path.resolve('.env');
+      const envPath = path.join(DEFAULT_ECHOS_HOME, '.env');
       if (!fs.existsSync(envPath)) {
         json(res, { exists: false, config: {} });
         return;
@@ -435,9 +444,20 @@ function getSetupHtml(): string {
     <p class="subtitle">Configure your personal knowledge management system</p>
     <div class="progress" id="progress"></div>
 
-    <!-- Step 1: API Keys -->
+    <!-- Step 1: Data Location -->
     <div class="step active" id="step-1">
-      <div class="step-header"><span class="step-number">1</span> API Keys</div>
+      <div class="step-header"><span class="step-number">1</span> Data Location</div>
+      <p class="step-desc">Choose where EchOS stores your notes, database, and config. This folder will be visible in Finder — you can point Obsidian or other tools at the knowledge subfolder.</p>
+      <div class="field">
+        <label>EchOS Home <span class="label-hint">(directory path)</span></label>
+        <input type="text" id="echosHome" placeholder="${DEFAULT_ECHOS_HOME}">
+        <div class="validation" id="echos-home-hint" style="color:var(--text-dim)">Subdirectories: knowledge/, db/, sessions/</div>
+      </div>
+    </div>
+
+    <!-- Step 2: API Keys -->
+    <div class="step" id="step-2">
+      <div class="step-header"><span class="step-number">2</span> API Keys</div>
       <p class="step-desc">Connect to AI providers. Anthropic is required; OpenAI is optional (embeddings + Whisper transcription).</p>
       <div class="field">
         <label>Anthropic API Key <span class="label-hint">(required, starts with sk-ant-)</span></label>
@@ -453,9 +473,9 @@ function getSetupHtml(): string {
       </div>
     </div>
 
-    <!-- Step 2: Telegram -->
-    <div class="step" id="step-2">
-      <div class="step-header"><span class="step-number">2</span> Telegram Bot</div>
+    <!-- Step 3: Telegram -->
+    <div class="step" id="step-3">
+      <div class="step-header"><span class="step-number">3</span> Telegram Bot</div>
       <p class="step-desc">Set up your Telegram bot for messaging. Create one via <a href="https://t.me/BotFather" target="_blank">@BotFather</a>.</p>
       <div class="toggle-row" role="button" tabindex="0" id="btn-enableTelegram" aria-pressed="true" onclick="toggle('enableTelegram')" onkeydown="if(event.key==='Enter'||event.key===' '){toggle('enableTelegram');event.preventDefault();}">
         <div><div class="toggle-label">Enable Telegram</div><div class="toggle-hint">Recommended primary interface</div></div>
@@ -476,9 +496,9 @@ function getSetupHtml(): string {
       </div>
     </div>
 
-    <!-- Step 3: Features -->
-    <div class="step" id="step-3">
-      <div class="step-header"><span class="step-number">3</span> Features</div>
+    <!-- Step 4: Features -->
+    <div class="step" id="step-4">
+      <div class="step-header"><span class="step-number">4</span> Features</div>
       <p class="step-desc">Enable additional interfaces and background features.</p>
       <div class="toggle-row" role="button" tabindex="0" id="btn-enableWeb" aria-pressed="false" onclick="toggle('enableWeb')" onkeydown="if(event.key==='Enter'||event.key===' '){toggle('enableWeb');event.preventDefault();}">
         <div><div class="toggle-label">Web UI</div><div class="toggle-hint">REST API + web interface (experimental)</div></div>
@@ -502,22 +522,22 @@ function getSetupHtml(): string {
       </div>
     </div>
 
-    <!-- Step 4: Summary -->
-    <div class="step" id="step-4">
-      <div class="step-header"><span class="step-number">4</span> Review & Confirm</div>
+    <!-- Step 5: Summary -->
+    <div class="step" id="step-5">
+      <div class="step-header"><span class="step-number">5</span> Review & Confirm</div>
       <p class="step-desc">Review your configuration before writing to .env</p>
       <table class="summary-table" id="summary-table"></table>
     </div>
 
-    <!-- Step 5: Success -->
-    <div class="step" id="step-5">
+    <!-- Step 6: Success -->
+    <div class="step" id="step-6">
       <div class="success-screen">
         <h2>Setup Complete</h2>
         <p style="color:var(--text-dim);margin-bottom:1.5rem">Your .env file has been written and data directories created.</p>
         <p style="font-size:0.875rem;margin-bottom:0.5rem">Start EchOS:</p>
-        <code>pnpm start</code>
+        <code>brew services start echos</code>
         <p style="font-size:0.875rem;margin-top:1.5rem;margin-bottom:0.5rem">Or use the CLI:</p>
-        <code>pnpm echos</code>
+        <code>echos "search my notes"</code>
         <p style="color:var(--text-dim);font-size:0.75rem;margin-top:2rem">You can close this tab now.</p>
       </div>
     </div>
@@ -529,7 +549,7 @@ function getSetupHtml(): string {
   </div>
 
   <script>
-    const TOTAL_STEPS = 4;
+    const TOTAL_STEPS = 5;
     let currentStep = 1;
     const toggles = { enableTelegram: true, enableWeb: false };
 
@@ -549,7 +569,7 @@ function getSetupHtml(): string {
       const step = document.getElementById('step-' + n);
       if (step) step.classList.add('active');
       const nav = document.getElementById('nav');
-      if (n >= 5) { nav.style.display = 'none'; return; }
+      if (n >= 6) { nav.style.display = 'none'; return; }
       nav.style.display = 'flex';
       document.getElementById('btn-back').style.visibility = n === 1 ? 'hidden' : 'visible';
       const btnNext = document.getElementById('btn-next');
@@ -560,12 +580,12 @@ function getSetupHtml(): string {
     }
 
     function nextStep() {
-      if (currentStep === 1) {
+      if (currentStep === 2) {
         const key = document.getElementById('anthropicApiKey').value.trim();
         if (!key) { showV('anthropic-status', 'error', 'Anthropic API key is required'); return; }
         if (!key.startsWith('sk-ant-')) { showV('anthropic-status', 'error', 'Key should start with sk-ant-'); return; }
       }
-      if (currentStep === 2) {
+      if (currentStep === 3) {
         if (toggles.enableTelegram) {
           const token = document.getElementById('telegramBotToken').value.trim();
           if (!token) { showV('telegram-status', 'error', 'Bot token is required when Telegram is enabled'); return; }
@@ -629,7 +649,9 @@ function getSetupHtml(): string {
     }
 
     function getState() {
+      const home = document.getElementById('echosHome').value.trim() || '${DEFAULT_ECHOS_HOME}';
       return {
+        echosHome: home,
         anthropicApiKey: document.getElementById('anthropicApiKey').value.trim(),
         openaiApiKey: document.getElementById('openaiApiKey').value.trim(),
         allowedUserIds: document.getElementById('allowedUserIds').value.trim(),
@@ -639,7 +661,7 @@ function getSetupHtml(): string {
         webPort: parseInt(document.getElementById('webPort').value) || 3000,
         webApiKey: '',
         redisUrl: document.getElementById('redisUrl').value.trim() || 'redis://localhost:6379',
-        knowledgeDir: './data/knowledge', dbPath: './data/db', sessionDir: './data/sessions',
+        knowledgeDir: home + '/knowledge', dbPath: home + '/db', sessionDir: home + '/sessions',
         defaultModel: 'claude-haiku-4-5-20251001', embeddingModel: 'text-embedding-3-small',
         webshareProxyUsername: document.getElementById('webshareProxyUsername').value.trim(),
         webshareProxyPassword: document.getElementById('webshareProxyPassword').value.trim(),
@@ -663,6 +685,9 @@ function getSetupHtml(): string {
         table.appendChild(tr);
       }
 
+      addRow('Data Location', function(td) {
+        td.textContent = s.echosHome;
+      });
       addRow('Anthropic Key', function(td) {
         const span = document.createElement('span');
         span.className = 'masked';
@@ -714,7 +739,7 @@ function getSetupHtml(): string {
       btn.disabled = true; btn.textContent = 'Writing...';
       try {
         const r = await fetch('/api/setup/write-config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(state) }).then(r => r.json());
-        if (r.success) showStep(5);
+        if (r.success) showStep(6);
         else { btn.disabled = false; btn.textContent = 'Write .env & Finish'; alert('Error: ' + r.error); }
       } catch (e) { btn.disabled = false; btn.textContent = 'Write .env & Finish'; alert('Failed: ' + (e instanceof Error ? e.message : String(e))); }
     }
