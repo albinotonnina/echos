@@ -770,7 +770,7 @@ function getSetupHtml(): string {
       const step = document.getElementById('step-' + n);
       if (step) step.classList.add('active');
       const nav = document.getElementById('nav');
-      if (n >= 6) { nav.style.display = 'none'; return; }
+      if (n >= 6) { nav.style.display = 'none'; renderProgress(); return; }
       nav.style.display = 'flex';
       document.getElementById('btn-back').style.visibility = n === 1 ? 'hidden' : 'visible';
       const btnNext = document.getElementById('btn-next');
