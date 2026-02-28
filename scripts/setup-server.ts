@@ -943,7 +943,14 @@ function getSetupHtml(): string {
             const hint = document.getElementById('echos-home-hint');
             const exp = document.getElementById('echos-home-export');
             if (hint && exp) {
-              exp.textContent = 'export ECHOS_HOME="' + state.echosHome + '"';
+              const rawHome = state.echosHome;
+              let displayHome = rawHome;
+              if (rawHome === '~') {
+                displayHome = '$HOME';
+              } else if (rawHome && rawHome.startsWith('~/')) {
+                displayHome = '$HOME/' + rawHome.slice(2);
+              }
+              exp.textContent = 'export ECHOS_HOME="' + displayHome + '"';
               hint.style.display = 'block';
             }
           }
