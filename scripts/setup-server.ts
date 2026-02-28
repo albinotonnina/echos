@@ -322,6 +322,27 @@ const server = http.createServer(async (req, res) => {
         json(res, writeConfig(body));
         return;
       }
+      if (url.pathname === '/api/setup/start-service') {
+        const startRedis = () =>
+          new Promise<void>((resolve) => {
+            exec('brew services start redis', { timeout: 10000 }, () => resolve());
+          });
+        const startEchos = () =>
+          new Promise<{ success: boolean; error?: string }>((resolve) => {
+            exec('brew services start echos', { timeout: 15000 }, (err, stdout) => {
+              if (err) resolve({ success: false, error: err.message });
+              else resolve({ success: true });
+            });
+          });
+        await startRedis();
+        const result = await startEchos();
+        if (result.success) {
+          // Shut down setup server after a short delay — it's no longer needed
+          setTimeout(() => { server.close(); process.exit(0); }, 3000);
+        }
+        json(res, result);
+        return;
+      }
     }
 
     res.writeHead(404);
@@ -421,6 +442,13 @@ function getSetupHtml(): string {
     .success-screen { text-align: center; padding: 3rem 0; }
     .success-screen h2 { color: var(--success); font-size: 1.25rem; margin-bottom: 1rem; }
     .success-screen code { display: block; background: var(--surface); padding: 1rem; border-radius: 6px; margin: 0.5rem 0; font-family: monospace; font-size: 0.875rem; color: var(--accent); }
+    .btn-start { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.875rem 2rem; font-size: 1rem; font-weight: 600; background: var(--success); color: var(--bg); border: none; border-radius: 8px; cursor: pointer; transition: all 0.15s; margin: 1.5rem 0; }
+    .btn-start:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-start:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .start-status { font-size: 0.8rem; margin-top: 0.5rem; min-height: 1.5rem; }
+    .cli-tip { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-top: 2rem; text-align: left; }
+    .cli-tip-label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .cli-tip code { text-align: left; margin: 0; }
     .collapsible-header { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0; color: var(--text-dim); font-size: 0.8rem; }
     .collapsible-header:hover { color: var(--text); }
     .collapsible-content { display: none; margin-top: 0.5rem; }
@@ -513,12 +541,15 @@ function getSetupHtml(): string {
     <div class="step" id="step-5">
       <div class="success-screen">
         <h2>Setup Complete</h2>
-        <p style="color:var(--text-dim);margin-bottom:1.5rem">Your .env file has been written and data directories created.</p>
-        <p style="font-size:0.875rem;margin-bottom:0.5rem">Start EchOS:</p>
-        <code>pnpm start</code>
-        <p style="font-size:0.875rem;margin-top:1.5rem;margin-bottom:0.5rem">Or use the CLI:</p>
-        <code>pnpm echos</code>
-        <p style="color:var(--text-dim);font-size:0.75rem;margin-top:2rem">You can close this tab now.</p>
+        <p style="color:var(--text-dim);margin-bottom:0.5rem">Your .env file has been written and data directories created.</p>
+        <button class="btn-start" id="btn-start-service" onclick="startService()">
+          <span id="start-icon">▶</span> Start EchOS
+        </button>
+        <div class="start-status" id="start-status"></div>
+        <div class="cli-tip">
+          <div class="cli-tip-label">You can also use the CLI anytime</div>
+          <code>echos "search my notes"</code>
+        </div>
       </div>
     </div>
 
@@ -717,6 +748,36 @@ function getSetupHtml(): string {
         if (r.success) showStep(5);
         else { btn.disabled = false; btn.textContent = 'Write .env & Finish'; alert('Error: ' + r.error); }
       } catch (e) { btn.disabled = false; btn.textContent = 'Write .env & Finish'; alert('Failed: ' + (e instanceof Error ? e.message : String(e))); }
+    }
+
+    async function startService() {
+      const btn = document.getElementById('btn-start-service');
+      const icon = document.getElementById('start-icon');
+      const status = document.getElementById('start-status');
+      btn.disabled = true;
+      icon.textContent = '⏳';
+      btn.innerHTML = '<span>⏳</span> Starting...';
+      status.style.color = 'var(--text-dim)';
+      status.textContent = 'Starting Redis and EchOS daemon...';
+      try {
+        const r = await fetch('/api/setup/start-service', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' }).then(r => r.json());
+        if (r.success) {
+          btn.innerHTML = '<span>✓</span> EchOS is running';
+          btn.style.background = 'var(--success)';
+          status.style.color = 'var(--success)';
+          status.textContent = 'EchOS is up! You can close this tab.';
+        } else {
+          btn.innerHTML = '<span>▶</span> Start EchOS';
+          btn.disabled = false;
+          status.style.color = 'var(--error)';
+          status.textContent = 'Could not start automatically. Run: brew services start echos';
+        }
+      } catch (e) {
+        btn.innerHTML = '<span>▶</span> Start EchOS';
+        btn.disabled = false;
+        status.style.color = 'var(--error)';
+        status.textContent = 'Could not start automatically. Run: brew services start echos';
+      }
     }
 
     renderProgress();
