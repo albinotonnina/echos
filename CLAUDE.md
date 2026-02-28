@@ -145,6 +145,13 @@ After completing any feature work, ALWAYS update the relevant documentation:
 
 Review `docs/TROUBLESHOOTING.mdx` to add any new common issues or solutions.
 
+## Recurring Workflows
+
+Two canonical workflows are defined as skills. Follow them exactly when triggered:
+
+- **Updating the Homebrew formula** → follow `.claude/skills/update-homebrew-formula/SKILL.md`
+- **Creating a branch before a PR** → follow `.claude/skills/create-branch/SKILL.md`
+
 ## Do NOT
 
 - Use `eval()`, `Function()`, or `vm` module
