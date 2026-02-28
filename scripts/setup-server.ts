@@ -130,9 +130,15 @@ function stateToEnv(state: Record<string, unknown>): string {
     s('telegramBotToken') ? `TELEGRAM_BOT_TOKEN=${s('telegramBotToken')}` : '# TELEGRAM_BOT_TOKEN=',
     '',
     '# ── Storage ──────────────────────────────────────────────────────────────────',
-    `KNOWLEDGE_DIR=${s('knowledgeDir') || defaultDataDir('knowledge')}`,
-    `DB_PATH=${s('dbPath') || defaultDataDir('db')}`,
-    `SESSION_DIR=${s('sessionDir') || defaultDataDir('sessions')}`,
+    `KNOWLEDGE_DIR=${(IS_BREW_INSTALL && s('knowledgeDir')?.startsWith('./data/'))
+      ? defaultDataDir('knowledge')
+      : (s('knowledgeDir') || defaultDataDir('knowledge'))}`,
+    `DB_PATH=${(IS_BREW_INSTALL && s('dbPath')?.startsWith('./data/'))
+      ? defaultDataDir('db')
+      : (s('dbPath') || defaultDataDir('db'))}`,
+    `SESSION_DIR=${(IS_BREW_INSTALL && s('sessionDir')?.startsWith('./data/'))
+      ? defaultDataDir('sessions')
+      : (s('sessionDir') || defaultDataDir('sessions'))}`,
     '',
     '# ── Redis (required) ─────────────────────────────────────────────────────────',
     `REDIS_URL=${s('redisUrl') || 'redis://localhost:6379'}`,
@@ -257,11 +263,16 @@ function writeConfig(state: Record<string, unknown>): { success: boolean; error?
     fs.writeFileSync(envPath, content, { encoding: 'utf8', mode: 0o600 });
     fs.chmodSync(envPath, 0o600);
 
-    // Create data directories
+    // Create data directories (use brew defaults when relative ./data/* paths on brew install)
+    const resolveDir = (key: string, subdir: string): string => {
+      const val = String(state[key] || '');
+      if (IS_BREW_INSTALL && (!val || val.startsWith('./data/'))) return defaultDataDir(subdir);
+      return val || defaultDataDir(subdir);
+    };
     const dirs = [
-      String(state['knowledgeDir'] || defaultDataDir('knowledge')),
-      String(state['dbPath'] || defaultDataDir('db')),
-      String(state['sessionDir'] || defaultDataDir('sessions')),
+      resolveDir('knowledgeDir', 'knowledge'),
+      resolveDir('dbPath', 'db'),
+      resolveDir('sessionDir', 'sessions'),
     ];
     for (const dir of dirs) {
       const resolved = path.resolve(dir);
@@ -390,7 +401,8 @@ const server = http.createServer(async (req, res) => {
           new Promise<{ success: boolean; error?: string }>((resolve) => {
             exec('brew services start redis', { timeout: 10000 }, (err, stdout, stderr) => {
               if (err) {
-                resolve({ success: false, error: `Redis failed to start: ${err.message}` });
+                const detail = [err.message, stderr?.trim(), stdout?.trim()].filter(Boolean).join(' — ');
+                resolve({ success: false, error: `Redis failed to start: ${detail}` });
               } else {
                 resolve({ success: true });
               }
@@ -423,9 +435,12 @@ const server = http.createServer(async (req, res) => {
             setTimeout(() => process.exit(0), 5000).unref();
           }, 3000);
         }
-        // Close the connection so the browser doesn't hold it open
-        res.setHeader('Connection', 'close');
-        json(res, result);
+        // Inline response with Connection: close to unblock server.close()
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          Connection: 'close',
+        });
+        res.end(JSON.stringify(result));
         return;
       }
     }
