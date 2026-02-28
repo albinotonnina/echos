@@ -34,7 +34,14 @@ class Echos < Formula
       if [ -f "$ECHOS_HOME/.env" ]; then
         exec "#{Formula["node@20"].opt_bin}/node" "--env-file=$ECHOS_HOME/.env" "#{libexec}/packages/cli/dist/index.js" "$@"
       else
-        exec "#{Formula["node@20"].opt_bin}/node" "#{libexec}/packages/cli/dist/index.js" "$@"
+        # Allow help output without requiring configuration
+        if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+          exec "#{Formula["node@20"].opt_bin}/node" "#{libexec}/packages/cli/dist/index.js" "$@"
+        else
+          echo "ECHOS_HOME is set to '$ECHOS_HOME', but no .env file was found at '$ECHOS_HOME/.env'." >&2
+          echo "Please run 'echos-setup' to initialize your configuration before using the echos CLI." >&2
+          exit 1
+        fi
       fi
     SH
 
