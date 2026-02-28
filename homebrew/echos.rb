@@ -57,7 +57,7 @@ class Echos < Formula
       else
         echo "ECHOS_HOME is set to '$ECHOS_HOME', but no .env file was found at '$ECHOS_HOME/.env'." >&2
         echo "Please run 'echos-setup' to initialize your configuration before starting the echos-daemon service." >&2
-        exit 1
+        exit 0
       fi
     SH
 
@@ -100,7 +100,7 @@ class Echos < Formula
 
   service do
     run [opt_bin/"echos-daemon"]
-    keep_alive true
+    keep_alive crashed: true
     log_path var/"log/echos.log"
     error_log_path var/"log/echos-error.log"
     environment_variables PATH: std_service_path_env,
