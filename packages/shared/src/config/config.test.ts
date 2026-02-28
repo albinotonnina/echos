@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { loadConfig, resetConfig, ECHOS_HOME } from './index.js';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 afterEach(() => {
   resetConfig();
@@ -87,9 +88,10 @@ describe('loadConfig', () => {
   });
 
   it('resolves ECHOS_HOME from env parameter for storage defaults', () => {
-    const config = loadConfig({ ...validEnv, ECHOS_HOME: '/tmp/custom-echos' });
-    expect(config.knowledgeDir).toBe('/tmp/custom-echos/knowledge');
-    expect(config.dbPath).toBe('/tmp/custom-echos/db');
-    expect(config.sessionDir).toBe('/tmp/custom-echos/sessions');
+    const customHome = join(tmpdir(), 'custom-echos');
+    const config = loadConfig({ ...validEnv, ECHOS_HOME: customHome });
+    expect(config.knowledgeDir).toBe(join(customHome, 'knowledge'));
+    expect(config.dbPath).toBe(join(customHome, 'db'));
+    expect(config.sessionDir).toBe(join(customHome, 'sessions'));
   });
 });

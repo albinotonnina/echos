@@ -93,11 +93,11 @@ Each file gets EchOS frontmatter written back into it. Original content is prese
 ```bash
 pnpm import:obsidian \
   --source ~/my-obsidian-vault \
-  --target ~/echos/knowledge \
+  --target $ECHOS_HOME/knowledge \
   --copy
 ```
 
-Files are copied to `~/echos/knowledge/{type}/{category}/{date}-{slug}.md` with EchOS frontmatter.
+Files are copied to `$ECHOS_HOME/knowledge/{type}/{category}/{date}-{slug}.md` (defaults to `~/echos/knowledge/`) with EchOS frontmatter.
 
 **4. Override the default type**
 
