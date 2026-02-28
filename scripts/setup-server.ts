@@ -29,6 +29,33 @@ const IS_BREW_INSTALL = (() => {
     return false;
   }
 })();
+
+// Resolve the Homebrew prefix so we can read/write the canonical env path
+// (e.g. /opt/homebrew/etc/echos/.env) and default data dirs to var/echos/*.
+const BREW_PREFIX = (() => {
+  if (!IS_BREW_INSTALL) return '';
+  try {
+    return execSync('brew --prefix', { encoding: 'utf8' }).trim();
+  } catch {
+    return '';
+  }
+})();
+
+/** Return the canonical .env file path for the current install type. */
+function getEnvPath(): string {
+  if (IS_BREW_INSTALL && BREW_PREFIX) {
+    return path.join(BREW_PREFIX, 'etc', 'echos', '.env');
+  }
+  return path.resolve('.env');
+}
+
+/** Return default data directory for a given subdir (knowledge, db, sessions). */
+function defaultDataDir(subdir: string): string {
+  if (IS_BREW_INSTALL && BREW_PREFIX) {
+    return path.join(BREW_PREFIX, 'var', 'echos', subdir);
+  }
+  return `./data/${subdir}`;
+}
 const PORT = (() => {
   const portArgIndex = args.indexOf('--port');
   if (portArgIndex === -1) return 3456;
@@ -103,9 +130,9 @@ function stateToEnv(state: Record<string, unknown>): string {
     s('telegramBotToken') ? `TELEGRAM_BOT_TOKEN=${s('telegramBotToken')}` : '# TELEGRAM_BOT_TOKEN=',
     '',
     '# ── Storage ──────────────────────────────────────────────────────────────────',
-    `KNOWLEDGE_DIR=${s('knowledgeDir') || './data/knowledge'}`,
-    `DB_PATH=${s('dbPath') || './data/db'}`,
-    `SESSION_DIR=${s('sessionDir') || './data/sessions'}`,
+    `KNOWLEDGE_DIR=${s('knowledgeDir') || defaultDataDir('knowledge')}`,
+    `DB_PATH=${s('dbPath') || defaultDataDir('db')}`,
+    `SESSION_DIR=${s('sessionDir') || defaultDataDir('sessions')}`,
     '',
     '# ── Redis (required) ─────────────────────────────────────────────────────────',
     `REDIS_URL=${s('redisUrl') || 'redis://localhost:6379'}`,
@@ -211,7 +238,13 @@ function validateRedis(body: { url: string }): Promise<{ valid: boolean; error?:
 
 function writeConfig(state: Record<string, unknown>): { success: boolean; error?: string } {
   try {
-    const envPath = path.resolve('.env');
+    const envPath = getEnvPath();
+
+    // Ensure parent directory exists (e.g. /opt/homebrew/etc/echos/ for brew)
+    const envDir = path.dirname(envPath);
+    if (!fs.existsSync(envDir)) {
+      fs.mkdirSync(envDir, { recursive: true });
+    }
 
     // Backup existing .env
     if (fs.existsSync(envPath)) {
@@ -226,9 +259,9 @@ function writeConfig(state: Record<string, unknown>): { success: boolean; error?
 
     // Create data directories
     const dirs = [
-      String(state['knowledgeDir'] || './data/knowledge'),
-      String(state['dbPath'] || './data/db'),
-      String(state['sessionDir'] || './data/sessions'),
+      String(state['knowledgeDir'] || defaultDataDir('knowledge')),
+      String(state['dbPath'] || defaultDataDir('db')),
+      String(state['sessionDir'] || defaultDataDir('sessions')),
     ];
     for (const dir of dirs) {
       const resolved = path.resolve(dir);
@@ -244,6 +277,9 @@ function writeConfig(state: Record<string, unknown>): { success: boolean; error?
 }
 
 // ─── HTTP server ──────────────────────────────────────────────────────────────
+
+// Track open sockets so we can destroy them on shutdown (browsers keep-alive)
+const openSockets = new Set<import('node:net').Socket>();
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', `http://localhost:${PORT}`);
@@ -272,7 +308,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && url.pathname === '/api/setup/existing') {
-      const envPath = path.resolve('.env');
+      const envPath = getEnvPath();
       if (!fs.existsSync(envPath)) {
         json(res, { exists: false, config: {} });
         return;
@@ -333,6 +369,23 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       if (url.pathname === '/api/setup/start-service') {
+        // Only allow on Homebrew installs — the endpoint runs `brew services`
+        if (!IS_BREW_INSTALL) {
+          json(res, { success: false, error: 'Start-service is only available for Homebrew installs' }, 400);
+          return;
+        }
+
+        // CSRF protection: validate Origin header to prevent cross-origin triggers
+        const origin = req.headers.origin || '';
+        const referer = req.headers.referer || '';
+        const allowedOrigins = [`http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`];
+        const originOk = allowedOrigins.some((o) => origin === o);
+        const refererOk = allowedOrigins.some((o) => referer.startsWith(o));
+        if (!originOk && !refererOk) {
+          json(res, { success: false, error: 'Invalid request origin' }, 403);
+          return;
+        }
+
         const startRedis = () =>
           new Promise<{ success: boolean; error?: string }>((resolve) => {
             exec('brew services start redis', { timeout: 10000 }, (err, stdout, stderr) => {
@@ -362,8 +415,16 @@ const server = http.createServer(async (req, res) => {
             server.close(() => {
               process.exit(0);
             });
+            // Destroy lingering keep-alive connections so server.close() can finish
+            for (const socket of openSockets) {
+              socket.destroy();
+            }
+            // Hard-exit fallback in case server.close() callback never fires
+            setTimeout(() => process.exit(0), 5000).unref();
           }, 3000);
         }
+        // Close the connection so the browser doesn't hold it open
+        res.setHeader('Connection', 'close');
         json(res, result);
         return;
       }
@@ -820,6 +881,12 @@ function getSetupHtml(): string {
 }
 
 // ─── Start server ─────────────────────────────────────────────────────────────
+
+// Track connections for graceful shutdown
+server.on('connection', (socket) => {
+  openSockets.add(socket);
+  socket.once('close', () => openSockets.delete(socket));
+});
 
 server.on('error', (err: NodeJS.ErrnoException) => {
   if (err.code === 'EADDRINUSE') {
