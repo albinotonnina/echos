@@ -716,7 +716,7 @@ function getSetupHtml(): string {
     }
 
     function getState() {
-      const home = document.getElementById('echosHome').value.trim() || ${JSON.stringify(DEFAULT_ECHOS_HOME)};
+      const home = document.getElementById('echosHome').value.trim() || ${JSON.stringify(DEFAULT_ECHOS_HOME).replace(/</g, '\\u003c')};
       return {
         echosHome: home,
         anthropicApiKey: document.getElementById('anthropicApiKey').value.trim(),
