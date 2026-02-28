@@ -711,7 +711,7 @@ function getSetupHtml(): string {
       <div class="success-screen">
         <h2>Setup Complete</h2>
         <p style="color:var(--text-dim);margin-bottom:0.5rem">Your .env file has been written and data directories created.</p>
-        <div id="echos-home-hint" style="display:none;background:var(--surface-alt,#1a1a2e);border:1px solid var(--border,#333);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem">
+        <div id="echos-home-export-hint" style="display:none;background:var(--surface-alt,#1a1a2e);border:1px solid var(--border,#333);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.85rem">
           <div style="color:var(--accent,#f9a825);margin-bottom:0.25rem">⚠ Custom data directory</div>
           <div style="color:var(--text-dim)">Add this to your shell profile (<code>~/.zshrc</code> or <code>~/.bashrc</code>):</div>
           <code id="echos-home-export" style="margin-top:0.5rem"></code>
@@ -940,7 +940,7 @@ function getSetupHtml(): string {
           // Show ECHOS_HOME hint if user chose a non-default directory
           const defaultHome = ${JSON.stringify(DEFAULT_ECHOS_HOME).replace(/</g, '\\u003c')};
           if (state.echosHome && state.echosHome !== defaultHome) {
-            const hint = document.getElementById('echos-home-hint');
+            const hint = document.getElementById('echos-home-export-hint');
             const exp = document.getElementById('echos-home-export');
             if (hint && exp) {
               const rawHome = state.echosHome;
