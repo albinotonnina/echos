@@ -1,5 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { loadConfig, resetConfig } from './index.js';
+import { join } from 'node:path';
+import { homedir, tmpdir } from 'node:os';
 
 afterEach(() => {
   resetConfig();
@@ -21,8 +23,13 @@ describe('loadConfig', () => {
 
   it('should apply defaults for optional fields', () => {
     const config = loadConfig(validEnv);
+    // Use explicit path (not ECHOS_HOME export) to avoid flakiness when
+    // ECHOS_HOME is set in the test runner environment.
+    const expectedHome = join(homedir(), 'echos');
     expect(config.redisUrl).toBe('redis://localhost:6379');
-    expect(config.knowledgeDir).toBe('./data/knowledge');
+    expect(config.knowledgeDir).toBe(join(expectedHome, 'knowledge'));
+    expect(config.dbPath).toBe(join(expectedHome, 'db'));
+    expect(config.sessionDir).toBe(join(expectedHome, 'sessions'));
     expect(config.enableTelegram).toBe(true);
     expect(config.enableWeb).toBe(false);
     expect(config.webPort).toBe(3000);
@@ -81,5 +88,13 @@ describe('loadConfig', () => {
       const config = loadConfig({ ...validEnv, CACHE_RETENTION: v });
       expect(config.cacheRetention).toBe(v);
     }
+  });
+
+  it('resolves ECHOS_HOME from env parameter for storage defaults', () => {
+    const customHome = join(tmpdir(), 'custom-echos');
+    const config = loadConfig({ ...validEnv, ECHOS_HOME: customHome });
+    expect(config.knowledgeDir).toBe(join(customHome, 'knowledge'));
+    expect(config.dbPath).toBe(join(customHome, 'db'));
+    expect(config.sessionDir).toBe(join(customHome, 'sessions'));
   });
 });

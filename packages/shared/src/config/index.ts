@@ -1,11 +1,26 @@
 import { z } from 'zod';
+import { homedir } from 'node:os';
+import { join, resolve } from 'node:path';
 
 const commaSeparatedNumbers = z
   .string()
   .transform((s) => s.split(',').map((id) => parseInt(id.trim(), 10)))
   .pipe(z.array(z.number().int().positive()));
 
+/** Expand a leading `~` to the user's home directory. */
+function expandTilde(p: string): string {
+  if (p === '~') return homedir();
+  if (p.startsWith('~/')) return join(homedir(), p.slice(2));
+  return p;
+}
 
+/** Resolve ECHOS_HOME from an env record. */
+function resolveEchosHome(env: Record<string, string | undefined>): string {
+  return resolve(expandTilde(env['ECHOS_HOME'] || join(homedir(), 'echos')));
+}
+
+/** Root directory for all EchOS data. Defaults to ~/echos. */
+export const ECHOS_HOME = resolveEchosHome(process.env);
 
 export const configSchema = z
   .object({
@@ -24,10 +39,10 @@ export const configSchema = z
   // Redis
   redisUrl: z.string().url().default('redis://localhost:6379'),
 
-  // Storage paths
-  knowledgeDir: z.string().default('./data/knowledge'),
-  dbPath: z.string().default('./data/db'),
-  sessionDir: z.string().default('./data/sessions'),
+  // Storage paths (resolve relative to ECHOS_HOME)
+  knowledgeDir: z.string().default(join(ECHOS_HOME, 'knowledge')),
+  dbPath: z.string().default(join(ECHOS_HOME, 'db')),
+  sessionDir: z.string().default(join(ECHOS_HOME, 'sessions')),
 
   // LLM
   defaultModel: z.string().default('claude-haiku-4-5-20251001'),
@@ -95,6 +110,10 @@ let cachedConfig: Config | null = null;
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
   if (cachedConfig) return cachedConfig;
 
+  // Resolve ECHOS_HOME from the provided env so callers (including tests)
+  // that pass a custom env object get correct storage defaults.
+  const echosHome = resolveEchosHome(env);
+
   const result = configSchema.safeParse({
     telegramBotToken: env['TELEGRAM_BOT_TOKEN'],
     allowedUserIds: env['ALLOWED_USER_IDS'],
@@ -103,9 +122,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     llmApiKey: env['LLM_API_KEY'],
     llmBaseUrl: env['LLM_BASE_URL'],
     redisUrl: env['REDIS_URL'],
-    knowledgeDir: env['KNOWLEDGE_DIR'],
-    dbPath: env['DB_PATH'],
-    sessionDir: env['SESSION_DIR'],
+    knowledgeDir: env['KNOWLEDGE_DIR'] || join(echosHome, 'knowledge'),
+    dbPath: env['DB_PATH'] || join(echosHome, 'db'),
+    sessionDir: env['SESSION_DIR'] || join(echosHome, 'sessions'),
     defaultModel: env['DEFAULT_MODEL'],
     embeddingModel: env['EMBEDDING_MODEL'],
     embeddingDimensions: env['EMBEDDING_DIMENSIONS'],

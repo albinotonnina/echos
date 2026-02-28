@@ -8,6 +8,12 @@ Thanks for your interest in contributing! EchOS is a personal knowledge manageme
 - For significant changes, open an issue first to discuss the approach
 - EchOS is security-sensitive — read [docs/SECURITY](https://docs.echos.sh/security) before touching auth, URL fetching, or storage
 
+## Prerequisites
+
+- **POSIX shell** (bash/zsh) — pnpm scripts use shell parameter expansion (`${ECHOS_HOME:-$HOME/echos}`). Windows `cmd.exe` and PowerShell are not supported; use WSL.
+- **Node.js 20+** and **pnpm 9+**
+- **Redis** (for BullMQ job queue)
+
 ## Setup
 
 ```bash

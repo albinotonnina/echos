@@ -24,42 +24,57 @@ class Echos < Formula
     # Install into libexec (the full project)
     libexec.install Dir["*"]
 
-    # Create config directory
-    (etc/"echos").mkpath
-
     # Create wrapper script that points to the CLI
     (bin/"echos").write <<~SH
       #!/bin/bash
-      export ECHOS_HOME="#{libexec}"
+      [ -f "$HOME/.config/echos/home" ] && ECHOS_HOME="${ECHOS_HOME:-$(tr -d $'\\r\\n' < "$HOME/.config/echos/home")}"
+      export ECHOS_HOME="${ECHOS_HOME:-$HOME/echos}"
       export NODE_ENV="${NODE_ENV:-production}"
       cd "#{libexec}"
-      exec "#{Formula["node@20"].opt_bin}/node" --env-file="#{etc}/echos/.env" "#{libexec}/packages/cli/dist/index.js" "$@"
+      if [ -f "$ECHOS_HOME/.env" ]; then
+        exec "#{Formula["node@20"].opt_bin}/node" "--env-file=$ECHOS_HOME/.env" "#{libexec}/packages/cli/dist/index.js" "$@"
+      else
+        # Allow help output without requiring configuration
+        if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+          exec "#{Formula["node@20"].opt_bin}/node" "#{libexec}/packages/cli/dist/index.js" "$@"
+        else
+          echo "ECHOS_HOME is set to '$ECHOS_HOME', but no .env file was found at '$ECHOS_HOME/.env'." >&2
+          echo "Please run 'echos-setup' to initialize your configuration before using the echos CLI." >&2
+          exit 1
+        fi
+      fi
     SH
 
     # Create a wrapper for the daemon
     (bin/"echos-daemon").write <<~SH
       #!/bin/bash
-      export ECHOS_HOME="#{libexec}"
+      [ -f "$HOME/.config/echos/home" ] && ECHOS_HOME="${ECHOS_HOME:-$(tr -d $'\\r\\n' < "$HOME/.config/echos/home")}"
+      export ECHOS_HOME="${ECHOS_HOME:-$HOME/echos}"
       export NODE_ENV="${NODE_ENV:-production}"
       cd "#{libexec}"
-      exec "#{Formula["node@20"].opt_bin}/node" --env-file="#{etc}/echos/.env" --import tsx "#{libexec}/src/index.ts" "$@"
+      if [ -f "$ECHOS_HOME/.env" ]; then
+        exec "#{Formula["node@20"].opt_bin}/node" "--env-file=$ECHOS_HOME/.env" --import tsx "#{libexec}/src/index.ts" "$@"
+      else
+        echo "ECHOS_HOME is set to '$ECHOS_HOME', but no .env file was found at '$ECHOS_HOME/.env'." >&2
+        echo "Please run 'echos-setup' to initialize your configuration before starting the echos-daemon service." >&2
+        exit 0
+      fi
     SH
 
     # Create a wrapper for the setup wizard
     (bin/"echos-setup").write <<~SH
       #!/bin/bash
-      export ECHOS_HOME="#{libexec}"
-      cd "#{libexec}"
+      [ -f "$HOME/.config/echos/home" ] && ECHOS_HOME="${ECHOS_HOME:-$(tr -d $'\\r\\n' < "$HOME/.config/echos/home")}"
+      export ECHOS_HOME="${ECHOS_HOME:-$HOME/echos}"
+      mkdir -p "$ECHOS_HOME"
+      cd "$ECHOS_HOME"
       exec "#{Formula["node@20"].opt_bin}/node" --import tsx "#{libexec}/scripts/setup-server.ts" "$@"
     SH
   end
 
   def post_install
-    # Create data directories
-    (var/"echos/knowledge").mkpath
-    (var/"echos/db").mkpath
-    (var/"echos/sessions").mkpath
-    (var/"echos/exports").mkpath
+    # No data directories created here — ECHOS_HOME (~/echos) is managed
+    # by the setup wizard and created at runtime.
   end
 
   def caveats
@@ -75,8 +90,8 @@ class Echos < Formula
         3. Use the CLI:
            echos "search my notes"
 
-      Data is stored in #{var}/echos/
-      Configuration: #{etc}/echos/.env
+      Data is stored in ~/echos/ (override with ECHOS_HOME)
+      Configuration: ~/echos/.env
 
       Redis is required — start it before running EchOS:
         brew services start redis
@@ -85,8 +100,7 @@ class Echos < Formula
 
   service do
     run [opt_bin/"echos-daemon"]
-    working_dir var/"echos"
-    keep_alive true
+    keep_alive crashed: true
     log_path var/"log/echos.log"
     error_log_path var/"log/echos-error.log"
     environment_variables PATH: std_service_path_env,

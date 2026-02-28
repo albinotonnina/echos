@@ -15,7 +15,7 @@ Notion exports.
 
 Point Obsidian at the knowledge directory and everything works immediately:
 
-1. In Obsidian: **Open folder as vault** → select `data/knowledge/` (or wherever `KNOWLEDGE_DIR` points in your `.env`)
+1. In Obsidian: **Open folder as vault** → select your `KNOWLEDGE_DIR` (defaults to `~/echos/knowledge/`, or wherever configured in your `.env`)
 2. All notes open with their frontmatter properties visible in Obsidian's Properties panel
 3. Live edits in Obsidian are picked up automatically by EchOS's file watcher — no restart needed
 
@@ -27,7 +27,7 @@ Point Obsidian at the knowledge directory and everything works immediately:
 
 Any `.md` file that already has the required EchOS frontmatter is indexed automatically:
 
-1. Copy/paste the file into any folder under `data/knowledge/` (folder structure is free-form)
+1. Copy/paste the file into any folder under your knowledge directory (defaults to `~/echos/knowledge/`, folder structure is free-form)
 2. Either wait for the file watcher to pick it up (if EchOS is running), or run:
    ```bash
    pnpm reconcile
@@ -93,11 +93,11 @@ Each file gets EchOS frontmatter written back into it. Original content is prese
 ```bash
 pnpm import:obsidian \
   --source ~/my-obsidian-vault \
-  --target ./data/knowledge \
+  --target $ECHOS_HOME/knowledge \
   --copy
 ```
 
-Files are copied to `./data/knowledge/{type}/{category}/{date}-{slug}.md` with EchOS frontmatter.
+Files are copied to `$ECHOS_HOME/knowledge/{type}/{category}/{date}-{slug}.md` (defaults to `~/echos/knowledge/`) with EchOS frontmatter.
 
 **4. Override the default type**
 
@@ -144,7 +144,7 @@ pnpm import:notion --source ~/Downloads/notion-export --dry-run
 ```bash
 pnpm import:notion \
   --source ~/Downloads/notion-export \
-  --target ./data/knowledge
+  --target ~/echos/knowledge
 ```
 
 Files are always written to `--target` (not modified in place), at:
