@@ -223,9 +223,12 @@ function writeConfig(state: Record<string, unknown>): { success: boolean; error?
     const rawHome = String(state['echosHome'] || DEFAULT_ECHOS_HOME);
     const echosHome = path.resolve(expandTilde(rawHome));
 
-    // Validate: must be an absolute path under the user's home directory
+    // Validate: must be an absolute path under (not equal to) the user's home directory
     const home = homedir();
-    if (!echosHome.startsWith(home + path.sep) && echosHome !== home) {
+    if (echosHome === home) {
+      return { success: false, error: 'Data directory must be a subdirectory of your home directory (e.g. ~/echos), not the home directory itself' };
+    }
+    if (!echosHome.startsWith(home + path.sep)) {
       return { success: false, error: 'Data directory must be under your home directory' };
     }
 
@@ -269,7 +272,9 @@ function writeConfig(state: Record<string, unknown>): { success: boolean; error?
     if (!fs.existsSync(configDir)) {
       fs.mkdirSync(configDir, { recursive: true });
     }
-    fs.writeFileSync(path.join(configDir, 'home'), echosHome, { encoding: 'utf8', mode: 0o600 });
+    const homeConfigPath = path.join(configDir, 'home');
+    fs.writeFileSync(homeConfigPath, echosHome, { encoding: 'utf8', mode: 0o600 });
+    fs.chmodSync(homeConfigPath, 0o600);
 
     return { success: true };
   } catch (err: unknown) {
