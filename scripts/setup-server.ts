@@ -633,7 +633,7 @@ function getSetupHtml(): string {
       <div class="field">
         <label>EchOS Home <span class="label-hint">(directory path)</span></label>
         <input type="text" id="echosHome" placeholder="${escapeHtml(DEFAULT_ECHOS_HOME)}">
-        <div class="validation" id="echos-home-hint" style="color:var(--text-dim)">Subdirectories: knowledge/, db/, sessions/</div>
+        <div class="validation" id="echos-home-subdirs-hint" style="color:var(--text-dim)">Subdirectories: knowledge/, db/, sessions/</div>
       </div>
     </div>
 
