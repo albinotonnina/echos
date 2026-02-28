@@ -75,7 +75,7 @@ Workers:
 - **Reminder check**: Queries SQLite for overdue reminders and sends notifications
 - **Content processing**: Processes article/YouTube URLs queued by the agent
 
-See [Scheduler](SCHEDULER) for configuration and usage details.
+See [Scheduler](/scheduler) for configuration and usage details.
 
 ## Export Utility
 
@@ -127,7 +127,7 @@ Content processors live in `plugins/` as separate workspace packages. Each plugi
 Core tools (create_note, search, get, list, update, delete, reminders, memory, linking, categorize_note, save_conversation, mark_content, export_notes) remain in `@echos/core`.
 Domain-specific processors (YouTube, article, image, etc.) are plugins.
 
-Plugins can optionally use the AI categorization service from `@echos/core` to automatically extract category, tags, gist, summary, and key points from content. See [Categorization](CATEGORIZATION) for details.
+Plugins can optionally use the AI categorization service from `@echos/core` to automatically extract category, tags, gist, summary, and key points from content. See [Categorization](/categorization) for details.
 
 ### Available Plugins
 
@@ -137,7 +137,7 @@ Plugins can optionally use the AI categorization service from `@echos/core` to a
 - **image**: Image storage with metadata extraction (format, dimensions, EXIF)
 - **content-creation**: Content generation tools
 
-See [Building a Plugin](PLUGINS) for detailed plugin documentation.
+See [Building a Plugin](/plugins) for detailed plugin documentation.
 
 ## Storage Architecture
 

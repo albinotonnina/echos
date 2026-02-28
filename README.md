@@ -111,7 +111,7 @@ pnpm start
 
 You'll need an LLM API key — either Anthropic (`ANTHROPIC_API_KEY`, pay-as-you-go, not a Claude subscription) or any other provider supported by pi-ai (`LLM_API_KEY`). Custom OpenAI-compatible endpoints (DeepInfra, local Ollama, etc.) are supported via `LLM_BASE_URL`. Everything else is optional.
 
-**[→ Full setup guide at docs.echos.sh/DISTRIBUTION](https://docs.echos.sh/DISTRIBUTION)**
+**[→ Full setup guide at docs.echos.sh/distribution](https://docs.echos.sh/distribution)**
 
 ---
 
@@ -121,13 +121,13 @@ Everything you need to go deeper is at **[docs.echos.sh](https://docs.echos.sh)*
 
 | | |
 |---|---|
-| [Architecture](https://docs.echos.sh/ARCHITECTURE) | How the pieces fit together |
-| [Deployment](https://docs.echos.sh/DEPLOYMENT) | VPS, Docker, nginx, systemd |
-| [Security](https://docs.echos.sh/SECURITY) | What EchOS does and doesn't do with your data |
-| [Knowledge Import](https://docs.echos.sh/KNOWLEDGE_IMPORT) | Bring in your Obsidian vault or Notion export |
-| [Writing](https://docs.echos.sh/WRITING) | Voice profiles and content generation |
-| [Plugins](https://docs.echos.sh/PLUGINS) | YouTube, articles, and building your own |
-| [Troubleshooting](https://docs.echos.sh/TROUBLESHOOTING) | When things go sideways |
+| [Architecture](https://docs.echos.sh/architecture) | How the pieces fit together |
+| [Deployment](https://docs.echos.sh/deployment) | VPS, Docker, nginx, systemd |
+| [Security](https://docs.echos.sh/security) | What EchOS does and doesn't do with your data |
+| [Knowledge Import](https://docs.echos.sh/knowledge-import) | Bring in your Obsidian vault or Notion export |
+| [Writing](https://docs.echos.sh/writing) | Voice profiles and content generation |
+| [Plugins](https://docs.echos.sh/plugins) | YouTube, articles, and building your own |
+| [Troubleshooting](https://docs.echos.sh/troubleshooting) | When things go sideways |
 
 ---
 

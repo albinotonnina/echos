@@ -1,0 +1,80 @@
+---
+title: "Introduction"
+description: "EchOS — your personal AI knowledge system, self-hosted and agent-driven."
+---
+
+# Welcome to EchOS
+
+EchOS is a personal AI knowledge system — self-hosted, agent-driven, and always private. It captures, organizes, and retrieves your knowledge through natural conversation across Telegram, the web, and the terminal.
+
+<Note>
+  EchOS is a personal project — built for one user, deployed on your own infrastructure. It is intentionally not multi-tenant.
+</Note>
+
+## What it feels like
+
+You're walking and a thought hits. You open Telegram and say it out loud. Thirty seconds later it's in your knowledge base — transcribed, categorized, tagged, searchable. No app to open. No form to fill. No friction.
+
+```
+You:    Save this for me → [pastes article URL]
+EchOS:  Saved. "How Rust handles memory safety" — tagged as rust, programming.
+        I pulled the key points if you want a summary.
+
+You:    What do I know about memory management?
+EchOS:  Found 7 notes. The Rust piece you just saved, two older ones on GC pauses,
+        a voice note from last Tuesday where you were ranting about malloc...
+
+You:    Write a short post about it — my style, technical but readable
+EchOS:  [drafts a post grounded in your actual notes, in your voice]
+```
+
+## Key features
+
+- **Capture without friction** — Text, URLs, voice messages, photos. Through Telegram, the terminal, or the web.
+- **Semantic search** — Hybrid full-text and vector search. Ask a question the way you'd ask a person.
+- **Write in your voice** — Blog posts, threads, emails grounded in your notes, in your writing style.
+- **Obsidian-compatible** — Every note is a plain `.md` file. Open `data/knowledge/` in Obsidian and it just works.
+- **Plugin system** — YouTube transcripts, article extraction, and you can build your own.
+
+## Quick start
+
+<CardGroup cols={3}>
+  <Card title="Homebrew" icon="apple">
+    ```bash
+    brew tap albinotonnina/echos
+    brew install echos
+    echos-setup
+    ```
+  </Card>
+  <Card title="One-liner" icon="terminal">
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/albinotonnina/echos/main/install.sh | bash
+    ```
+  </Card>
+  <Card title="Manual" icon="code">
+    ```bash
+    git clone https://github.com/albinotonnina/echos.git
+    cd echos && pnpm install && pnpm build
+    pnpm wizard
+    ```
+  </Card>
+</CardGroup>
+
+You'll need an LLM API key — either Anthropic (`ANTHROPIC_API_KEY`) or any provider supported by pi-ai (`LLM_API_KEY`). Custom OpenAI-compatible endpoints are supported via `LLM_BASE_URL`. Everything else is optional.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Deployment" icon="server" href="/deployment">
+    Docker, systemd, VPS, and local setup
+  </Card>
+  <Card title="Interfaces" icon="comments" href="/interfaces">
+    Telegram, Web API, and CLI usage
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/architecture">
+    How the pieces fit together
+  </Card>
+  <Card title="Security" icon="shield" href="/security">
+    What EchOS does with your data
+  </Card>
+</CardGroup>

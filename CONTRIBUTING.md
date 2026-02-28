@@ -6,7 +6,7 @@ Thanks for your interest in contributing! EchOS is a personal knowledge manageme
 
 - Check existing [issues](https://github.com/albinotonnina/echos/issues) and [PRs](https://github.com/albinotonnina/echos/pulls) to avoid duplicate work
 - For significant changes, open an issue first to discuss the approach
-- EchOS is security-sensitive — read [docs/SECURITY](https://docs.echos.sh/SECURITY) before touching auth, URL fetching, or storage
+- EchOS is security-sensitive — read [docs/SECURITY](https://docs.echos.sh/security) before touching auth, URL fetching, or storage
 
 ## Setup
 
@@ -45,7 +45,7 @@ scripts/             — setup wizard, updater, reconciler
 
 ## Adding a plugin
 
-Plugins are the right place for new content sources. See [docs/PLUGINS](https://docs.echos.sh/PLUGINS) for the full guide. The short version:
+Plugins are the right place for new content sources. See [docs/PLUGINS](https://docs.echos.sh/plugins) for the full guide. The short version:
 
 ```typescript
 import type { EchosPlugin } from '@echos/core';

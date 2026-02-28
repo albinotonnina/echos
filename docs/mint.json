@@ -20,40 +20,38 @@
   "navigation": [
     {
       "group": "Getting Started",
-      "pages": ["DEPLOYMENT"]
+      "pages": [
+        "introduction",
+        "deployment",
+        "interfaces",
+        "troubleshooting"
+      ]
     },
     {
       "group": "Architecture",
-      "pages": ["ARCHITECTURE", "INTERFACES", "PLUGINS"]
+      "pages": ["architecture", "plugins"]
     },
     {
       "group": "Features",
       "pages": [
-        "TOOLS",
-        "CATEGORIZATION",
-        "KNOWLEDGE_IMPORT",
-        "SLASH_COMMANDS",
-        "WRITING",
-        "SCHEDULER",
-        "IMAGES"
+        "tools",
+        "slash-commands",
+        "writing",
+        "images",
+        "categorization",
+        "knowledge-import",
+        "scheduler"
       ]
     },
     {
       "group": "Operations",
       "pages": [
-        "REMOTE_ACCESS",
-        "ORACLE_CLOUD_VAULT",
-        "RELEASING",
-        "DISTRIBUTION"
+        "security",
+        "remote-access",
+        "oracle-cloud-vault",
+        "releasing",
+        "distribution"
       ]
-    },
-    {
-      "group": "Security",
-      "pages": ["SECURITY"]
-    },
-    {
-      "group": "Help",
-      "pages": ["TROUBLESHOOTING"]
     }
   ]
 }
