@@ -107,6 +107,13 @@ function quoteEnvValue(value: string): string {
   return sanitized;
 }
 
+/** Compute the effective data directory from raw wizard state, applying brew defaults. */
+function effectiveDataDir(rawValue: unknown, subdir: string): string {
+  const val = String(rawValue ?? '');
+  if (IS_BREW_INSTALL && (!val || val.startsWith('./data/'))) return defaultDataDir(subdir);
+  return val || defaultDataDir(subdir);
+}
+
 function stateToEnv(state: Record<string, unknown>): string {
   const s = (k: string): string => quoteEnvValue(String(state[k] ?? ''));
   const lines: string[] = [
@@ -130,15 +137,9 @@ function stateToEnv(state: Record<string, unknown>): string {
     s('telegramBotToken') ? `TELEGRAM_BOT_TOKEN=${s('telegramBotToken')}` : '# TELEGRAM_BOT_TOKEN=',
     '',
     '# ── Storage ──────────────────────────────────────────────────────────────────',
-    `KNOWLEDGE_DIR=${(IS_BREW_INSTALL && s('knowledgeDir')?.startsWith('./data/'))
-      ? defaultDataDir('knowledge')
-      : (s('knowledgeDir') || defaultDataDir('knowledge'))}`,
-    `DB_PATH=${(IS_BREW_INSTALL && s('dbPath')?.startsWith('./data/'))
-      ? defaultDataDir('db')
-      : (s('dbPath') || defaultDataDir('db'))}`,
-    `SESSION_DIR=${(IS_BREW_INSTALL && s('sessionDir')?.startsWith('./data/'))
-      ? defaultDataDir('sessions')
-      : (s('sessionDir') || defaultDataDir('sessions'))}`,
+    `KNOWLEDGE_DIR=${quoteEnvValue(effectiveDataDir(state['knowledgeDir'], 'knowledge'))}`,
+    `DB_PATH=${quoteEnvValue(effectiveDataDir(state['dbPath'], 'db'))}`,
+    `SESSION_DIR=${quoteEnvValue(effectiveDataDir(state['sessionDir'], 'sessions'))}`,
     '',
     '# ── Redis (required) ─────────────────────────────────────────────────────────',
     `REDIS_URL=${s('redisUrl') || 'redis://localhost:6379'}`,
@@ -263,16 +264,11 @@ function writeConfig(state: Record<string, unknown>): { success: boolean; error?
     fs.writeFileSync(envPath, content, { encoding: 'utf8', mode: 0o600 });
     fs.chmodSync(envPath, 0o600);
 
-    // Create data directories (use brew defaults when relative ./data/* paths on brew install)
-    const resolveDir = (key: string, subdir: string): string => {
-      const val = String(state[key] || '');
-      if (IS_BREW_INSTALL && (!val || val.startsWith('./data/'))) return defaultDataDir(subdir);
-      return val || defaultDataDir(subdir);
-    };
+    // Create data directories using the same centralized path resolution
     const dirs = [
-      resolveDir('knowledgeDir', 'knowledge'),
-      resolveDir('dbPath', 'db'),
-      resolveDir('sessionDir', 'sessions'),
+      effectiveDataDir(state['knowledgeDir'], 'knowledge'),
+      effectiveDataDir(state['dbPath'], 'db'),
+      effectiveDataDir(state['sessionDir'], 'sessions'),
     ];
     for (const dir of dirs) {
       const resolved = path.resolve(dir);
@@ -410,9 +406,13 @@ const server = http.createServer(async (req, res) => {
           });
         const startEchos = () =>
           new Promise<{ success: boolean; error?: string }>((resolve) => {
-            exec('brew services start echos', { timeout: 15000 }, (err, stdout) => {
-              if (err) resolve({ success: false, error: err.message });
-              else resolve({ success: true });
+            exec('brew services start echos', { timeout: 15000 }, (err, stdout, stderr) => {
+              if (err) {
+                const detail = [err.message, stderr?.trim(), stdout?.trim()].filter(Boolean).join(' — ');
+                resolve({ success: false, error: `EchOS failed to start: ${detail}` });
+              } else {
+                resolve({ success: true });
+              }
             });
           });
         const redisResult = await startRedis();
