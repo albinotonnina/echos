@@ -1,0 +1,62 @@
+name: Update Homebrew Formula
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  update-homebrew:
+    name: Update Homebrew Formula
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout echos
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          token: ${{ secrets.RELEASE_PAT }}
+
+      - name: Extract tag
+        id: tag
+        run: echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Compute tarball SHA256
+        id: sha
+        run: |
+          SHA=$(curl -sL "https://github.com/albinotonnina/echos/archive/refs/tags/${{ steps.tag.outputs.version }}.tar.gz" | sha256sum | awk '{print $1}')
+          echo "sha256=${SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Update homebrew/echos.rb
+        run: |
+          TAG="${{ steps.tag.outputs.version }}"
+          SHA="${{ steps.sha.outputs.sha256 }}"
+          sed -i "s|url \".*\"|url \"https://github.com/albinotonnina/echos/archive/refs/tags/${TAG}.tar.gz\"|" homebrew/echos.rb
+          sed -i "s|sha256 \".*\"|sha256 \"${SHA}\"|" homebrew/echos.rb
+
+      - name: Commit formula to echos repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add homebrew/echos.rb
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "chore: update homebrew formula to ${{ steps.tag.outputs.version }}"
+          git push origin main
+
+      - name: Push formula to homebrew-echos tap
+        run: |
+          TAG="${{ steps.tag.outputs.version }}"
+          TMPDIR=$(mktemp -d)
+          git clone "https://x-access-token:${{ secrets.RELEASE_PAT }}@github.com/albinotonnina/homebrew-echos.git" "$TMPDIR"
+          cp homebrew/echos.rb "$TMPDIR/Formula/echos.rb"
+          cd "$TMPDIR"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/echos.rb
+          git diff --cached --quiet && echo "No changes to tap" && exit 0
+          git commit -m "echos ${TAG}"
+          git push origin main
