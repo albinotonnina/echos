@@ -316,7 +316,18 @@ const server = http.createServer(async (req, res) => {
       const persistedHomePath = path.join(homedir(), '.config', 'echos', 'home');
       if (fs.existsSync(persistedHomePath)) {
         const persisted = fs.readFileSync(persistedHomePath, 'utf8').trim();
-        if (persisted) echosHomeForExisting = persisted;
+        if (persisted) {
+          const expanded = expandTilde(persisted);
+          const resolved = path.resolve(expanded);
+          const userHome = homedir();
+          const normalizedHome = path.resolve(userHome);
+          const isUnderHome =
+            resolved === normalizedHome ||
+            resolved.startsWith(normalizedHome + path.sep);
+          if (isUnderHome) {
+            echosHomeForExisting = resolved;
+          }
+        }
       }
       const envPath = path.join(echosHomeForExisting, '.env');
       if (!fs.existsSync(envPath)) {
