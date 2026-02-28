@@ -27,7 +27,7 @@ class Echos < Formula
     # Create wrapper script that points to the CLI
     (bin/"echos").write <<~SH
       #!/bin/bash
-      [ -f "$HOME/.config/echos/home" ] && ECHOS_HOME="${ECHOS_HOME:-$(cat "$HOME/.config/echos/home" | tr -d '\\r\\n')}"
+      [ -f "$HOME/.config/echos/home" ] && ECHOS_HOME="${ECHOS_HOME:-$(tr -d $'\\r\\n' < "$HOME/.config/echos/home")}"
       export ECHOS_HOME="${ECHOS_HOME:-$HOME/echos}"
       export NODE_ENV="${NODE_ENV:-production}"
       cd "#{libexec}"
@@ -48,7 +48,7 @@ class Echos < Formula
     # Create a wrapper for the daemon
     (bin/"echos-daemon").write <<~SH
       #!/bin/bash
-      [ -f "$HOME/.config/echos/home" ] && ECHOS_HOME="${ECHOS_HOME:-$(cat "$HOME/.config/echos/home" | tr -d '\\r\\n')}"
+      [ -f "$HOME/.config/echos/home" ] && ECHOS_HOME="${ECHOS_HOME:-$(tr -d $'\\r\\n' < "$HOME/.config/echos/home")}"
       export ECHOS_HOME="${ECHOS_HOME:-$HOME/echos}"
       export NODE_ENV="${NODE_ENV:-production}"
       cd "#{libexec}"
@@ -64,7 +64,7 @@ class Echos < Formula
     # Create a wrapper for the setup wizard
     (bin/"echos-setup").write <<~SH
       #!/bin/bash
-      [ -f "$HOME/.config/echos/home" ] && ECHOS_HOME="${ECHOS_HOME:-$(cat "$HOME/.config/echos/home" | tr -d '\\r\\n')}"
+      [ -f "$HOME/.config/echos/home" ] && ECHOS_HOME="${ECHOS_HOME:-$(tr -d $'\\r\\n' < "$HOME/.config/echos/home")}"
       export ECHOS_HOME="${ECHOS_HOME:-$HOME/echos}"
       mkdir -p "$ECHOS_HOME"
       cd "$ECHOS_HOME"
