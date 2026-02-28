@@ -89,6 +89,7 @@ The only outbound calls are to the AI APIs you configure — and only when you a
 
 ```bash
 brew tap albinotonnina/echos
+brew update
 brew install echos
 echos-setup          # browser-based setup wizard
 brew services start echos
