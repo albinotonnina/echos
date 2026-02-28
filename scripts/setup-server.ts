@@ -16,9 +16,19 @@ import * as path from 'node:path';
 import * as http from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { createConnection } from 'node:net';
-import { exec } from 'node:child_process';
+import { exec, execSync } from 'node:child_process';
 
 const args = process.argv.slice(2);
+
+// Detect Homebrew install by checking if echos-daemon wrapper exists in PATH
+const IS_BREW_INSTALL = (() => {
+  try {
+    execSync('which echos-daemon', { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+})();
 const PORT = (() => {
   const portArgIndex = args.indexOf('--port');
   if (portArgIndex === -1) return 3456;
@@ -324,8 +334,14 @@ const server = http.createServer(async (req, res) => {
       }
       if (url.pathname === '/api/setup/start-service') {
         const startRedis = () =>
-          new Promise<void>((resolve) => {
-            exec('brew services start redis', { timeout: 10000 }, () => resolve());
+          new Promise<{ success: boolean; error?: string }>((resolve) => {
+            exec('brew services start redis', { timeout: 10000 }, (err, stdout, stderr) => {
+              if (err) {
+                resolve({ success: false, error: `Redis failed to start: ${err.message}` });
+              } else {
+                resolve({ success: true });
+              }
+            });
           });
         const startEchos = () =>
           new Promise<{ success: boolean; error?: string }>((resolve) => {
@@ -334,11 +350,19 @@ const server = http.createServer(async (req, res) => {
               else resolve({ success: true });
             });
           });
-        await startRedis();
+        const redisResult = await startRedis();
+        if (!redisResult.success) {
+          json(res, redisResult);
+          return;
+        }
         const result = await startEchos();
         if (result.success) {
           // Shut down setup server after a short delay — it's no longer needed
-          setTimeout(() => { server.close(); process.exit(0); }, 3000);
+          setTimeout(() => {
+            server.close(() => {
+              process.exit(0);
+            });
+          }, 3000);
         }
         json(res, result);
         return;
@@ -542,13 +566,22 @@ function getSetupHtml(): string {
       <div class="success-screen">
         <h2>Setup Complete</h2>
         <p style="color:var(--text-dim);margin-bottom:0.5rem">Your .env file has been written and data directories created.</p>
+        ${IS_BREW_INSTALL ? `
         <button class="btn-start" id="btn-start-service" onclick="startService()">
           <span id="start-icon">▶</span> Start EchOS
         </button>
         <div class="start-status" id="start-status"></div>
+        ` : ''}
         <div class="cli-tip">
+          ${IS_BREW_INSTALL ? `
           <div class="cli-tip-label">You can also use the CLI anytime</div>
           <code>echos "search my notes"</code>
+          ` : `
+          <div class="cli-tip-label">Start EchOS</div>
+          <code>pnpm start</code>
+          <div class="cli-tip-label" style="margin-top:1rem">Or use the CLI (no daemon needed)</div>
+          <code>pnpm echos "search my notes"</code>
+          `}
         </div>
       </div>
     </div>
@@ -752,31 +785,31 @@ function getSetupHtml(): string {
 
     async function startService() {
       const btn = document.getElementById('btn-start-service');
-      const icon = document.getElementById('start-icon');
       const status = document.getElementById('start-status');
       btn.disabled = true;
-      icon.textContent = '⏳';
-      btn.innerHTML = '<span>⏳</span> Starting...';
+      btn.innerHTML = '<span id="start-icon">⏳</span> Starting...';
       status.style.color = 'var(--text-dim)';
       status.textContent = 'Starting Redis and EchOS daemon...';
       try {
         const r = await fetch('/api/setup/start-service', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' }).then(r => r.json());
         if (r.success) {
-          btn.innerHTML = '<span>✓</span> EchOS is running';
+          btn.innerHTML = '<span id="start-icon">✓</span> EchOS is running';
           btn.style.background = 'var(--success)';
           status.style.color = 'var(--success)';
           status.textContent = 'EchOS is up! You can close this tab.';
         } else {
-          btn.innerHTML = '<span>▶</span> Start EchOS';
+          btn.innerHTML = '<span id="start-icon">▶</span> Start EchOS';
           btn.disabled = false;
           status.style.color = 'var(--error)';
-          status.textContent = 'Could not start automatically. Run: brew services start echos';
+          var detail = r && typeof r.error === 'string' && r.error.trim() ? (' Details: ' + r.error.trim()) : '';
+          status.textContent = 'Could not start automatically.' + detail + ' You may try running: brew services start echos';
         }
       } catch (e) {
-        btn.innerHTML = '<span>▶</span> Start EchOS';
+        btn.innerHTML = '<span id="start-icon">▶</span> Start EchOS';
         btn.disabled = false;
         status.style.color = 'var(--error)';
-        status.textContent = 'Could not start automatically. Run: brew services start echos';
+        var message = (e instanceof Error) ? e.message : String(e);
+        status.textContent = 'Could not start automatically. Error: ' + message + ' You may try running: brew services start echos';
       }
     }
 
