@@ -63,7 +63,26 @@ git push origin v0.2.0
 
 That's it. Go to the **Actions** tab on GitHub to watch the pipeline run.
 
-### 4. Check the results
+### 4. Update the Homebrew formula
+
+After pushing the tag, update the tap so `brew upgrade echos` delivers the new version:
+
+```bash
+# Get the SHA256 of the new release tarball
+curl -sL https://github.com/albinotonnina/echos/archive/refs/tags/v0.X.X.tar.gz | sha256sum
+
+# Update url + sha256 in this repo
+# homebrew/echos.rb → url / sha256 lines
+
+# Sync to the tap repo
+cp homebrew/echos.rb /path/to/homebrew-echos/Formula/echos.rb
+cd /path/to/homebrew-echos
+git add Formula/echos.rb && git commit -m "echos v0.X.X" && git push origin main
+```
+
+See [homebrew/README.md](../homebrew/README.md) for the full step-by-step.
+
+### 5. Check the results
 
 After ~10-15 minutes:
 
