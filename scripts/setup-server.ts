@@ -878,14 +878,14 @@ function getSetupHtml(): string {
           btn.disabled = false;
           status.style.color = 'var(--error)';
           var detail = r && typeof r.error === 'string' && r.error.trim() ? (' Details: ' + r.error.trim()) : '';
-          status.textContent = 'Could not start automatically.' + detail + ' You may try running: brew services start echos';
+          status.textContent = 'Could not start automatically.' + detail + ' You may try running: brew services start redis and brew services start echos';
         }
       } catch (e) {
         btn.innerHTML = '<span id="start-icon">▶</span> Start EchOS';
         btn.disabled = false;
         status.style.color = 'var(--error)';
         var message = (e instanceof Error) ? e.message : String(e);
-        status.textContent = 'Could not start automatically. Error: ' + message + ' You may try running: brew services start echos';
+        status.textContent = 'Could not start automatically. Error: ' + message + ' You may try running: brew services start redis and brew services start echos';
       }
     }
 
