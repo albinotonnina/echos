@@ -16,7 +16,7 @@ import * as path from 'node:path';
 import * as http from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { createConnection } from 'node:net';
-import { exec } from 'node:child_process';
+import { exec, execSync } from 'node:child_process';
 import { homedir } from 'node:os';
 
 /** Expand a leading `~` to the user's home directory. */
@@ -37,6 +37,17 @@ const DEFAULT_ECHOS_HOME = path.resolve(expandTilde(process.env['ECHOS_HOME'] ||
 const CSRF_TOKEN = randomBytes(32).toString('hex');
 
 const args = process.argv.slice(2);
+
+// Detect Homebrew install by checking if echos-daemon wrapper exists in PATH
+const IS_BREW_INSTALL = (() => {
+  try {
+    execSync('which echos-daemon', { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+})();
+
 const PORT = (() => {
   const portArgIndex = args.indexOf('--port');
   if (portArgIndex === -1) return 3456;
@@ -284,6 +295,9 @@ function writeConfig(state: Record<string, unknown>): { success: boolean; error?
 
 // ─── HTTP server ──────────────────────────────────────────────────────────────
 
+// Track open sockets so we can destroy them on shutdown (browsers keep-alive)
+const openSockets = new Set<import('node:net').Socket>();
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', `http://localhost:${PORT}`);
 
@@ -395,6 +409,74 @@ const server = http.createServer(async (req, res) => {
         json(res, writeConfig(body));
         return;
       }
+      if (url.pathname === '/api/setup/start-service') {
+        // Only allow on Homebrew installs — the endpoint runs `brew services`
+        if (!IS_BREW_INSTALL) {
+          json(res, { success: false, error: 'Start-service is only available for Homebrew installs' }, 400);
+          return;
+        }
+
+        // CSRF protection: validate Origin header to prevent cross-origin triggers
+        const origin = req.headers.origin || '';
+        const referer = req.headers.referer || '';
+        const allowedOrigins = [`http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`];
+        const originOk = allowedOrigins.some((o) => origin === o);
+        const refererOk = allowedOrigins.some((o) => referer.startsWith(o));
+        if (!originOk && !refererOk) {
+          json(res, { success: false, error: 'Invalid request origin' }, 403);
+          return;
+        }
+
+        const startRedis = () =>
+          new Promise<{ success: boolean; error?: string }>((resolve) => {
+            exec('brew services start redis', { timeout: 10000 }, (err, stdout, stderr) => {
+              if (err) {
+                const detail = [err.message, stderr?.trim(), stdout?.trim()].filter(Boolean).join(' — ');
+                resolve({ success: false, error: `Redis failed to start: ${detail}` });
+              } else {
+                resolve({ success: true });
+              }
+            });
+          });
+        const startEchos = () =>
+          new Promise<{ success: boolean; error?: string }>((resolve) => {
+            exec('brew services start echos', { timeout: 15000 }, (err, stdout, stderr) => {
+              if (err) {
+                const detail = [err.message, stderr?.trim(), stdout?.trim()].filter(Boolean).join(' — ');
+                resolve({ success: false, error: `EchOS failed to start: ${detail}` });
+              } else {
+                resolve({ success: true });
+              }
+            });
+          });
+        const redisResult = await startRedis();
+        if (!redisResult.success) {
+          json(res, redisResult);
+          return;
+        }
+        const result = await startEchos();
+        if (result.success) {
+          // Shut down setup server after a short delay — it's no longer needed
+          setTimeout(() => {
+            server.close(() => {
+              process.exit(0);
+            });
+            // Destroy lingering keep-alive connections so server.close() can finish
+            for (const socket of openSockets) {
+              socket.destroy();
+            }
+            // Hard-exit fallback in case server.close() callback never fires
+            setTimeout(() => process.exit(0), 5000).unref();
+          }, 3000);
+        }
+        // Inline response with Connection: close to unblock server.close()
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          Connection: 'close',
+        });
+        res.end(JSON.stringify(result));
+        return;
+      }
     }
 
     res.writeHead(404);
@@ -494,6 +576,13 @@ function getSetupHtml(): string {
     .success-screen { text-align: center; padding: 3rem 0; }
     .success-screen h2 { color: var(--success); font-size: 1.25rem; margin-bottom: 1rem; }
     .success-screen code { display: block; background: var(--surface); padding: 1rem; border-radius: 6px; margin: 0.5rem 0; font-family: monospace; font-size: 0.875rem; color: var(--accent); }
+    .btn-start { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.875rem 2rem; font-size: 1rem; font-weight: 600; background: var(--success); color: var(--bg); border: none; border-radius: 8px; cursor: pointer; transition: all 0.15s; margin: 1.5rem 0; }
+    .btn-start:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-start:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .start-status { font-size: 0.8rem; margin-top: 0.5rem; min-height: 1.5rem; }
+    .cli-tip { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-top: 2rem; text-align: left; }
+    .cli-tip-label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .cli-tip code { text-align: left; margin: 0; }
     .collapsible-header { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0; color: var(--text-dim); font-size: 0.8rem; }
     .collapsible-header:hover { color: var(--text); }
     .collapsible-content { display: none; margin-top: 0.5rem; }
@@ -597,13 +686,24 @@ function getSetupHtml(): string {
     <div class="step" id="step-6">
       <div class="success-screen">
         <h2>Setup Complete</h2>
-        <p style="color:var(--text-dim);margin-bottom:1.5rem">Your .env file has been written and data directories created.</p>
-        <p style="font-size:0.875rem;margin-bottom:0.25rem">Start EchOS using your install method.</p>
-        <p style="font-size:0.75rem;margin-bottom:0.5rem;color:var(--text-dim)">For example, if installed via Homebrew:</p>
-        <code>brew services start echos</code>
-        <p style="font-size:0.875rem;margin-top:1.5rem;margin-bottom:0.5rem">Or use the CLI:</p>
-        <code>echos "search my notes"</code>
-        <p style="color:var(--text-dim);font-size:0.75rem;margin-top:2rem">You can close this tab now.</p>
+        <p style="color:var(--text-dim);margin-bottom:0.5rem">Your .env file has been written and data directories created.</p>
+        ${IS_BREW_INSTALL ? `
+        <button class="btn-start" id="btn-start-service" onclick="startService()">
+          <span id="start-icon">▶</span> Start EchOS
+        </button>
+        <div class="start-status" id="start-status"></div>
+        ` : ''}
+        <div class="cli-tip">
+          ${IS_BREW_INSTALL ? `
+          <div class="cli-tip-label">You can also use the CLI anytime</div>
+          <code>echos "search my notes"</code>
+          ` : `
+          <div class="cli-tip-label">Start EchOS</div>
+          <code>pnpm start</code>
+          <div class="cli-tip-label" style="margin-top:1rem">Or use the CLI (no daemon needed)</div>
+          <code>pnpm echos "search my notes"</code>
+          `}
+        </div>
       </div>
     </div>
 
@@ -811,6 +911,36 @@ function getSetupHtml(): string {
       } catch (e) { btn.disabled = false; btn.textContent = 'Write .env & Finish'; alert('Failed: ' + (e instanceof Error ? e.message : String(e))); }
     }
 
+    async function startService() {
+      const btn = document.getElementById('btn-start-service');
+      const status = document.getElementById('start-status');
+      btn.disabled = true;
+      btn.innerHTML = '<span id="start-icon">⏳</span> Starting...';
+      status.style.color = 'var(--text-dim)';
+      status.textContent = 'Starting Redis and EchOS daemon...';
+      try {
+        const r = await fetch('/api/setup/start-service', { method: 'POST', headers: {'Content-Type':'application/json', ...csrfHeaders}, body: '{}' }).then(r => r.json());
+        if (r.success) {
+          btn.innerHTML = '<span id="start-icon">✓</span> EchOS is running';
+          btn.style.background = 'var(--success)';
+          status.style.color = 'var(--success)';
+          status.textContent = 'EchOS is up! You can close this tab.';
+        } else {
+          btn.innerHTML = '<span id="start-icon">▶</span> Start EchOS';
+          btn.disabled = false;
+          status.style.color = 'var(--error)';
+          var detail = r && typeof r.error === 'string' && r.error.trim() ? (' Details: ' + r.error.trim()) : '';
+          status.textContent = 'Could not start automatically.' + detail + ' You may try running: brew services start redis and brew services start echos';
+        }
+      } catch (e) {
+        btn.innerHTML = '<span id="start-icon">▶</span> Start EchOS';
+        btn.disabled = false;
+        status.style.color = 'var(--error)';
+        var message = (e instanceof Error) ? e.message : String(e);
+        status.textContent = 'Could not start automatically. Error: ' + message + ' You may try running: brew services start redis and brew services start echos';
+      }
+    }
+
     renderProgress();
   </script>
 </body>
@@ -818,6 +948,12 @@ function getSetupHtml(): string {
 }
 
 // ─── Start server ─────────────────────────────────────────────────────────────
+
+// Track connections for graceful shutdown
+server.on('connection', (socket) => {
+  openSockets.add(socket);
+  socket.once('close', () => openSockets.delete(socket));
+});
 
 server.on('error', (err: NodeJS.ErrnoException) => {
   if (err.code === 'EADDRINUSE') {

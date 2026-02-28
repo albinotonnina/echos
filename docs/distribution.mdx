@@ -155,6 +155,40 @@ pnpm echos "what did I save yesterday?"
 
 ---
 
+## Stopping EchOS
+
+<Tabs>
+  <Tab title="Homebrew">
+    ```bash
+    brew services stop echos
+
+    # Restart
+    brew services restart echos
+
+    # Check status
+    brew services info echos
+    ```
+  </Tab>
+  <Tab title="Manual / Source">
+    ```bash
+    # If running in foreground, press Ctrl+C
+
+    # If running via pm2
+    pm2 stop echos
+    pm2 restart echos
+    ```
+  </Tab>
+  <Tab title="Docker">
+    ```bash
+    cd docker
+    docker-compose stop      # stop
+    docker-compose restart   # restart
+    ```
+  </Tab>
+</Tabs>
+
+---
+
 ## Updating
 
 ```bash
