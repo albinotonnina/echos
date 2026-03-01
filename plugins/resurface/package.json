@@ -1,6 +1,6 @@
 {
   "name": "@echos/plugin-resurface",
-  "version": "0.1.0",
+  "version": "0.9.0",
   "description": "EchOS knowledge resurfacing plugin — spaced repetition & on-this-day",
   "type": "module",
   "main": "./dist/index.js",

@@ -8,7 +8,7 @@ const DEFAULT_LIMIT = 3;
 const plugin: EchosPlugin = {
   name: 'resurface',
   description: 'Resurfaces forgotten notes via spaced repetition and on-this-day discovery',
-  version: '0.1.0',
+  version: '0.9.0',
 
   setup(context: PluginContext) {
     return {

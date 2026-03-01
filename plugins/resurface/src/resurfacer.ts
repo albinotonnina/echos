@@ -70,8 +70,9 @@ export function resurfaceNotes(
     // Match notes from same month-day in any prior year
     const monthDay = `%-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}%`;
 
-    // Use a rowid-bounded random sample to avoid full-table sort
-    const onThisDayCandidates = db
+    // on_this_day results are filtered to a specific calendar date so the
+    // candidate set is small; ORDER BY RANDOM() is fast and gives uniform picks.
+    const onThisDayRows = db
       .prepare(
         `SELECT id, type, title, category, tags, gist, created, source_url AS sourceUrl
          FROM notes
@@ -79,10 +80,10 @@ export function resurfaceNotes(
            AND strftime('%Y', created) < strftime('%Y', 'now')
            AND (status != 'archived' OR status IS NULL)
            AND (last_surfaced IS NULL OR last_surfaced < ?)
-         ORDER BY rowid
-         LIMIT 50`,
+         ORDER BY RANDOM()
+         LIMIT ?`,
       )
-      .all(monthDay, thresholdIso) as Array<{
+      .all(monthDay, thresholdIso, mode === 'mix' ? Math.ceil(limit * 0.4) : limit) as Array<{
       id: string;
       type: string;
       title: string;
@@ -92,13 +93,6 @@ export function resurfaceNotes(
       created: string;
       sourceUrl: string | null;
     }>;
-
-    // Shuffle candidates in JS to avoid ORDER BY RANDOM() full-table sort
-    for (let i = onThisDayCandidates.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [onThisDayCandidates[i], onThisDayCandidates[j]] = [onThisDayCandidates[j]!, onThisDayCandidates[i]!];
-    }
-    const onThisDayRows = onThisDayCandidates.slice(0, mode === 'mix' ? Math.ceil(limit * 0.4) : limit);
 
     // Deduplicate against already-selected forgotten rows
     const existingIds = new Set(rows.map((r) => r.id));
@@ -114,17 +108,18 @@ export function resurfaceNotes(
   }
 
   if (mode === 'random') {
-    // Fetch a bounded candidate set, then shuffle in JS to avoid full-table ORDER BY RANDOM()
-    const randomCandidates = db
+    // For a personal knowledge base (hundreds to low thousands of notes),
+    // ORDER BY RANDOM() is fast and gives a uniform distribution.
+    const randomRows = db
       .prepare(
         `SELECT id, type, title, category, tags, gist, created, source_url AS sourceUrl
          FROM notes
          WHERE (last_surfaced IS NULL OR last_surfaced < ?)
            AND (status != 'archived' OR status IS NULL)
-         ORDER BY rowid
-         LIMIT 50`,
+         ORDER BY RANDOM()
+         LIMIT ?`,
       )
-      .all(thresholdIso) as Array<{
+      .all(thresholdIso, limit) as Array<{
       id: string;
       type: string;
       title: string;
@@ -135,12 +130,7 @@ export function resurfaceNotes(
       sourceUrl: string | null;
     }>;
 
-    for (let i = randomCandidates.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [randomCandidates[i], randomCandidates[j]] = [randomCandidates[j]!, randomCandidates[i]!];
-    }
-
-    rows = randomCandidates.slice(0, limit).map((r) => ({
+    rows = randomRows.map((r) => ({
       ...r,
       tags: r.tags ? r.tags.split(',').filter(Boolean) : [],
       reason: 'random' as const,
