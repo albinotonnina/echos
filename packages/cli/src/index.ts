@@ -30,6 +30,7 @@ import {
 import articlePlugin from '@echos/plugin-article';
 import youtubePlugin from '@echos/plugin-youtube';
 import twitterPlugin from '@echos/plugin-twitter';
+import resurfacePlugin from '@echos/plugin-resurface';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -67,11 +68,12 @@ async function runCli(): Promise<void> {
   const search = createSearchService(sqlite, vectorDb, markdown, logger);
   const generateEmbedding = async (_text: string): Promise<number[]> => new Array(1536).fill(0);
 
-  // Register plugins so the CLI has save_article, save_youtube, save_tweet tools
+  // Register plugins so the CLI has save_article, save_youtube, save_tweet, and resurface tools
   const pluginRegistry = new PluginRegistry(logger);
   pluginRegistry.register(articlePlugin);
   pluginRegistry.register(youtubePlugin);
   pluginRegistry.register(twitterPlugin);
+  pluginRegistry.register(resurfacePlugin);
 
   await pluginRegistry.setupAll({
     sqlite,
