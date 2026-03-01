@@ -6,10 +6,10 @@ import { resurfaceNotes, formatSurfacedNote } from '../resurfacer.js';
 const schema = Type.Object({
   mode: Type.Optional(
     Type.Union(
-      [Type.Literal('forgotten'), Type.Literal('on_this_day'), Type.Literal('mix')],
+      [Type.Literal('forgotten'), Type.Literal('on_this_day'), Type.Literal('mix'), Type.Literal('random')],
       {
         description:
-          'Resurfacing strategy: "forgotten" (oldest un-seen notes), "on_this_day" (same calendar date in prior years), "mix" (blend of both). Defaults to "mix".',
+          'Resurfacing strategy: "forgotten" (oldest un-seen notes), "on_this_day" (same calendar date in prior years), "mix" (blend of both), "random" (purely random notes). Defaults to "mix".',
       },
     ),
   ),

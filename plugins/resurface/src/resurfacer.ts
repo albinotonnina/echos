@@ -40,7 +40,7 @@ export function resurfaceNotes(
       .prepare(
         `SELECT id, type, title, category, tags, gist, created, source_url AS sourceUrl
          FROM notes
-         WHERE status != 'archived' OR status IS NULL
+         WHERE (status != 'archived' OR status IS NULL)
            AND (last_surfaced IS NULL OR last_surfaced < ?)
          ORDER BY last_surfaced ASC NULLS FIRST, created ASC
          LIMIT ?`,
@@ -77,10 +77,11 @@ export function resurfaceNotes(
          WHERE created LIKE ?
            AND strftime('%Y', created) < strftime('%Y', 'now')
            AND (status != 'archived' OR status IS NULL)
+           AND (last_surfaced IS NULL OR last_surfaced < ?)
          ORDER BY RANDOM()
          LIMIT ?`,
       )
-      .all(monthDay, mode === 'mix' ? Math.ceil(limit * 0.4) : limit) as Array<{
+      .all(monthDay, thresholdIso, mode === 'mix' ? Math.ceil(limit * 0.4) : limit) as Array<{
       id: string;
       type: string;
       title: string;

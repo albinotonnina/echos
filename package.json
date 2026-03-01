@@ -47,7 +47,10 @@
       "msgpackr-extract",
       "protobufjs",
       "sharp"
-    ]
+    ],
+    "overrides": {
+      "basic-ftp": ">=5.2.0"
+    }
   },
   "license": "MIT",
   "dependencies": {
