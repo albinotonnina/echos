@@ -7,6 +7,12 @@ import { isAgentMessageOverflow, createContextMessage, createUserMessage, type E
 const EDIT_DEBOUNCE_MS = 1000;
 const MAX_MESSAGE_LENGTH = 4096;
 
+export const CONFIRM_MARKER = '[confirm?]';
+
+function stripConfirmMarker(text: string): string {
+  return text.replace(/\n?\[confirm\?\]\s*$/, '').trimEnd();
+}
+
 // Exact tool name → emoji mapping
 const TOOL_EMOJI_MAP: Record<string, string> = {
   create_note: '✏️',
@@ -132,7 +138,7 @@ export async function streamAgentResponse(
   agent: Agent,
   prompt: string,
   ctx: Context,
-): Promise<void> {
+): Promise<{ botMessageId: number | undefined; finalText: string }> {
   let messageId: number | undefined;
   let textBuffer = '';        // AI response text only — never contains tool indicators
   let statusLine = '💭' + ZWS; // shown only while textBuffer is still empty
@@ -159,7 +165,7 @@ export async function streamAgentResponse(
     const isAiContent = overrideText !== undefined || textBuffer.length > 0;
 
     if (isAiContent) {
-      const html = markdownToHtml(raw);
+      const html = markdownToHtml(stripConfirmMarker(raw));
       const truncated =
         html.length > MAX_MESSAGE_LENGTH ? html.slice(0, MAX_MESSAGE_LENGTH - 3) + '...' : html;
 
@@ -172,8 +178,9 @@ export async function streamAgentResponse(
         if (err instanceof Error && err.message.toLowerCase().includes('not modified')) return;
         // Ultimate fallback: send the raw text with no parse_mode
         try {
+          const stripped = stripConfirmMarker(raw);
           const rawTruncated =
-            raw.length > MAX_MESSAGE_LENGTH ? raw.slice(0, MAX_MESSAGE_LENGTH - 3) + '...' : raw;
+            stripped.length > MAX_MESSAGE_LENGTH ? stripped.slice(0, MAX_MESSAGE_LENGTH - 3) + '...' : stripped;
           await ctx.api.editMessageText(ctx.chat!.id, messageId, rawTruncated);
           lastEditTime = Date.now();
         } catch {
@@ -312,4 +319,6 @@ export async function streamAgentResponse(
       [{ type: 'emoji', emoji: agentError ? '😱' : '👌' }],
     ).catch(() => undefined);
   }
+
+  return { botMessageId: messageId, finalText: textBuffer };
 }
