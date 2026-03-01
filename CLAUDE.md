@@ -145,6 +145,25 @@ After completing any feature work, ALWAYS update the relevant documentation:
 
 Review `docs/TROUBLESHOOTING.mdx` to add any new common issues or solutions.
 
+## Git Worktrees (ALWAYS)
+
+**Every feature or fix must be implemented in a git worktree — never directly on `main`.**
+
+```bash
+# Create a worktree for a new feature
+git worktree add ../echos-<feature-name> -b feature/<feature-name>
+
+# Work inside the worktree
+cd ../echos-<feature-name>
+
+# When done, remove the worktree
+git worktree remove ../echos-<feature-name>
+```
+
+- Worktrees live as siblings of the main repo directory (e.g., `../echos-resurface`)
+- Branch naming: `feature/<name>`, `fix/<name>`, `chore/<name>`
+- Never skip this step — it keeps `main` clean and allows parallel work
+
 ## Recurring Workflows
 
 Two canonical workflows are defined as skills. Follow them exactly when triggered:
