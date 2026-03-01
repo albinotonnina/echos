@@ -54,6 +54,13 @@ describe('SYSTEM_PROMPT', () => {
     expect(SYSTEM_PROMPT).toContain('Never invent or guess URLs/IDs');
   });
 
+  it('enforces searching before answering personal queries', () => {
+    expect(SYSTEM_PROMPT).toContain('## Personal Queries — Always Search First (CRITICAL)');
+    expect(SYSTEM_PROMPT).toContain('never skip the search step');
+    expect(SYSTEM_PROMPT).toContain('**list_notes**');
+    expect(SYSTEM_PROMPT).toContain('**search_knowledge**');
+  });
+
   it('does not contain sections moved to tool descriptions', () => {
     expect(SYSTEM_PROMPT).not.toContain('## Capabilities');
     expect(SYSTEM_PROMPT).not.toContain('## Tool Usage');
