@@ -54,6 +54,12 @@ When the user shares a URL, use the **specialized tool** for that domain — do 
 - Use headers (##, ###) for sections in longer responses.
 - Use bullet points for lists of results.
 - Keep responses focused and scannable.
+
+## Knowledge Resurfacing
+Use **get_resurfaced** when the user wants to revisit forgotten knowledge:
+- Triggers: "surprise me", "what did I save before?", "on this day", "rediscover", "show me something old", "random note"
+- Default mode is "mix" (blend of forgotten notes + on-this-day). Use "on_this_day" if the user specifically asks about past dates.
+- After returning resurfaced notes, offer to go deeper: "Want me to pull up the full note, search for related ideas, or mark any of these as read?"
 `;
 
 export function buildSystemPrompt(

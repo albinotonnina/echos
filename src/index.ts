@@ -45,6 +45,7 @@ import contentCreationPlugin from '@echos/plugin-content-creation';
 import imagePlugin from '@echos/plugin-image';
 import digestPlugin from '@echos/plugin-digest';
 import twitterPlugin from '@echos/plugin-twitter';
+import resurfacePlugin from '@echos/plugin-resurface';
 
 const logger = createLogger('echos');
 
@@ -197,6 +198,7 @@ async function main(): Promise<void> {
   pluginRegistry.register(imagePlugin);
   pluginRegistry.register(digestPlugin);
   pluginRegistry.register(twitterPlugin);
+  pluginRegistry.register(resurfacePlugin);
 
   let agentDeps: AgentDeps;
   let notificationService: import('@echos/shared').NotificationService;

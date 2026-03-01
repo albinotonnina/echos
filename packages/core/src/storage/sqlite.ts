@@ -306,6 +306,13 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
     // Column already exists — that's fine
   }
 
+  // Migration: add last_surfaced column for knowledge resurfacing
+  try {
+    db.exec(`ALTER TABLE notes ADD COLUMN last_surfaced TEXT DEFAULT NULL`);
+  } catch {
+    // Column already exists — that's fine
+  }
+
   logger.info({ dbPath }, 'SQLite database initialized');
 
   // Prepared statements

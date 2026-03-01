@@ -26,6 +26,9 @@ importers:
       '@echos/plugin-image':
         specifier: workspace:*
         version: link:plugins/image
+      '@echos/plugin-resurface':
+        specifier: workspace:*
+        version: link:plugins/resurface
       '@echos/plugin-twitter':
         specifier: workspace:*
         version: link:plugins/twitter
@@ -104,7 +107,7 @@ importers:
         version: link:../shared
       '@mariozechner/pi-agent-core':
         specifier: ^0.54.2
-        version: 0.54.2
+        version: 0.54.2(ws@8.19.0)(zod@4.3.6)
       pino:
         specifier: ^10.3.1
         version: 10.3.1
@@ -181,7 +184,7 @@ importers:
         version: link:../shared
       '@mariozechner/pi-agent-core':
         specifier: ^0.54.2
-        version: 0.54.2
+        version: 0.54.2(ws@8.19.0)(zod@4.3.6)
       '@sinclair/typebox':
         specifier: ^0.34.48
         version: 0.34.48
@@ -271,7 +274,7 @@ importers:
         version: 9.0.0
       '@mariozechner/pi-agent-core':
         specifier: ^0.54.2
-        version: 0.54.2
+        version: 0.54.2(ws@8.19.0)(zod@4.3.6)
       fastify:
         specifier: ^5.7.4
         version: 5.7.4
@@ -379,7 +382,7 @@ importers:
         version: link:../../packages/shared
       '@mariozechner/pi-agent-core':
         specifier: ^0.54.2
-        version: 0.54.2
+        version: 0.54.2(ws@8.19.0)(zod@4.3.6)
       bullmq:
         specifier: ^5.70.1
         version: 5.70.1
@@ -424,6 +427,34 @@ importers:
       '@types/uuid':
         specifier: ^11.0.0
         version: 11.0.0
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  plugins/resurface:
+    dependencies:
+      '@echos/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@echos/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@mariozechner/pi-agent-core':
+        specifier: ^0.54.2
+        version: 0.54.2(ws@8.19.0)(zod@4.3.6)
+      '@mariozechner/pi-ai':
+        specifier: ^0.54.2
+        version: 0.54.2(ws@8.19.0)(zod@4.3.6)
+      '@sinclair/typebox':
+        specifier: ^0.34.48
+        version: 0.34.48
+      bullmq:
+        specifier: ^5.70.1
+        version: 5.70.1
+    devDependencies:
+      '@types/node':
+        specifier: ^25.3.0
+        version: 25.3.0
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -1920,6 +1951,7 @@ packages:
   basic-ftp@5.1.0:
     resolution: {integrity: sha512-RkaJzeJKDbaDWTIPiJwubyljaEPwpVWkm9Rt5h9Nd6h7tEXTJ3VB4qxdZBioV7JO5yLUaOKwz7vDOzlncUsegw==}
     engines: {node: '>=10.0.0'}
+    deprecated: Security vulnerability fixed in 5.2.0, please upgrade
 
   better-sqlite3@12.6.2:
     resolution: {integrity: sha512-8VYKM3MjCa9WcaSAI3hzwhmyHVlH8tiGFwf0RlTsZPWJ1I5MkzjiudCo4KC4DxOaL/53A5B1sI/IbldNFDbsKA==}
@@ -4387,45 +4419,9 @@ snapshots:
 
   '@lukeed/ms@2.0.2': {}
 
-  '@mariozechner/pi-agent-core@0.54.2':
-    dependencies:
-      '@mariozechner/pi-ai': 0.54.2
-    transitivePeerDependencies:
-      - '@modelcontextprotocol/sdk'
-      - aws-crt
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-      - ws
-      - zod
-
   '@mariozechner/pi-agent-core@0.54.2(ws@8.19.0)(zod@4.3.6)':
     dependencies:
       '@mariozechner/pi-ai': 0.54.2(ws@8.19.0)(zod@4.3.6)
-    transitivePeerDependencies:
-      - '@modelcontextprotocol/sdk'
-      - aws-crt
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-      - ws
-      - zod
-
-  '@mariozechner/pi-ai@0.54.2':
-    dependencies:
-      '@anthropic-ai/sdk': 0.73.0(zod@4.3.6)
-      '@aws-sdk/client-bedrock-runtime': 3.995.0
-      '@google/genai': 1.42.0
-      '@mistralai/mistralai': 1.10.0
-      '@sinclair/typebox': 0.34.48
-      ajv: 8.18.0
-      ajv-formats: 3.0.1(ajv@8.18.0)
-      chalk: 5.6.2
-      openai: 6.10.0(ws@8.19.0)(zod@4.3.6)
-      partial-json: 0.1.7
-      proxy-agent: 6.5.0
-      undici: 7.22.0
-      zod-to-json-schema: 3.25.1(zod@3.25.76)
     transitivePeerDependencies:
       - '@modelcontextprotocol/sdk'
       - aws-crt
