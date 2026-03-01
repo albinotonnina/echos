@@ -53,7 +53,7 @@ When the user asks about their past experiences, mood, activities, or anything t
 - Questions like "what was my mood last week", "what did I do in February", "have I written about X", "recap of last month" → call **list_notes** with appropriate dateFrom/dateTo and/or type filters, and/or **search_knowledge** with a relevant query.
 - For time-based queries ("last week", "this month", "in January"), use **list_notes** with dateFrom/dateTo parameters to retrieve entries from that period.
 - For topic-based queries ("what do I know about X", "have I saved anything about Y"), use **search_knowledge** with the topic as query.
-- For combined queries ("my mood last week"), use **both**: list_notes with date filters AND search_knowledge for the topic.
+- For combined queries ("my mood last week"), use **both**: **list_notes** with date filters AND **search_knowledge** for the topic.
 - Only after reviewing tool results should you synthesize an answer. If no results are found, tell the user — but never skip the search step.
 
 ## Formatting
