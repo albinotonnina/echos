@@ -52,6 +52,18 @@ Queries the SQLite database for pending reminders with a due date in the past. D
 
 Processes long-form article and YouTube URLs queued by the agent during conversations. This runs automatically when URLs are submitted; no manual schedule creation is needed.
 
+### Knowledge Resurfacing (`resurface`)
+
+The Resurface Plugin surfaces forgotten notes from your knowledge base using spaced repetition and on-this-day discovery.
+
+- **Type**: `resurface`
+- **Config options**:
+  - `mode` — `'forgotten'` (oldest un-surfaced first), `'on_this_day'` (same calendar date in prior years), `'random'`, `'mix'` (default)
+  - `limit` — number of notes to broadcast (default: `3`, max: `10`)
+- **Behavior**: Queries notes where `last_surfaced` is `NULL` or older than 7 days, picks the best candidates per strategy, sends a formatted Telegram notification, and updates each note's `last_surfaced` timestamp.
+
+Example schedule: *"Schedule a daily knowledge resurfacing at 9am"* → cron `0 9 * * *`, type `resurface`.
+
 ## Architecture
 
 ```
@@ -66,6 +78,7 @@ src/index.ts
          └── Worker
               └── Job Router (Plugin-aware routing)
                    ├── digest     → DigestPlugin Processor
+                   ├── resurface  → ResurfacePlugin Processor
                    ├── reminder   → Built-in Reminder Processor
                    └── content    → Built-in Content Processor
 ```

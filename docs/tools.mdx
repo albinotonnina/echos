@@ -454,6 +454,31 @@ Tag my "distributed systems post" as a voice example.
 
 ---
 
+### Resurface plugin
+
+#### Resurface forgotten notes
+
+**Tool:** `get_resurfaced`
+
+Bring back notes you've forgotten about using spaced repetition and on-this-day discovery. Returns 2–3 notes (configurable) with labels showing why each was selected. Updates each note's last-surfaced timestamp so it won't repeat within 7 days.
+
+```
+Surprise me.
+What did I save about a year ago?
+Show me something from my knowledge base I've forgotten.
+On this day — what was I thinking about?
+Give me a random note.
+```
+
+Modes:
+- `mix` (default) — blend of forgotten notes and on-this-day
+- `forgotten` — oldest un-surfaced notes first (spaced repetition)
+- `on_this_day` — notes created on this calendar date in a prior year
+
+See the [Resurface Plugin](/plugins#resurface-plugin) for setting up a daily broadcast schedule.
+
+---
+
 ### Digest plugin
 
 The digest plugin runs as a scheduled background job (not a direct tool). It generates a summary of recent notes and broadcasts it to your configured notification channel (Telegram).
@@ -489,6 +514,7 @@ Send me a weekly digest every Sunday.
 | *"Link these two notes"* | `link_notes` |
 | *"Mark article as read"* | `mark_content` |
 | *"Be more concise"* | `set_agent_voice` |
+| *"Surprise me / on this day / random note"* | `get_resurfaced` |
 | *"Save this article: URL"* | `save_article` |
 | *"Save this tweet: URL"* | `save_tweet` |
 | *"Save this YouTube video: URL"* | `save_youtube` |

@@ -375,6 +375,7 @@ See [Categorization](/categorization) for detailed documentation.
 | Article | `@echos/plugin-article` | Web article extraction via Readability + DOMPurify |
 | Twitter | `@echos/plugin-twitter` | Tweet/thread extraction via FxTwitter API |
 | Image | `@echos/plugin-image` | Image storage with metadata extraction (Sharp) |
+| Resurface | `@echos/plugin-resurface` | Knowledge resurfacing via spaced repetition and on-this-day discovery |
 
 ### Twitter Plugin
 
@@ -462,3 +463,53 @@ The image plugin (`@echos/plugin-image`) provides the `save_image` tool for stor
 - Supports captions for context
 
 See [Images](/images) for complete documentation on image handling.
+
+### Resurface Plugin
+
+The resurface plugin (`@echos/plugin-resurface`) brings forgotten knowledge back to the surface through spaced repetition and serendipitous discovery. It provides a `get_resurfaced` agent tool and a daily scheduled job that broadcasts notes via Telegram.
+
+**Features:**
+- Three resurfacing strategies:
+  - `forgotten` — notes you haven't seen in 7+ days, oldest first (classic spaced repetition)
+  - `on_this_day` — notes created on the same calendar date in a prior year
+  - `mix` (default) — blend of both for maximum serendipity
+  - `random` — random sampling of un-recently-surfaced notes (available via scheduler config)
+- Tracks a `last_surfaced` timestamp per note in SQLite — never resurfaces the same note twice within 7 days
+- Daily broadcast job sends 2–3 notes to Telegram with emoji labels (🔮 Resurfaced, 📅 On this day, 🎲 Discovery)
+- On-demand access via the `get_resurfaced` tool
+
+**Tool: get_resurfaced**
+
+```typescript
+{
+  mode?: 'forgotten' | 'on_this_day' | 'mix'; // Strategy (default: 'mix')
+  limit?: number;                              // Number of notes (default: 3, max: 10)
+}
+```
+
+**Trigger phrases** the agent recognises:
+- "surprise me"
+- "what did I save before?"
+- "on this day"
+- "rediscover something"
+- "show me something old"
+- "random note"
+
+**Setting up the daily job:**
+
+Tell the agent:
+> *"Schedule a daily knowledge resurfacing at 9am."*
+
+The agent will create a `resurface` schedule with cron `0 9 * * *`. You can customize it:
+
+```
+Schedule a daily resurface at 7am, on_this_day mode only.
+Schedule a weekly knowledge rediscovery every Sunday at 10am, 5 notes.
+```
+
+**Scheduler config options:**
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `mode` | `'forgotten' \| 'on_this_day' \| 'random' \| 'mix'` | `'mix'` | Resurfacing strategy |
+| `limit` | number | `3` | Number of notes to broadcast (max 10) |
