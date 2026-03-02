@@ -89,7 +89,7 @@ describe('create_note tool', () => {
     expect(row!.category).toBe('uncategorized');
   });
 
-  it('should default type to "note" even when type is explicitly passed', async () => {
+  it('should ignore type and force it to "note"', async () => {
     const tool = createNoteTool({
       sqlite,
       markdown,
@@ -98,9 +98,9 @@ describe('create_note tool', () => {
     });
 
     const result = await tool.execute('tc3', {
-      title: 'Typed Note',
-      content: 'Testing type default.',
-      type: 'note',
+      title: 'Forced Typed Note',
+      content: 'Testing type override.',
+      type: 'journal' as any,
     });
 
     const id = (result.details as { id: string }).id;

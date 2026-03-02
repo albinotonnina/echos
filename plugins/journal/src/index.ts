@@ -22,7 +22,7 @@ const plugin: EchosPlugin = {
           processor: async (_job: Job, config?: Record<string, unknown>) => {
             const { getNotificationService, logger } = context;
 
-            const rawPrompt = String(config?.['prompt'] ?? '');
+            const rawPrompt = typeof config?.['prompt'] === 'string' ? config['prompt'].trim() : '';
             const prompt =
               rawPrompt.length > 0 && rawPrompt.length <= MAX_PROMPT_LENGTH
                 ? rawPrompt

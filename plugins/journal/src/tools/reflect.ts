@@ -27,11 +27,23 @@ type Params = Static<typeof schema>;
 
 function calculateDateRange(params: Params): { dateFrom: string; dateTo: string } {
   const now = new Date();
-  const dateTo = params.dateTo ?? now.toISOString();
+  
+  // If custom period is requested but dateFrom is missing, it's an error
+  if (params.period === 'custom' && !params.dateFrom) {
+    throw new Error('dateFrom is required when using a custom period.');
+  }
+
+  let dateTo = params.dateTo ?? now.toISOString();
 
   if (params.period === 'custom' && params.dateFrom) {
-    const from = new Date(params.dateFrom);
-    const to = new Date(dateTo);
+    let from = new Date(params.dateFrom);
+    let to = new Date(dateTo);
+    
+    if (params.dateTo && !params.dateTo.includes('T')) {
+      // If it's just a date, extend to the end of the day
+      to.setUTCHours(23, 59, 59, 999);
+      dateTo = to.toISOString();
+    }
 
     if (isNaN(from.getTime()) || isNaN(to.getTime())) {
       throw new Error('Invalid date format. Use ISO 8601 (e.g. "2025-08-01").');
@@ -45,7 +57,7 @@ function calculateDateRange(params: Params): { dateFrom: string; dateTo: string 
       throw new Error(`Date range cannot exceed ${MAX_LOOKBACK_DAYS} days.`);
     }
 
-    return { dateFrom: params.dateFrom, dateTo };
+    return { dateFrom: from.toISOString(), dateTo };
   }
 
   const lookbackDays = params.period === 'month' ? 30 : 7;
@@ -122,9 +134,10 @@ export function createReflectTool(context: PluginContext): AgentTool<typeof sche
         dateFrom,
         dateTo,
         limit: MAX_ENTRIES,
-        orderBy: 'created',
-        order: 'asc',
       });
+      // SQLite listNotes sorts by created DESC, so we reverse it in-memory
+      // so reflections are built chronologically (oldest to newest)
+      rows.reverse();
 
       if (rows.length === 0) {
         const period = params.period === 'month' ? 'month' : params.period === 'custom' ? 'date range' : 'week';

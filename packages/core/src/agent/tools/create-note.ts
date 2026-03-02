@@ -46,7 +46,7 @@ export function createNoteTool(deps: CreateNoteToolDeps): AgentTool<typeof schem
     execute: async (_toolCallId, params: Params) => {
       const now = new Date().toISOString();
       const id = uuidv4();
-      const type: ContentType = params.type ?? 'note';
+      const type: ContentType = 'note';
 
       const metadata: NoteMetadata = {
         id,
