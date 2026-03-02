@@ -67,6 +67,7 @@ export function createSaveTweetTool(context: PluginContext): AgentTool<typeof sc
 
         try {
           const mode: ProcessingMode = params.processingMode ?? 'full';
+          const vocabulary = context.sqlite.getAllTagsWithCounts().slice(0, 50);
           const result = await categorizeContent(
             processed.title,
             processed.content,
@@ -79,6 +80,8 @@ export function createSaveTweetTool(context: PluginContext): AgentTool<typeof sc
                 details: { phase: 'categorizing' },
               }),
             context.config.defaultModel as string,
+            undefined,
+            vocabulary,
           );
 
           category = result.category;

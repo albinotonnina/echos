@@ -66,6 +66,7 @@ export function createSaveYoutubeTool(context: PluginContext): AgentTool<typeof 
 
         try {
           const mode: ProcessingMode = params.processingMode ?? 'full';
+          const vocabulary = context.sqlite.getAllTagsWithCounts().slice(0, 50);
           const result = await categorizeContent(
             processed.title,
             processed.content,
@@ -78,6 +79,8 @@ export function createSaveYoutubeTool(context: PluginContext): AgentTool<typeof 
                 details: { phase: 'categorizing' },
               }),
             context.config.defaultModel as string,
+            undefined,
+            vocabulary,
           );
 
           category = result.category;

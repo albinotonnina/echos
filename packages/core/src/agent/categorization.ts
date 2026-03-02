@@ -44,8 +44,19 @@ export async function categorizeLightweight(
   onProgress?: (message: string) => void,
   modelId: string = MODEL_ID,
   baseUrl?: string,
+  vocabulary?: { tag: string; count: number }[],
 ): Promise<CategorizationResult> {
   logger.debug({ title }, 'Starting lightweight categorization');
+
+  const vocabSection =
+    vocabulary && vocabulary.length > 0
+      ? `\n## Existing Tag Vocabulary\nThe user already uses these tags (ranked by frequency):\n${
+          vocabulary
+            .slice(0, 50)
+            .map(({ tag, count }) => `  ${tag} (${count}x)`)
+            .join('\n')
+        }\n\nSTRONGLY PREFER reusing tags from this vocabulary. Only introduce a new tag if no existing tag fits.\n`
+      : '';
 
   const prompt = `Analyze the following content and provide categorization in JSON format:
 
@@ -53,7 +64,7 @@ Title: ${title}
 
 Content:
 ${content.slice(0, 5000)}
-
+${vocabSection}
 Please categorize this content with:
 1. A single, concise category (e.g., "programming", "health", "finance", "personal", "work")
 2. 3-5 relevant tags for organization and searchability
@@ -125,8 +136,19 @@ export async function processFull(
   onProgress?: (message: string) => void,
   modelId: string = MODEL_ID,
   baseUrl?: string,
+  vocabulary?: { tag: string; count: number }[],
 ): Promise<FullProcessingResult> {
   logger.debug({ title }, 'Starting full content processing');
+
+  const vocabSection =
+    vocabulary && vocabulary.length > 0
+      ? `\n## Existing Tag Vocabulary\nThe user already uses these tags (ranked by frequency):\n${
+          vocabulary
+            .slice(0, 50)
+            .map(({ tag, count }) => `  ${tag} (${count}x)`)
+            .join('\n')
+        }\n\nSTRONGLY PREFER reusing tags from this vocabulary. Only introduce a new tag if no existing tag fits.\n`
+      : '';
 
   const prompt = `Analyze the following content thoroughly and provide comprehensive processing in JSON format:
 
@@ -134,7 +156,7 @@ Title: ${title}
 
 Content:
 ${content.slice(0, 10000)}
-
+${vocabSection}
 Please provide:
 1. A single, concise category (e.g., "programming", "health", "finance", "personal", "work")
 2. 3-5 relevant tags for organization and searchability
@@ -230,10 +252,11 @@ export async function categorizeContent(
   onProgress?: (message: string) => void,
   modelId: string = MODEL_ID,
   baseUrl?: string,
+  vocabulary?: { tag: string; count: number }[],
 ): Promise<CategorizationResult | FullProcessingResult> {
   if (mode === 'lightweight') {
-    return categorizeLightweight(title, content, apiKey, logger, onProgress, modelId, baseUrl);
+    return categorizeLightweight(title, content, apiKey, logger, onProgress, modelId, baseUrl, vocabulary);
   } else {
-    return processFull(title, content, apiKey, logger, onProgress, modelId, baseUrl);
+    return processFull(title, content, apiKey, logger, onProgress, modelId, baseUrl, vocabulary);
   }
 }

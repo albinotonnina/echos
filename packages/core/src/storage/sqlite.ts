@@ -37,6 +37,10 @@ export interface SqliteStorage {
   listAllMemories(): MemoryEntry[];
   listTopMemories(limit: number): MemoryEntry[];
   searchMemory(query: string): MemoryEntry[];
+  // Tag management
+  getAllTagsWithCounts(): { tag: string; count: number }[];
+  renameTag(from: string, to: string): number;
+  mergeTags(tags: string[], into: string): number;
   // User preferences
   getAgentVoice(): string | null;
   setAgentVoice(instruction: string): void;
@@ -395,6 +399,37 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       VALUES (?, ?, ?)
       ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated=excluded.updated
     `),
+    getAllTagsWithCounts: db.prepare(`
+      WITH RECURSIVE
+        all_tags(tag, rest) AS (
+          SELECT
+            CASE WHEN instr(tags || ',', ',') > 0
+                 THEN substr(tags || ',', 1, instr(tags || ',', ',') - 1)
+                 ELSE tags END,
+            CASE WHEN instr(tags || ',', ',') > 0
+                 THEN substr(tags || ',', instr(tags || ',', ',') + 1)
+                 ELSE '' END
+          FROM notes WHERE tags != ''
+          UNION ALL
+          SELECT
+            CASE WHEN instr(rest, ',') > 0
+                 THEN substr(rest, 1, instr(rest, ',') - 1)
+                 ELSE rest END,
+            CASE WHEN instr(rest, ',') > 0
+                 THEN substr(rest, instr(rest, ',') + 1)
+                 ELSE '' END
+          FROM all_tags WHERE rest != ''
+        )
+      SELECT tag, COUNT(*) as count
+      FROM all_tags WHERE tag != ''
+      GROUP BY tag ORDER BY count DESC, tag ASC
+    `),
+    renameTag: db.prepare(`
+      UPDATE notes
+      SET tags = TRIM(REPLACE(',' || tags || ',', ',' || ? || ',', ',' || ? || ','), ','),
+          updated = ?
+      WHERE (',' || tags || ',') LIKE ('%,' || ? || ',%')
+    `),
   };
 
   return {
@@ -616,6 +651,29 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       }
 
       return results.sort((a, b) => b.confidence - a.confidence);
+    },
+
+    getAllTagsWithCounts(): { tag: string; count: number }[] {
+      return stmts.getAllTagsWithCounts.all() as { tag: string; count: number }[];
+    },
+
+    renameTag(from: string, to: string): number {
+      const now = new Date().toISOString();
+      const info = stmts.renameTag.run(to, to, now, from, from) as Database.RunResult;
+      return info.changes;
+    },
+
+    mergeTags(tags: string[], into: string): number {
+      return db.transaction((): number => {
+        const now = new Date().toISOString();
+        let total = 0;
+        for (const from of tags) {
+          if (from === into) continue;
+          const info = stmts.renameTag.run(into, into, now, from, from) as Database.RunResult;
+          total += info.changes;
+        }
+        return total;
+      })();
     },
 
     getAgentVoice(): string | null {

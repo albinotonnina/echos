@@ -21,3 +21,4 @@ export { saveConversationTool, type SaveConversationToolDeps } from './save-conv
 export { markContentTool, type MarkContentToolDeps } from './mark-content.js';
 export { createSetAgentVoiceTool, type SetAgentVoiceToolDeps } from './set-agent-voice.js';
 export { createExportNotesTool, type ExportNotesToolDeps } from './export-notes.js';
+export { createManageTagsTool, type ManageTagsToolDeps } from './manage-tags.js';

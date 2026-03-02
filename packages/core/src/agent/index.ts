@@ -24,6 +24,7 @@ import {
   createSetAgentVoiceTool,
   createExportNotesTool,
   listTodosTool,
+  createManageTagsTool,
 } from './tools/index.js';
 import type { SqliteStorage } from '../storage/sqlite.js';
 import type { MarkdownStorage } from '../storage/markdown.js';
@@ -146,6 +147,7 @@ export function createEchosAgent(deps: AgentDeps): Agent {
       markdown: deps.markdown,
       exportsDir: deps.exportsDir ?? './data/exports',
     }),
+    createManageTagsTool({ sqlite: deps.sqlite }),
   ];
 
   const tools = [...coreTools, ...(deps.pluginTools ?? [])];

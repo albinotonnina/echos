@@ -124,10 +124,10 @@ Content processors live in `plugins/` as separate workspace packages. Each plugi
 - Receives a `PluginContext` with storage, embeddings, logger, and config
 - Is registered via `PluginRegistry` in the application entry point
 
-Core tools (create_note, search, get, list, update, delete, reminders, memory, linking, categorize_note, save_conversation, mark_content, export_notes) remain in `@echos/core`.
+Core tools (create_note, search, get, list, update, delete, reminders, memory, linking, categorize_note, save_conversation, mark_content, export_notes, manage_tags) remain in `@echos/core`.
 Domain-specific processors (YouTube, article, image, etc.) are plugins.
 
-Plugins can optionally use the AI categorization service from `@echos/core` to automatically extract category, tags, gist, summary, and key points from content. See [Categorization](/categorization) for details.
+Plugins can optionally use the AI categorization service from `@echos/core` to automatically extract category, tags, gist, summary, and key points from content. The categorization pipeline is **vocabulary-aware**: before calling the LLM, it fetches the top 50 most-used tags from SQLite and injects them into the prompt, steering the model to reuse existing tags rather than coining synonyms. See [Categorization](/categorization) for details.
 
 ### Available Plugins
 
@@ -141,7 +141,7 @@ See [Building a Plugin](/plugins) for detailed plugin documentation.
 
 ## Storage Architecture
 
-**SQLite** (better-sqlite3): Structured metadata index, FTS5 full-text search, memory store, reminders. The memory table stores long-term personal facts with a confidence score (0–1) and kind (`fact`, `preference`, `person`, `project`, `expertise`). Notes also store a `content_hash` (SHA-256) used to detect changes and skip unnecessary re-embedding. The `status` column tracks content lifecycle (`saved`, `read`, `archived`) and `input_source` records how content was captured (`text`, `voice`, `url`, `file`, `image`). For images, additional columns store `image_path` (local file path), `image_url` (source URL), `image_metadata` (JSON with dimensions, format, EXIF), and `ocr_text` (for future OCR support).
+**SQLite** (better-sqlite3): Structured metadata index, FTS5 full-text search, memory store, reminders, and tag management. Tags are stored as comma-separated strings in the `tags` column. The `getAllTagsWithCounts()` method uses a recursive CTE to split and aggregate tags across all notes. `renameTag()` and `mergeTags()` use the `',' || tags || ','` wrapping trick to avoid substring false matches when replacing tag values in-place. Both operations automatically keep the FTS5 index in sync via the existing `notes_au` AFTER UPDATE trigger. The memory table stores long-term personal facts with a confidence score (0–1) and kind (`fact`, `preference`, `person`, `project`, `expertise`). Notes also store a `content_hash` (SHA-256) used to detect changes and skip unnecessary re-embedding. The `status` column tracks content lifecycle (`saved`, `read`, `archived`) and `input_source` records how content was captured (`text`, `voice`, `url`, `file`, `image`). For images, additional columns store `image_path` (local file path), `image_url` (source URL), `image_metadata` (JSON with dimensions, format, EXIF), and `ocr_text` (for future OCR support).
 
 **LanceDB** (embedded): Vector embeddings for semantic search. No server process needed.
 
