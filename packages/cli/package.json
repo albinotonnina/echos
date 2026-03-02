@@ -21,11 +21,11 @@
     "@echos/plugin-youtube": "workspace:*",
     "@echos/plugin-twitter": "workspace:*",
     "@echos/plugin-resurface": "workspace:*",
-    "@mariozechner/pi-agent-core": "^0.54.2",
+    "@mariozechner/pi-agent-core": "^0.55.3",
     "pino": "^10.3.1"
   },
   "devDependencies": {
-    "@types/node": "^25.3.0",
+    "@types/node": "^25.3.3",
     "typescript": "^5.7.0"
   }
 }
