@@ -39,7 +39,7 @@ export function createSaveImageTool(context: PluginContext): AgentTool<typeof sc
     description:
       'Save an image to the knowledge base. Provide either imageUrl or imageData. Extracts metadata (dimensions, format, EXIF).',
     parameters: schema,
-    execute: async (_toolCallId, params: Params, _signal, onUpdate) => {
+    execute: async (_toolCallId: string, params: Params, _signal, onUpdate) => {
       if (!params.imageUrl && !params.imageData) {
         throw new Error('Either imageUrl or imageData must be provided');
       }

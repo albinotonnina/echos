@@ -18,6 +18,7 @@ COPY plugins/image/package.json plugins/image/
 COPY plugins/digest/package.json plugins/digest/
 COPY plugins/twitter/package.json plugins/twitter/
 COPY plugins/resurface/package.json plugins/resurface/
+COPY plugins/journal/package.json plugins/journal/
 RUN pnpm install --frozen-lockfile --prod=false
 
 # Build
@@ -45,6 +46,7 @@ COPY --from=deps /app/plugins/image/package.json plugins/image/
 COPY --from=deps /app/plugins/digest/package.json plugins/digest/
 COPY --from=deps /app/plugins/twitter/package.json plugins/twitter/
 COPY --from=deps /app/plugins/resurface/package.json plugins/resurface/
+COPY --from=deps /app/plugins/journal/package.json plugins/journal/
 RUN pnpm install --prod --frozen-lockfile
 
 # Copy build artifacts (changes frequently, so last)
