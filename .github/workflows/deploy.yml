@@ -1,7 +1,7 @@
 name: Deploy to VPS
 
 on:
-  workflow_dispatch:   # manual trigger only — automatic deploys happen via release.yml on git tags
+  workflow_dispatch:   # manual trigger only — automatic deploys happen via release.yml (workflow_dispatch)
 
 jobs:
   deploy:
@@ -13,3 +13,4 @@ jobs:
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
       ENV_FILE: ${{ secrets.ENV_FILE }}
       WEB_PORT: ${{ secrets.WEB_PORT }}
+      ORACLE_KNOWN_HOSTS: ${{ secrets.ORACLE_KNOWN_HOSTS }}

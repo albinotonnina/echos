@@ -20,6 +20,11 @@ on:
         required: true
       WEB_PORT:
         required: false
+      ORACLE_KNOWN_HOSTS:
+        required: false
+        # Recommended: store the server's known_hosts line (from ssh-keyscan run
+        # once locally) to avoid runtime MITM risk. When absent, falls back to
+        # ssh-keyscan (convenient but not MITM-safe).
 
 permissions:
   contents: read
@@ -39,11 +44,17 @@ jobs:
 
       # ── 1. Set up SSH ─────────────────────────────────────────────────────────
       - name: Set up SSH
+        env:
+          ORACLE_KNOWN_HOSTS: ${{ secrets.ORACLE_KNOWN_HOSTS }}
         run: |
           mkdir -p ~/.ssh
           printf '%s' "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "${{ secrets.ORACLE_HOST }}" >> ~/.ssh/known_hosts
+          if [ -n "$ORACLE_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$ORACLE_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+          else
+            ssh-keyscan -H "${{ secrets.ORACLE_HOST }}" >> ~/.ssh/known_hosts
+          fi
 
       # ── 2. Create remote directories ──────────────────────────────────────────
       - name: Prepare remote directories
