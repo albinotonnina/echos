@@ -28,7 +28,17 @@ Execute in order. Stop and report if any step fails.
 ### Step 1: Identify the PR
 
 If the user provided a PR number or URL, extract the number.
-Otherwise ask:
+
+Otherwise, try to detect the PR automatically from the current branch/worktree:
+
+```bash
+gh pr view --json number,url,headRefName 2>/dev/null
+```
+
+If that returns a PR, use it and inform the user which PR was detected (number
++ title) before continuing.
+
+If no PR is found automatically, ask:
 
 > Which PR number (or URL) should I review?
 
