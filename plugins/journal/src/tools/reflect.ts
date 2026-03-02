@@ -151,8 +151,12 @@ export function createReflectTool(context: PluginContext): AgentTool<typeof sche
 
       const prompt = buildReflectionPrompt(entries, dateFrom, dateTo);
 
-      // Spawn sub-agent to generate the reflection
-      const agent = createEchosAgent(context.getAgentDeps());
+      // Spawn sub-agent to generate the reflection (disable tools to prevent confusion and save tokens)
+      const agent = createEchosAgent({
+        ...context.getAgentDeps(),
+        disableCoreTools: true,
+        pluginTools: [],
+      });
 
       let textBuffer = '';
       let toolExecuted = false;

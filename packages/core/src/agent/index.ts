@@ -54,6 +54,8 @@ export interface AgentDeps {
   /** Additional tools registered by plugins */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pluginTools?: AgentTool<any>[];
+  /** If set, core tools will not be loaded (useful for sub-agents) */
+  disableCoreTools?: boolean;
   /** Directory for writing temporary export files (default: ./data/exports) */
   exportsDir?: string;
 }
@@ -103,7 +105,7 @@ export function createEchosAgent(deps: AgentDeps): Agent {
   let agentRef: Agent | null = null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const coreTools: AgentTool<any>[] = [
+  const coreTools: AgentTool<any>[] = deps.disableCoreTools ? [] : [
     createNoteTool(storageDeps),
     searchKnowledgeTool({
       search: deps.search,
