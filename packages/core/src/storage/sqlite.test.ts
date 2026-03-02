@@ -444,12 +444,12 @@ describe('SQLite Job Schedules', () => {
 });
 
 describe('SQLite Tag Management', () => {
-  it('getAllTagsWithCounts returns tags ranked by frequency', () => {
+  it('getTopTagsWithCounts returns tags ranked by frequency', () => {
     storage.upsertNote(makeMeta({ id: 'a', tags: ['javascript', 'typescript'] }), '', '/a.md');
     storage.upsertNote(makeMeta({ id: 'b', tags: ['javascript', 'react'] }), '', '/b.md');
     storage.upsertNote(makeMeta({ id: 'c', tags: ['react'] }), '', '/c.md');
 
-    const tags = storage.getAllTagsWithCounts();
+    const tags = storage.getTopTagsWithCounts(500);
     expect(tags.find((t) => t.tag === 'javascript')?.count).toBe(2);
     expect(tags.find((t) => t.tag === 'react')?.count).toBe(2);
     expect(tags.find((t) => t.tag === 'typescript')?.count).toBe(1);
@@ -457,12 +457,12 @@ describe('SQLite Tag Management', () => {
     expect(tags[0]!.count).toBeGreaterThanOrEqual(tags[1]!.count);
   });
 
-  it('getAllTagsWithCounts counts distinct notes, not tag occurrences', () => {
+  it('getTopTagsWithCounts counts distinct notes, not tag occurrences', () => {
     // A single note with duplicate tags should count as 1, not 2
     storage.upsertNote(makeMeta({ id: 'a', tags: ['js', 'js'] }), '', '/a.md');
     storage.upsertNote(makeMeta({ id: 'b', tags: ['js'] }), '', '/b.md');
 
-    const tags = storage.getAllTagsWithCounts();
+    const tags = storage.getTopTagsWithCounts(500);
     // 2 distinct notes have 'js', even though note 'a' has it twice
     expect(tags.find((t) => t.tag === 'js')?.count).toBe(2);
   });

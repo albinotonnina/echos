@@ -46,10 +46,15 @@ function getAllNotesWithTag(
   tag: string,
 ): Array<{ id: string; filePath: string }> {
   const pageSize = 1000;
-  const page = sqlite.listNotes({ tags: [tag], limit: pageSize });
   const results: Array<{ id: string; filePath: string }> = [];
-  for (const note of page) {
-    results.push({ id: note.id, filePath: note.filePath });
+  let offset = 0;
+  while (true) {
+    const page = sqlite.listNotes({ tags: [tag], limit: pageSize, offset });
+    for (const note of page) {
+      results.push({ id: note.id, filePath: note.filePath });
+    }
+    if (page.length < pageSize) break;
+    offset += page.length;
   }
   return results;
 }
@@ -90,14 +95,18 @@ export function createManageTagsTool(deps: ManageTagsToolDeps): AgentTool<typeof
         }
 
         const lines = tags.map(({ tag, count }) => `- **${tag}** (${count} note${count === 1 ? '' : 's'})`);
+        const truncated = tags.length === limit;
+        const summary = truncated
+          ? `Top ${tags.length} tag${tags.length === 1 ? '' : 's'} in your knowledge base (there may be more — use a higher limit to see up to 500):`
+          : `${tags.length} tag${tags.length === 1 ? '' : 's'} in your knowledge base:`;
         return {
           content: [
             {
               type: 'text' as const,
-              text: `${tags.length} tag${tags.length === 1 ? '' : 's'} in your knowledge base:\n\n${lines.join('\n')}`,
+              text: `${summary}\n\n${lines.join('\n')}`,
             },
           ],
-          details: { total: tags.length, tags },
+          details: { total: tags.length, limit, truncated, tags },
         };
       }
 
