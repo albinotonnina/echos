@@ -22,8 +22,8 @@ git worktree remove ../echos-<feature-name>
 Rules:
 - Worktrees live as **siblings** of the main repo: `../echos-<name>`
 - Branch naming: `feature/<name>`, `fix/<name>`, `chore/<name>`
-- If you are already inside a worktree (i.e. `git branch --show-current` is not `main`), proceed
-- If you are on `main` and have not created a worktree yet — **stop and create one now**
+- If you are already inside a sibling worktree directory (e.g. `../echos-<name>`) and `git worktree list` shows it as a worktree, proceed
+- If you are in the original repo directory (e.g. `echos/`, often on `main`) and have not created a worktree yet — **stop and create one now**
 - This rule applies to every task: features, bug fixes, typo corrections, CLAUDE.md edits — everything
 
 **Skipping worktrees is not a shortcut. It is a mistake.**
