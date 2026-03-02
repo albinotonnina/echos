@@ -34,7 +34,7 @@ export function createSaveArticleTool(context: PluginContext): AgentTool<typeof 
     description:
       'Save a web article from a URL. Extracts content using Readability. Always set autoCategorize=true for AI categorization (category, tags, gist). Say "saved to your reading list" — not "added to your knowledge base".',
     parameters: schema,
-    execute: async (_toolCallId, params: Params, _signal, onUpdate) => {
+    execute: async (_toolCallId: string, params: Params, _signal, onUpdate) => {
       onUpdate?.({
         content: [{ type: 'text', text: `Fetching article from ${params.url}...` }],
         details: { phase: 'fetching' },

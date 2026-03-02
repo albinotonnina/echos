@@ -27,7 +27,7 @@ export function createJournalTool(context: PluginContext): AgentTool<typeof sche
     description:
       'Create a journal or diary entry. Use this tool for journal entries, daily reflections, mood logs, gratitude notes, and personal diary writing. For voice transcriptions pass inputSource="voice". After creating, ALWAYS call categorize_note (mode="lightweight") to assign category and tags. Do NOT use create_note for journal entries.',
     parameters: schema,
-    execute: async (_toolCallId, params: Params) => {
+    execute: async (_toolCallId: string, params: Params) => {
       const now = new Date().toISOString();
       const id = uuidv4();
 

@@ -114,7 +114,7 @@ export function createReflectTool(context: PluginContext): AgentTool<typeof sche
     description:
       'Generate an AI reflection and synthesis of journal entries over a time period. Use when the user asks for a journal reflection, weekly review, mood summary, or wants to look back at their journaling patterns.',
     parameters: schema,
-    execute: async (_toolCallId, params: Params) => {
+    execute: async (_toolCallId: string, params: Params) => {
       let dateFrom: string;
       let dateTo: string;
 
