@@ -17,6 +17,12 @@
 
 <div align="center">
 
+<a href="https://www.youtube.com/watch?v=D3QCQXqNewU">
+  <img src="assets/demo-cover.jpg" alt="EchOS One Shot Demo" width="800">
+</a>
+
+<br/>
+
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/P5P71PDYLX)
 
 </div>
