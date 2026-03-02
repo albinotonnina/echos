@@ -36,7 +36,7 @@ export function createSaveTweetTool(context: PluginContext): AgentTool<typeof sc
     description:
       'Save a tweet or thread from Twitter/X. Extracts content via FxTwitter API — supports twitter.com and x.com URLs. Threads by the same author are automatically unrolled into a clean article. Auto-categorizes with AI by default when AI is available. Say "saved to your reading list" — not "added to your knowledge base".',
     parameters: schema,
-    execute: async (_toolCallId, params: Params, _signal, onUpdate) => {
+    execute: async (_toolCallId: string, params: Params, _signal, onUpdate) => {
       onUpdate?.({
         content: [{ type: 'text', text: `Fetching tweet from ${params.url}...` }],
         details: { phase: 'fetching' },

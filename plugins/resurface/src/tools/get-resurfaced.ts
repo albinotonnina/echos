@@ -37,7 +37,7 @@ export function createGetResurfacedTool(context: PluginContext): AgentTool<typeo
       'After returning results, always offer to go deeper: "Want me to pull up the full note, search for related ideas, or mark any of these as read?" ' +
       'Updates each note\'s last-surfaced timestamp so the same note is not repeated within 7 days.',
     parameters: schema,
-    execute: async (_toolCallId, params: Params) => {
+    execute: async (_toolCallId: string, params: Params) => {
       const { sqlite } = context;
       const limit = Math.min(Math.floor(params.limit ?? 3), 10);
       const mode = params.mode ?? 'mix';
