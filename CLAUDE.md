@@ -1,5 +1,35 @@
 # CLAUDE.md - Instructions for Claude Code
 
+## ⛔ STOP — READ THIS FIRST BEFORE TOUCHING ANY FILE ⛔
+
+### Git Worktrees Are MANDATORY. No Exceptions.
+
+**NEVER make code changes directly on `main`. ALWAYS work in a git worktree.**
+
+Before writing a single line of code, creating a file, or running any build command:
+
+```bash
+# 1. Create a worktree (from the main repo root)
+git worktree add ../echos-<feature-name> -b feature/<feature-name>
+
+# 2. Move into it — ALL work happens here
+cd ../echos-<feature-name>
+
+# 3. When done and merged, clean up
+git worktree remove ../echos-<feature-name>
+```
+
+Rules:
+- Worktrees live as **siblings** of the main repo: `../echos-<name>`
+- Branch naming: `feature/<name>`, `fix/<name>`, `chore/<name>`
+- If you are already inside a worktree (i.e. `git branch --show-current` is not `main`), proceed
+- If you are on `main` and have not created a worktree yet — **stop and create one now**
+- This rule applies to every task: features, bug fixes, typo corrections, CLAUDE.md edits — everything
+
+**Skipping worktrees is not a shortcut. It is a mistake.**
+
+---
+
 ## Project Overview
 
 EchOS is a secure, self-hosted, agent-driven personal knowledge management system. It uses an LLM agent with tools (not rigid command routing) to interact naturally across Telegram, Web, and CLI interfaces.
@@ -59,6 +89,23 @@ export default myPlugin;
 
 Plugins receive a `PluginContext` with access to storage, embeddings, logger, and config.
 Register plugins via `PluginRegistry` in the entry point.
+
+**CRITICAL — Adding a new plugin checklist (ALWAYS do ALL of these):**
+1. Create `plugins/<name>/package.json` with the plugin package
+2. Add `plugins/<name>/package.json` to `pnpm-workspace.yaml` (if not glob-matched)
+3. Add `COPY plugins/<name>/package.json plugins/<name>/` to **both** the `deps` and `production` stages in `docker/Dockerfile`
+4. Add `COPY --from=deps /app/plugins/<name>/package.json plugins/<name>/` to the `production` stage in `docker/Dockerfile`
+5. Add the plugin's TypeScript path alias to the root `tsconfig.json` `paths` section
+6. Register the plugin in the daemon entry point
+
+**CRITICAL — Tool `execute` signatures must always include explicit types:**
+The `execute` function in `AgentTool` must always have an explicitly typed first parameter to avoid `TS7006` implicit `any` errors in plugin builds where TypeScript path resolution may differ from the root workspace:
+```typescript
+execute: async (_toolCallId: string, params: Params) => {
+  // ...
+}
+```
+Never write `async (_toolCallId, params: Params)` without the `: string` annotation.
 
 ### Tool Definitions (in @echos/core or plugins)
 Core tools use TypeBox schemas for pi-agent-core compatibility:
@@ -145,25 +192,6 @@ After completing any feature work, ALWAYS update the relevant documentation:
 
 Review `docs/TROUBLESHOOTING.mdx` to add any new common issues or solutions.
 
-## Git Worktrees (ALWAYS)
-
-**Every feature or fix must be implemented in a git worktree — never directly on `main`.**
-
-```bash
-# Create a worktree for a new feature
-git worktree add ../echos-<feature-name> -b feature/<feature-name>
-
-# Work inside the worktree
-cd ../echos-<feature-name>
-
-# When done, remove the worktree
-git worktree remove ../echos-<feature-name>
-```
-
-- Worktrees live as siblings of the main repo directory (e.g., `../echos-resurface`)
-- Branch naming: `feature/<name>`, `fix/<name>`, `chore/<name>`
-- Never skip this step — it keeps `main` clean and allows parallel work
-
 ## Recurring Workflows
 
 Three canonical workflows are defined as skills. Follow them exactly when triggered:
@@ -174,6 +202,7 @@ Three canonical workflows are defined as skills. Follow them exactly when trigge
 
 ## Do NOT
 
+- **Make code changes directly on `main` — always use a git worktree (see top of this file)**
 - Use `eval()`, `Function()`, or `vm` module
 - Execute shell commands with user input
 - Store secrets in code or logs
