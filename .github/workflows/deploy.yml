@@ -1,93 +1,16 @@
 name: Deploy to VPS
 
 on:
-  workflow_dispatch:   # manual trigger only — automatic deploys happen via release.yml on git tags
+  workflow_dispatch:   # manual trigger only — automatic deploys happen via release.yml (workflow_dispatch)
 
 jobs:
   deploy:
     name: Deploy to VPS
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      # ── 0. Checkout repository ─────────────────────────────────────────────────
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      # ── 1. Set up SSH ─────────────────────────────────────────────────────────
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "${{ secrets.ORACLE_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
-
-      # ── 2. Create remote directories ──────────────────────────────────────────
-      - name: Prepare remote directories
-        run: |
-          ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            "${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}" \
-            'mkdir -p echos/docker echos/data/{knowledge,db,sessions,logs} && sudo chown -R 1000:1000 echos/data/'
-
-      # ── 3. Upload docker-compose.yml ──────────────────────────────────────────
-      - name: Upload docker-compose.yml
-        run: |
-          scp -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            docker/docker-compose.yml \
-            "${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:echos/docker/docker-compose.yml"
-
-      # ── 4. Upload .env ─────────────────────────────────────────────────────────
-      #      The ENV_FILE secret should contain your full .env file contents.
-      #      It is written to a temp file and removed after upload — never logged.
-      - name: Upload .env
-        run: |
-          printf '%s' "${{ secrets.ENV_FILE }}" > /tmp/echos.env
-          chmod 600 /tmp/echos.env
-          scp -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            /tmp/echos.env \
-            "${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:echos/.env"
-          rm /tmp/echos.env
-
-      # ── 5. Pull latest image and restart ──────────────────────────────────────
-      - name: Deploy on VPS
-        run: |
-          ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            "${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}" << 'ENDSSH'
-            set -e
-            cd echos
-
-            mkdir -p data/knowledge data/db data/sessions data/logs
-            sudo chown -R 1000:1000 data/
-
-            echo "Pulling latest image from ghcr.io..."
-            cd docker
-            docker compose pull
-
-            echo "Restarting services..."
-            docker compose down
-            docker compose up -d
-
-            echo "Cleaning up unused Docker images..."
-            docker image prune -f
-            echo "Waiting for services..."
-            sleep 5
-
-            docker compose ps
-            echo ""
-            echo "Recent logs:"
-            docker compose logs --tail=20 echos
-          ENDSSH
-
-      # ── 6. Smoke test ─────────────────────────────────────────────────────────
-      - name: Health check
-        run: |
-          sleep 10
-          curl --fail --silent --max-time 10 \
-            "http://${{ secrets.ORACLE_HOST }}:${{ secrets.WEB_PORT || '3000' }}/health" \
-            && echo "Health check passed" \
-            || echo "Health check failed (non-fatal — web may be disabled)"
-        continue-on-error: true
+    uses: ./.github/workflows/_deploy-vps.yml
+    secrets:
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ENV_FILE: ${{ secrets.ENV_FILE }}
+      WEB_PORT: ${{ secrets.WEB_PORT }}
+      ORACLE_KNOWN_HOSTS: ${{ secrets.ORACLE_KNOWN_HOSTS }}

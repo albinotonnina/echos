@@ -128,6 +128,25 @@ function extractTextFromMessage(message: AgentMessage): string {
     .trim();
 }
 
+const ANTHROPIC_ERROR_MESSAGES: Record<string, string> = {
+  overloaded_error: 'Anthropic is overloaded at the moment — please try again in a bit.',
+  rate_limit_error: 'You\'ve hit the rate limit — please wait a moment before trying again.',
+  api_error: 'Anthropic returned an unexpected error — please try again.',
+  authentication_error: 'There\'s an issue with the Anthropic API key.',
+  permission_error: 'The Anthropic API key doesn\'t have permission for this request.',
+  invalid_request_error: 'The request was invalid — please try rephrasing.',
+};
+
+function friendlyAnthropicError(raw: string): string {
+  try {
+    const parsed = JSON.parse(raw) as { error?: { type?: string; message?: string } };
+    const type = parsed.error?.type ?? '';
+    return ANTHROPIC_ERROR_MESSAGES[type] ?? parsed.error?.message ?? raw;
+  } catch {
+    return raw;
+  }
+}
+
 export async function streamAgentResponse(
   agent: Agent,
   prompt: string,
@@ -276,7 +295,7 @@ export async function streamAgentResponse(
   } else if (agentError && isAgentMessageOverflow(lastAssistantMessage, agent.state.model.contextWindow)) {
     await updateMessage('⚠️ Conversation history is too long. Use /reset to start a new session.');
   } else if (agentError) {
-    await updateMessage(`⚠️ Error: ${agentError}`);
+    await updateMessage(`⚠️ ${friendlyAnthropicError(agentError)}`);
   } else if (lastAssistantMessage) {
     const fallbackText = extractTextFromMessage(lastAssistantMessage);
     await updateMessage(fallbackText || 'Done.');

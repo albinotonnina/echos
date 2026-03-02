@@ -1,58 +1,123 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
-  pull_request:
-    types:
-      - closed
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type'
+        required: true
+        default: 'minor'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      deploy_to_vps:
+        description: 'Deploy to VPS after release'
+        required: false
+        default: false
+        type: boolean
+
+# Only one release may run at a time — prevents races on version bumps and tags.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 permissions:
-  contents: write # create GitHub Releases, Tags
+  contents: write # create GitHub Releases, commits, tags
   packages: write # push to ghcr.io
 
 jobs:
-  auto-tag:
-    name: Auto Tag on Release PR Merge
-    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/v')
+  # ── 0. Bump version, commit, tag, and push ────────────────────────────────
+  prepare:
+    name: Prepare Release
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Guard: only allow releases from the default branch to prevent unreviewed
+    # workflow definitions from accessing RELEASE_PAT and VPS secrets.
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+
     steps:
+      - name: Ensure RELEASE_PAT is set
+        env:
+          RELEASE_PAT: ${{ secrets.RELEASE_PAT }}
+        run: |
+          if [ -z "$RELEASE_PAT" ]; then
+            echo "Error: secrets.RELEASE_PAT is required so that the version-bump commit and tag push trigger downstream workflows (e.g. update-homebrew.yml). Set it in repo settings."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.RELEASE_PAT || github.token }}
+          token: ${{ secrets.RELEASE_PAT }}
+          fetch-depth: 0
+          ref: main
 
-      - name: Extract Tag Name
-        id: extract_tag
-        run: |
-          # Extract the version from the branch name 'release/v0.5.5' -> 'v0.5.5'
-          TAG_NAME=${GITHUB_HEAD_REF#release/}
-          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
-      - name: Create and Push Tag
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run build
+        run: pnpm build
+
+      - name: Run typecheck
+        run: pnpm typecheck
+
+      - name: Run tests
+        run: pnpm test
+      - name: Bump version
+        id: bump
         run: |
+          pnpm release --${{ inputs.bump }}
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=v${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Commit, tag, and push
+        run: |
+          VERSION=${{ steps.bump.outputs.version }}
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag ${{ steps.extract_tag.outputs.tag_name }}
-          git push origin ${{ steps.extract_tag.outputs.tag_name }}
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes staged — version may already be bumped. Aborting." && exit 1
+          fi
+          git commit -m "chore: release v${VERSION}"
+          git tag "v${VERSION}"
+          git push --atomic origin main "v${VERSION}"
 
-  # ── 1. Build & push multi-arch Docker image to ghcr.io ─────────────────────
+  # ── 1. Build & push multi-arch Docker image to ghcr.io ───────────────────
   docker:
     name: Build & Push Docker image
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    if: startsWith(github.ref, 'refs/tags/v')
-    outputs:
-      image: ${{ steps.meta.outputs.tags }}
+    needs: [prepare]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          ref: ${{ needs.prepare.outputs.tag }}
           fetch-depth: 0
+
+      - name: Compute major.minor tag
+        id: semver
+        run: |
+          VERSION=${{ needs.prepare.outputs.version }}
+          MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1,2)
+          echo "major_minor=${MAJOR_MINOR}" >> $GITHUB_OUTPUT
 
       - name: Docker meta
         id: meta
@@ -60,8 +125,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/echos
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ needs.prepare.outputs.version }}
+            type=raw,value=${{ steps.semver.outputs.major_minor }}
             type=raw,value=latest
 
       - name: Set up QEMU (for arm64 cross-compile)
@@ -89,29 +154,30 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ── 2. Create GitHub Release with auto-generated changelog ──────────────────
+  # ── 2. Create GitHub Release with auto-generated changelog ────────────────
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [docker]
-    if: startsWith(github.ref, 'refs/tags/v') && needs.docker.result == 'success'
+    needs: [prepare, docker]
     timeout-minutes: 5
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0 # needed for changelog generation
+          ref: ${{ needs.prepare.outputs.tag }}
+          fetch-depth: 0
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
           generate_release_notes: true
           body: |
             ## Docker
 
             ```bash
-            docker pull ghcr.io/${{ github.repository_owner }}/echos:${{ github.ref_name }}
+            docker pull ghcr.io/${{ github.repository_owner }}/echos:${{ needs.prepare.outputs.version }}
             ```
 
             Or update your running instance:
@@ -119,4 +185,18 @@ jobs:
             pnpm update-echos
             ```
 
-            To deploy to your VPS manually, use the "Deploy to VPS" workflow from the Actions tab.
+  # ── 3. Optional: Deploy to VPS ────────────────────────────────────────────
+  deploy-vps:
+    name: Deploy to VPS
+    needs: [prepare, release]
+    if: ${{ inputs.deploy_to_vps == 'true' }}
+    uses: ./.github/workflows/_deploy-vps.yml
+    with:
+      ref: ${{ needs.prepare.outputs.tag }}
+    secrets:
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ENV_FILE: ${{ secrets.ENV_FILE }}
+      WEB_PORT: ${{ secrets.WEB_PORT }}
+      ORACLE_KNOWN_HOSTS: ${{ secrets.ORACLE_KNOWN_HOSTS }}

@@ -1,0 +1,123 @@
+name: Deploy to VPS (reusable)
+
+# Reusable workflow — called by deploy.yml (standalone) and release.yml (post-release).
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Git ref to checkout (tag, branch, or SHA). Defaults to HEAD.'
+        required: false
+        default: ''
+        type: string
+    secrets:
+      ORACLE_SSH_KEY:
+        required: true
+      ORACLE_HOST:
+        required: true
+      ORACLE_USER:
+        required: true
+      ENV_FILE:
+        required: true
+      WEB_PORT:
+        required: false
+      ORACLE_KNOWN_HOSTS:
+        required: false
+        # Recommended: store the server's known_hosts line (from ssh-keyscan run
+        # once locally) to avoid runtime MITM risk. When absent, falls back to
+        # ssh-keyscan (convenient but not MITM-safe).
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # ── 0. Checkout repository ─────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+
+      # ── 1. Set up SSH ─────────────────────────────────────────────────────────
+      - name: Set up SSH
+        env:
+          ORACLE_KNOWN_HOSTS: ${{ secrets.ORACLE_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s' "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          if [ -n "$ORACLE_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$ORACLE_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+          else
+            ssh-keyscan -H "${{ secrets.ORACLE_HOST }}" >> ~/.ssh/known_hosts
+          fi
+
+      # ── 2. Create remote directories ──────────────────────────────────────────
+      - name: Prepare remote directories
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            "${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}" \
+            'mkdir -p echos/docker echos/data/{knowledge,db,sessions,logs} && sudo chown -R 1000:1000 echos/data/'
+
+      # ── 3. Upload docker-compose.yml ──────────────────────────────────────────
+      - name: Upload docker-compose.yml
+        run: |
+          scp -i ~/.ssh/deploy_key \
+            docker/docker-compose.yml \
+            "${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:echos/docker/docker-compose.yml"
+
+      # ── 4. Upload .env ─────────────────────────────────────────────────────────
+      #      The ENV_FILE secret should contain your full .env file contents.
+      #      It is written to a temp file and removed after upload — never logged.
+      - name: Upload .env
+        run: |
+          printf '%s' "${{ secrets.ENV_FILE }}" > /tmp/echos.env
+          chmod 600 /tmp/echos.env
+          scp -i ~/.ssh/deploy_key \
+            /tmp/echos.env \
+            "${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:echos/.env"
+          rm /tmp/echos.env
+
+      # ── 5. Pull latest image and restart ──────────────────────────────────────
+      - name: Deploy on VPS
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            "${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}" << 'ENDSSH'
+            set -e
+            cd echos
+
+            mkdir -p data/knowledge data/db data/sessions data/logs
+            sudo chown -R 1000:1000 data/
+
+            echo "Pulling latest image from ghcr.io..."
+            cd docker
+            docker compose pull
+
+            echo "Restarting services..."
+            docker compose down
+            docker compose up -d
+
+            echo "Cleaning up unused Docker images..."
+            docker image prune -f
+            echo "Waiting for services..."
+            sleep 5
+
+            docker compose ps
+            echo ""
+            echo "Recent logs:"
+            docker compose logs --tail=20 echos
+          ENDSSH
+
+      # ── 6. Smoke test ─────────────────────────────────────────────────────────
+      - name: Health check
+        run: |
+          sleep 10
+          curl --fail --silent --max-time 10 \
+            "http://${{ secrets.ORACLE_HOST }}:${{ secrets.WEB_PORT || '3000' }}/health" \
+            && echo "Health check passed" \
+            || echo "Health check failed (non-fatal — web may be disabled)"
+        continue-on-error: true
