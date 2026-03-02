@@ -542,6 +542,28 @@ describe('SQLite Tag Management', () => {
     expect(storage.getNote('a')!.tags).toBe('react');
   });
 
+  it('renameTag is safe when tag contains SQL wildcard characters (% or _)', () => {
+    // A tag containing '%' must not match other tags via LIKE wildcard expansion
+    storage.upsertNote(makeMeta({ id: 'a', tags: ['100%'] }), '', '/a.md');
+    storage.upsertNote(makeMeta({ id: 'b', tags: ['100x'] }), '', '/b.md');
+
+    // renaming '100%' should only affect note 'a', not 'b'
+    const affected = storage.renameTag('100%', 'perfect');
+    expect(affected).toBe(1);
+    expect(storage.getNote('a')!.tags).toBe('perfect');
+    expect(storage.getNote('b')!.tags).toBe('100x');
+  });
+
+  it('listNotes tag filter is safe when tag contains SQL wildcard characters', () => {
+    storage.upsertNote(makeMeta({ id: 'a', tags: ['100%'] }), '', '/a.md');
+    storage.upsertNote(makeMeta({ id: 'b', tags: ['100x'] }), '', '/b.md');
+
+    // filtering by '100%' should return only note 'a', not 'b'
+    const results = storage.listNotes({ tags: ['100%'] });
+    expect(results).toHaveLength(1);
+    expect(results[0]!.id).toBe('a');
+  });
+
   it('FTS index stays in sync after renameTag', () => {
     storage.upsertNote(makeMeta({ id: 'a', tags: ['js'] }), 'content', '/a.md');
 

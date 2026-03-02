@@ -486,7 +486,7 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
             )
           ),
           updated = ?
-      WHERE (',' || tags || ',') LIKE ('%,' || ? || ',%')
+      WHERE INSTR(',' || tags || ',', ',' || ? || ',') > 0
     `),
   };
 
@@ -558,8 +558,8 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       }
       if (opts.tags && opts.tags.length > 0) {
         for (const tag of opts.tags) {
-          conditions.push("(',' || tags || ',') LIKE ?");
-          params.push(`%,${tag},%`);
+          conditions.push("INSTR(',' || tags || ',', ',' || ? || ',') > 0");
+          params.push(tag);
         }
       }
 
