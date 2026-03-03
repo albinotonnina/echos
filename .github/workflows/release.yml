@@ -189,7 +189,7 @@ jobs:
   deploy-vps:
     name: Deploy to VPS
     needs: [prepare, release]
-    if: ${{ inputs.deploy_to_vps == 'true' }}
+    if: ${{ inputs.deploy_to_vps == true }}
     uses: ./.github/workflows/_deploy-vps.yml
     with:
       ref: ${{ needs.prepare.outputs.tag }}
