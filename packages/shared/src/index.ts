@@ -35,3 +35,4 @@ export {
   type RateLimiter,
 } from './security/index.js';
 export { isValidCron, isValidCronField } from './cron.js';
+export { getVersion } from './version.js';

@@ -9,6 +9,7 @@ import {
   MODEL_PRESETS,
   type ModelPreset,
 } from '@echos/core';
+import { getVersion } from '@echos/shared';
 import {
   createAuthMiddleware,
   createRateLimitMiddleware,
@@ -62,6 +63,12 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
         '- Send voice messages to transcribe and process them\n' +
         '- Manage reminders and more',
     );
+  });
+
+  // /version command - show running EchOS version
+  bot.command('version', async (ctx) => {
+    const version = getVersion();
+    await ctx.reply(`EchOS v${version}`);
   });
 
   // /reset command - clear agent session
