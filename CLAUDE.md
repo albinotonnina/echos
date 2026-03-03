@@ -178,6 +178,17 @@ Same requirements as the original CLAUDE.md apply:
 - Test security-critical functions thoroughly
 - Use `vitest run` from root
 
+## Build Verification (MANDATORY before every commit)
+
+**Always run `pnpm -r build` before committing.** TypeScript compilation errors in test files (e.g. unused `@ts-expect-error` directives, type errors in mock code) are caught by `tsc` during the build — not by the test runner alone — because `tsc` includes `*.test.ts` files in the workspace build.
+
+```bash
+pnpm -r build   # must pass with zero errors
+pnpm vitest run # must pass (or failures must be pre-existing, not introduced)
+```
+
+Never commit if `pnpm -r build` reports errors.
+
 ## Documentation
 
 After completing any feature work, ALWAYS update the relevant documentation:
