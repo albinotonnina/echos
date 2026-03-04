@@ -21,12 +21,12 @@ mounts effectively read-only even though the SSH key has full access.
 making Docker write volume files as the host user. To activate:
 
 ```bash
-# On the server — add your UID/GID to the Docker .env (next to docker-compose.yml)
+# On the server — add your UID/GID to docker/.env (compose reads this for variable substitution)
 echo "UID=$(id -u)" >> ~/echos/docker/.env
 echo "GID=$(id -g)" >> ~/echos/docker/.env
 
 # Re-own any files created before this fix
-sudo chown -R $(id -u):$(id -g) ~/echos/data/knowledge
+sudo chown -R $(id -u):$(id -g) ~/echos/data
 
 # Restart Docker with the new user setting
 cd ~/echos/docker && docker compose up -d --force-recreate

@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { basename } from 'node:path';
 import chokidar from 'chokidar';
 import matter from 'gray-matter';
 import type { Logger } from 'pino';
@@ -101,6 +102,11 @@ export function createFileWatcher(opts: WatcherOptions): FileWatcher {
     logger.debug({ id: row.id, filePath }, 'File watcher: removed deleted note');
   }
 
+  // Ignore macOS resource fork / metadata files (._foo.md, .DS_Store, etc.)
+  const ignoredPrefixes = ['._', '.DS_Store'];
+  const isIgnored = (p: string): boolean =>
+    ignoredPrefixes.some(prefix => basename(p).startsWith(prefix));
+
   const watcher = chokidar.watch(`${baseDir}/**/*.md`, {
     ignoreInitial: true,
     persistent: true,
@@ -108,14 +114,17 @@ export function createFileWatcher(opts: WatcherOptions): FileWatcher {
   });
 
   watcher.on('add', (filePath) => {
+    if (isIgnored(filePath)) return;
     schedule(filePath, () => handleUpsert(filePath));
   });
 
   watcher.on('change', (filePath) => {
+    if (isIgnored(filePath)) return;
     schedule(filePath, () => handleUpsert(filePath));
   });
 
   watcher.on('unlink', (filePath) => {
+    if (isIgnored(filePath)) return;
     schedule(filePath, () => handleUnlink(filePath));
   });
 
