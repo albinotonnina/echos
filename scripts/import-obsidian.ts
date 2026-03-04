@@ -48,6 +48,7 @@ function parseArgs(): {
   source: string;
   target: string;
   type: ContentType;
+  typeExplicit: boolean;
   extraTags: string[];
   overrideCategory: string | undefined;
   force: boolean;
@@ -58,6 +59,7 @@ function parseArgs(): {
   let source = '';
   let target = './data/knowledge';
   let type: ContentType = 'note';
+  let typeExplicit = false;
   let extraTags: string[] = [];
   let overrideCategory: string | undefined;
   let force = false;
@@ -70,7 +72,7 @@ function parseArgs(): {
       case '--target': target = args[++i] ?? target; break;
       case '--type': {
         const t = args[++i] ?? '';
-        if (VALID_TYPES.has(t as ContentType)) type = t as ContentType;
+        if (VALID_TYPES.has(t as ContentType)) { type = t as ContentType; typeExplicit = true; }
         else { console.error(`Unknown type: ${t}. Valid: ${[...VALID_TYPES].join(', ')}`); process.exit(1); }
         break;
       }
@@ -97,7 +99,7 @@ function parseArgs(): {
     process.exit(1);
   }
 
-  return { source, target, type, extraTags, overrideCategory, force, dryRun, copy };
+  return { source, target, type, typeExplicit, extraTags, overrideCategory, force, dryRun, copy };
 }
 
 // ─── Date parsing ─────────────────────────────────────────────────────────────
@@ -213,6 +215,7 @@ function processFile(
   sourceRoot: string,
   targetRoot: string,
   defaultType: ContentType,
+  typeExplicit: boolean,
   extraTags: string[],
   overrideCategory: string | undefined,
   force: boolean,
@@ -253,12 +256,11 @@ function processFile(
   // id: preserve existing when --force, generate new otherwise
   const id = isNative ? (existingId as string) : randomUUID();
 
-  // type: --type overrides existing only when file wasn't native (or had no type);
-  //       for --force, honour existing type unless --type was explicitly passed and differs
+  // type: explicit --type always wins; otherwise keep existing valid type; fallback to default
   const rawType = data['type'] as string | undefined;
-  const type: ContentType = rawType && VALID_TYPES.has(rawType as ContentType)
-    ? (rawType as ContentType)
-    : defaultType;
+  const type: ContentType = typeExplicit
+    ? defaultType
+    : (rawType && VALID_TYPES.has(rawType as ContentType) ? (rawType as ContentType) : defaultType);
 
   // title
   const rawTitle = data['title'] ?? (data['aliases'] as string[] | undefined)?.[0];
@@ -347,7 +349,7 @@ function processFile(
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
-  const { source, target, type, extraTags, overrideCategory, force, dryRun, copy } = parseArgs();
+  const { source, target, type, typeExplicit, extraTags, overrideCategory, force, dryRun, copy } = parseArgs();
 
   if (dryRun) console.log('DRY RUN — no files will be written\n');
   if (force) console.log('FORCE mode — already-imported files will be re-processed');
@@ -375,7 +377,7 @@ async function main(): Promise<void> {
 
   for (const file of files) {
     const rel = relative(source, file);
-    const result = processFile(file, source, target, type, extraTags, overrideCategory, force, copy, dryRun);
+    const result = processFile(file, source, target, type, typeExplicit, extraTags, overrideCategory, force, copy, dryRun);
 
     if (result.status === 'converted') {
       const dest = result.outPath ?? file;
