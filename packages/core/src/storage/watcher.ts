@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { basename } from 'node:path';
 import chokidar from 'chokidar';
 import matter from 'gray-matter';
 import type { Logger } from 'pino';
@@ -103,10 +104,8 @@ export function createFileWatcher(opts: WatcherOptions): FileWatcher {
 
   // Ignore macOS resource fork / metadata files (._foo.md, .DS_Store, etc.)
   const ignoredPrefixes = ['._', '.DS_Store'];
-  const isIgnored = (p: string): boolean => {
-    const base = p.split('/').pop() ?? '';
-    return ignoredPrefixes.some(prefix => base.startsWith(prefix));
-  };
+  const isIgnored = (p: string): boolean =>
+    ignoredPrefixes.some(prefix => basename(p).startsWith(prefix));
 
   const watcher = chokidar.watch(`${baseDir}/**/*.md`, {
     ignoreInitial: true,

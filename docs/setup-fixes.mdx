@@ -21,7 +21,7 @@ mounts effectively read-only even though the SSH key has full access.
 making Docker write volume files as the host user. To activate:
 
 ```bash
-# On the server — add your UID/GID to the Docker .env (next to docker-compose.yml)
+# On the server — add your UID/GID to docker/.env (compose reads this for variable substitution)
 echo "UID=$(id -u)" >> ~/echos/docker/.env
 echo "GID=$(id -g)" >> ~/echos/docker/.env
 
@@ -32,7 +32,7 @@ sudo chown -R $(id -u):$(id -g) ~/echos/data
 cd ~/echos/docker && docker compose up -d --force-recreate
 ```
 
-See [Remote Access → SSHFS write access](/remote-access#enabling-write-access) for full details.
+See [Remote Access → SSHFS write access](/remote-access#sshfs-write-access) for full details.
 
 ## February 25, 2026 — Configurable Prompt Cache Retention
 
