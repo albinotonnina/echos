@@ -29,10 +29,18 @@ export function computeContentHash(content: string): string {
   return createHash('sha256').update(content).digest('hex');
 }
 
+// macOS resource fork / metadata files — always safe to ignore
+const IGNORED_PREFIXES = ['._', '.DS_Store'];
+
+function isIgnoredFile(name: string): boolean {
+  return IGNORED_PREFIXES.some(prefix => name.startsWith(prefix));
+}
+
 function scanMarkdownFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];
   const paths: string[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (isIgnoredFile(entry.name)) continue;
     const fullPath = join(dir, entry.name);
     if (entry.isDirectory()) {
       paths.push(...scanMarkdownFiles(fullPath));
