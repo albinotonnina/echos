@@ -37,7 +37,6 @@ fatal()   { error "$*"; exit 1; }
 
 detect_platform() {
   OS="$(uname -s)"
-  ARCH="$(uname -m)"
   case "$OS" in
     Darwin) PLATFORM="macos" ;;
     Linux)  PLATFORM="linux" ;;
@@ -137,7 +136,9 @@ ensure_redis() {
       fi
     elif [ "$PLATFORM" = "linux" ]; then
       if command -v apt-get >/dev/null 2>&1; then
-        sudo apt-get update -qq && sudo apt-get install -y redis-server || fatal "Failed to install Redis"
+        if ! sudo apt-get update -qq || ! sudo apt-get install -y redis-server; then
+          fatal "Failed to install Redis"
+        fi
         sudo systemctl enable --now redis-server
         success "Redis installed and started"
       else
