@@ -211,6 +211,17 @@ Three canonical workflows are defined as skills. Follow them exactly when trigge
 - **Creating a branch before a PR** → follow `.claude/skills/create-branch/SKILL.md`
 - **Reviewing and resolving PR comments** → follow `.claude/skills/review-pr-comments/SKILL.md`
 
+## Git — Non-interactive Commands
+
+Never let git open an interactive editor (vim, nano, etc.). Always use environment variables or flags to keep git fully non-interactive:
+
+- `git rebase --continue` → prefix with `GIT_EDITOR=true` so the commit message is accepted as-is:
+  ```bash
+  GIT_EDITOR=true git rebase --continue
+  ```
+- `git commit` → use `-m "message"` (never rely on the editor fallback)
+- `git merge` → use `--no-edit` when the default message is acceptable
+
 ## Do NOT
 
 - **Make code changes directly on `main` — always use a git worktree (see top of this file)**
