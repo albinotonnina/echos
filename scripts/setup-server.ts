@@ -60,6 +60,13 @@ const FORBIDDEN_SYSTEM_DIRS = ['/', '/etc', '/usr', '/bin', '/sbin', '/lib', '/l
 /** CSRF token required for all POST requests. */
 const CSRF_TOKEN = randomBytes(32).toString('hex');
 
+/**
+ * Test mode: set SETUP_TEST_MODE=1 to:
+ *  - skip auto-opening the browser on startup
+ *  - expose GET /api/test/csrf (returns the CSRF token for tests)
+ */
+const TEST_MODE = process.env['SETUP_TEST_MODE'] === '1';
+
 const args = process.argv.slice(2);
 
 // Detect Homebrew install by checking if this script lives under a Homebrew
@@ -358,17 +365,27 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // Test-only endpoint: returns CSRF token so tests can make authenticated POST requests.
+    // Only active when SETUP_TEST_MODE=1 — never exposed in production.
+    if (TEST_MODE && req.method === 'GET' && url.pathname === '/api/test/csrf') {
+      json(res, { token: CSRF_TOKEN });
+      return;
+    }
+
     if (req.method === 'GET' && url.pathname === '/api/setup/existing') {
-      // Resolve the actual ECHOS_HOME: check persisted config, then env, then default
+      // Resolve the actual ECHOS_HOME: check persisted config, then env, then default.
+      // In TEST_MODE, skip the persisted config lookup so tests start from a clean slate.
       let echosHomeForExisting = DEFAULT_ECHOS_HOME;
-      const persistedHomePath = path.join(homedir(), '.config', 'echos', 'home');
-      if (fs.existsSync(persistedHomePath)) {
-        const persisted = fs.readFileSync(persistedHomePath, 'utf8').trim();
-        if (persisted) {
-          const expanded = expandTilde(persisted);
-          const resolved = path.resolve(expanded);
-          if (path.isAbsolute(resolved)) {
-            echosHomeForExisting = resolved;
+      if (!TEST_MODE) {
+        const persistedHomePath = path.join(homedir(), '.config', 'echos', 'home');
+        if (fs.existsSync(persistedHomePath)) {
+          const persisted = fs.readFileSync(persistedHomePath, 'utf8').trim();
+          if (persisted) {
+            const expanded = expandTilde(persisted);
+            const resolved = path.resolve(expanded);
+            if (path.isAbsolute(resolved)) {
+              echosHomeForExisting = resolved;
+            }
           }
         }
       }
@@ -1020,6 +1037,9 @@ server.on('error', (err: NodeJS.ErrnoException) => {
 server.listen(PORT, '127.0.0.1', () => {
   const url = `http://127.0.0.1:${PORT}/setup`;
   console.log(`\n  \x1b[1m\x1b[36mEchOS Setup\x1b[0m is running at: \x1b[36m${url}\x1b[0m\n`);
+
+  // Skip browser open in test mode
+  if (TEST_MODE) return;
 
   // Try to open browser
   const openCmd = process.platform === 'darwin'

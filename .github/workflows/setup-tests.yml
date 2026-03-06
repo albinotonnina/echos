@@ -1,0 +1,95 @@
+name: Setup Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'install.sh'
+      - 'scripts/setup.ts'
+      - 'scripts/setup-lib.ts'
+      - 'scripts/setup-server.ts'
+      - 'scripts/setup.test.ts'
+      - 'scripts/setup-server.test.ts'
+      - 'vitest.config.ts'
+      - 'tests/e2e/setup/**'
+      - '.github/workflows/setup-tests.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'install.sh'
+      - 'scripts/setup.ts'
+      - 'scripts/setup-lib.ts'
+      - 'scripts/setup-server.ts'
+      - 'scripts/setup.test.ts'
+      - 'scripts/setup-server.test.ts'
+      - 'vitest.config.ts'
+      - 'tests/e2e/setup/**'
+      - '.github/workflows/setup-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  # ─── Job 1: ShellCheck static analysis ────────────────────────────────────
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+      - name: Run shellcheck on install.sh
+        run: shellcheck install.sh
+
+  # ─── Job 2: Unit + integration tests (Steps 2, 3, 4) ─────────────────────
+  unit-integration-tests:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run setup tests
+        run: pnpm vitest run scripts/
+        timeout-minutes: 5
+
+  # ─── Job 3: E2E install.sh test ───────────────────────────────────────────
+  e2e-install:
+    name: E2E Install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Redis
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y redis-server
+          sudo systemctl enable --now redis-server
+
+      - name: Run install.sh (non-interactive, using local repo)
+        env:
+          ECHOS_INSTALL_DIR: /tmp/echos-test
+          ECHOS_NON_INTERACTIVE: '1'
+          ECHOS_REPO: ${{ github.workspace }}
+        run: bash install.sh
+        timeout-minutes: 15
+
+      - name: Run E2E assertions
+        env:
+          ECHOS_INSTALL_DIR: /tmp/echos-test
+        run: bash tests/e2e/setup/test-install.sh

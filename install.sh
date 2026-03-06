@@ -37,7 +37,6 @@ fatal()   { error "$*"; exit 1; }
 
 detect_platform() {
   OS="$(uname -s)"
-  ARCH="$(uname -m)"
   case "$OS" in
     Darwin) PLATFORM="macos" ;;
     Linux)  PLATFORM="linux" ;;
@@ -137,7 +136,9 @@ ensure_redis() {
       fi
     elif [ "$PLATFORM" = "linux" ]; then
       if command -v apt-get >/dev/null 2>&1; then
-        sudo apt-get update -qq && sudo apt-get install -y redis-server || fatal "Failed to install Redis"
+        if ! sudo apt-get update -qq || ! sudo apt-get install -y redis-server; then
+          fatal "Failed to install Redis"
+        fi
         sudo systemctl enable --now redis-server
         success "Redis installed and started"
       else
@@ -170,6 +171,18 @@ start_redis() {
 # ─── Clone / update ──────────────────────────────────────────────────────────
 
 clone_or_update() {
+  # If ECHOS_REPO is a local path (used in CI to avoid cloning), copy/link it instead.
+  if [ -d "$ECHOS_REPO" ] && [ "$ECHOS_REPO" != "https://github.com/albinotonnina/echos.git" ]; then
+    if [ -d "$ECHOS_INSTALL_DIR/.git" ]; then
+      info "Using local repo at $ECHOS_REPO (already present at $ECHOS_INSTALL_DIR, skipping copy)"
+    else
+      info "Using local repo at $ECHOS_REPO → $ECHOS_INSTALL_DIR"
+      mkdir -p "$ECHOS_INSTALL_DIR"
+      cp -r "$ECHOS_REPO"/. "$ECHOS_INSTALL_DIR"
+      success "Copied local repo"
+    fi
+    return
+  fi
   if [ -d "$ECHOS_INSTALL_DIR/.git" ]; then
     info "EchOS already cloned at $ECHOS_INSTALL_DIR — pulling latest..."
     git -C "$ECHOS_INSTALL_DIR" fetch origin
