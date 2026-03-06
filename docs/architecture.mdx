@@ -115,6 +115,24 @@ Export files are written to `data/exports/` (configurable via `exportsDir` in `A
 | **CLI** | Inline content → stdout; file exports → `--output` path or `./fileName` in CWD; path printed to stderr |
 | **Web** | `GET /api/export/:fileName` download endpoint; agent includes the URL in its text response |
 
+## Reading Queue
+
+Two core tools provide reading queue intelligence for saveable content types (articles, YouTube videos, tweets):
+
+### `reading_queue` Tool
+
+**Location:** `packages/core/src/agent/tools/reading-queue.ts`
+
+Lists unread items (`status = 'saved'`) sorted by recency. Accepts an optional `type` filter (`article`, `youtube`, `tweet`) and a `limit` (default 10). Uses `sqlite.listNotes({ status: 'saved', ... })`.
+
+### `reading_stats` Tool
+
+**Location:** `packages/core/src/agent/tools/reading-stats.ts`
+
+Aggregates reading progress via direct SQLite COUNT queries on the `notes` table. Returns total saved/read/archived counts, per-type breakdown, last-7-day activity, and a computed read-rate percentage. Uses `sqlite.db` directly (already a public property on `SqliteStorage`).
+
+The digest plugin (`plugins/digest`) includes a reading queue section in its prompt, calling `reading_queue` with `limit=3` to surface top unread items in the daily digest.
+
 ## Plugin Architecture
 
 Content processors live in `plugins/` as separate workspace packages. Each plugin:
