@@ -293,6 +293,54 @@ You can also export arbitrary content — agent responses, analysis results, or 
 
 ---
 
+### Reading Queue
+
+Track your reading backlog and understand your reading habits. Works across all saveable content types — articles, YouTube videos, and tweets.
+
+#### What's in my reading queue?
+
+**Tool:** `reading_queue`
+
+Lists your unread saved items (status: `saved`), sorted by most recently added. Filter by content type and set a limit.
+
+```
+What should I read next?
+Show my reading list.
+What's in my queue?
+Show me unread articles.
+Show me 5 unread YouTube videos.
+```
+
+Optional filters:
+- `type` — `article`, `youtube`, or `tweet`
+- `limit` — number of items to return (default: 10)
+
+Each result shows the title, type, tags, save date, source URL, and a one-line gist (if the content was auto-categorized).
+
+---
+
+#### Reading stats
+
+**Tool:** `reading_stats`
+
+Shows an overview of your reading progress across all saveable content.
+
+```
+How many articles have I read?
+What's my read rate?
+Show me my reading stats.
+How productive have I been this week with reading?
+```
+
+Returns:
+- **Overall:** total saved / read / archived counts and read-rate percentage
+- **Last 7 days:** new saves and items read in the past week
+- **By type:** breakdown for articles, YouTube videos, and tweets
+
+> **Tip:** After discussing or finishing a saved item, tell EchOS — it will call `mark_content` to update its status to `read` automatically.
+
+---
+
 ### Voice & personality
 
 #### Set agent voice
@@ -482,7 +530,7 @@ See the [Resurface Plugin](/plugins#resurface-plugin) for setting up a daily bro
 
 ### Digest plugin
 
-The digest plugin runs as a scheduled background job (not a direct tool). It generates a summary of recent notes and broadcasts it to your configured notification channel (Telegram).
+The digest plugin runs as a scheduled background job (not a direct tool). It generates a summary of recent notes — including a **Reading Queue** section with your top 3 unread items — and broadcasts it to your configured notification channel (Telegram).
 
 Configure it via the scheduler:
 
@@ -514,6 +562,10 @@ Send me a weekly digest every Sunday.
 | *"Categorize note abc"* | `categorize_note` |
 | *"Link these two notes"* | `link_notes` |
 | *"Mark article as read"* | `mark_content` |
+| *"What should I read next?"* | `reading_queue` |
+| *"Show my reading list / queue"* | `reading_queue` |
+| *"Show unread articles / videos"* | `reading_queue` |
+| *"What's my read rate / reading stats?"* | `reading_stats` |
 | *"Be more concise"* | `set_agent_voice` |
 | *"Surprise me / on this day / random note"* | `get_resurfaced` |
 | *"Save this article: URL"* | `save_article` |
