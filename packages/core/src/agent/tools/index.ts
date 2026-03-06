@@ -22,3 +22,5 @@ export { markContentTool, type MarkContentToolDeps } from './mark-content.js';
 export { createSetAgentVoiceTool, type SetAgentVoiceToolDeps } from './set-agent-voice.js';
 export { createExportNotesTool, type ExportNotesToolDeps } from './export-notes.js';
 export { createManageTagsTool, type ManageTagsToolDeps } from './manage-tags.js';
+export { createReadingQueueTool, type ReadingQueueToolDeps } from './reading-queue.js';
+export { createReadingStatsTool, type ReadingStatsToolDeps } from './reading-stats.js';
