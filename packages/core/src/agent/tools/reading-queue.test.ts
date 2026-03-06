@@ -139,6 +139,17 @@ describe('reading_queue — relevance sorting', () => {
     expect(firstText(result)).toContain('Sorted by relevance');
   });
 
+  it('does not show relevance note when fewer than 3 recent reads', async () => {
+    const recentDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+    // Only 2 recent reads — below the threshold
+    sqlite.upsertNote(makeMeta({ id: 'r1', title: 'Read 1', tags: ['ts'], status: 'read', updated: recentDate, created: recentDate }), '', '');
+    sqlite.upsertNote(makeMeta({ id: 'r2', title: 'Read 2', tags: ['ts'], status: 'read', updated: recentDate, created: recentDate }), '', '');
+    sqlite.upsertNote(makeMeta({ id: 's1', title: 'Saved 1', tags: ['ts'], status: 'saved', created: recentDate, updated: recentDate }), '', '');
+
+    const result = await callTool({});
+    expect(firstText(result)).not.toContain('Sorted by relevance');
+  });
+
   it('type filter still applies after relevance sorting', async () => {
     const recentDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
     sqlite.upsertNote(makeMeta({ id: 'r1', title: 'Read 1', tags: ['ts'], status: 'read', updated: recentDate, created: recentDate }), '', '');

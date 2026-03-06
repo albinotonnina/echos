@@ -123,7 +123,7 @@ Two core tools provide reading queue intelligence for saveable content types (ar
 
 **Location:** `packages/core/src/agent/tools/reading-queue.ts`
 
-Lists unread items (`status = 'saved'`) sorted by recency. Accepts an optional `type` filter (`article`, `youtube`, `tweet`) and a `limit` (default 10). Uses `sqlite.listNotes({ status: 'saved', ... })`.
+Lists unread items (`status = 'saved'`) sorted by **relevance to recent reading interests** — scored by tag overlap (×2), category match (×1), and recency (×0.5). Fetches up to 200 candidates, queries the last 20 read items from the past 30 days via `sqlite.db` to build an interest profile, scores in-process, and slices to `limit`. When ≥3 recent reads exist, the response includes a "Sorted by relevance" note. Accepts an optional `type` filter and a `limit` (default 10).
 
 ### `reading_stats` Tool
 

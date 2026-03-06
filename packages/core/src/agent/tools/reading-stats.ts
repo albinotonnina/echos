@@ -11,7 +11,6 @@ const schema = Type.Object({});
 type Params = Static<typeof schema>;
 
 const CONTENT_TYPES = ['article', 'youtube', 'tweet'] as const;
-const TYPE_IN = `('article','youtube','tweet')`;
 
 export function createReadingStatsTool(deps: ReadingStatsToolDeps): AgentTool<typeof schema> {
   return {
@@ -24,6 +23,8 @@ export function createReadingStatsTool(deps: ReadingStatsToolDeps): AgentTool<ty
       const db = deps.sqlite.db;
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
+      const typeBindings = { t0: CONTENT_TYPES[0], t1: CONTENT_TYPES[1], t2: CONTENT_TYPES[2] };
+
       const overallRow = db
         .prepare(
           `SELECT
@@ -33,9 +34,9 @@ export function createReadingStatsTool(deps: ReadingStatsToolDeps): AgentTool<ty
             SUM(CASE WHEN created >= @sevenDaysAgo               THEN 1 ELSE 0 END) AS recentSaves,
             SUM(CASE WHEN status = 'read' AND updated >= @sevenDaysAgo THEN 1 ELSE 0 END) AS recentReads
           FROM notes
-          WHERE type IN ${TYPE_IN}`,
+          WHERE type IN (@t0, @t1, @t2)`,
         )
-        .get({ sevenDaysAgo }) as {
+        .get({ sevenDaysAgo, ...typeBindings }) as {
           totalSaved: number | null;
           totalRead: number | null;
           totalArchived: number | null;
@@ -57,10 +58,10 @@ export function createReadingStatsTool(deps: ReadingStatsToolDeps): AgentTool<ty
             SUM(CASE WHEN status = 'read'     THEN 1 ELSE 0 END) AS read,
             SUM(CASE WHEN status = 'archived' THEN 1 ELSE 0 END) AS archived
           FROM notes
-          WHERE type IN ${TYPE_IN}
+          WHERE type IN (@t0, @t1, @t2)
           GROUP BY type`,
         )
-        .all() as { type: string; saved: number | null; read: number | null; archived: number | null }[];
+        .all(typeBindings) as { type: string; saved: number | null; read: number | null; archived: number | null }[];
 
       const byType: Record<string, { saved: number; read: number; archived: number }> = {};
       for (const t of CONTENT_TYPES) {
