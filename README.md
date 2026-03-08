@@ -7,6 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript)](https://www.typescriptlang.org)
+[![Version](https://img.shields.io/github/v/release/albinotonnina/echos?sort=semver)](https://github.com/albinotonnina/echos/releases)
 
 **[→ Full documentation at docs.echos.sh](https://docs.echos.sh)**
 
