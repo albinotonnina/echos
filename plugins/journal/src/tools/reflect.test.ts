@@ -47,6 +47,8 @@ const mockVectorDb = {
   search: async () => [],
   remove: async () => {},
   close: () => {},
+  listAllIds: async () => [],
+  getEmbeddingHealth: async () => [],
 };
 
 const stubEmbedding = async () => new Array(1536).fill(0);

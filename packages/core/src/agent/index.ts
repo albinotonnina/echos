@@ -27,6 +27,7 @@ import {
   createManageTagsTool,
   createReadingQueueTool,
   createReadingStatsTool,
+  createStorageHealthTool,
 } from './tools/index.js';
 import type { SqliteStorage } from '../storage/sqlite.js';
 import type { MarkdownStorage } from '../storage/markdown.js';
@@ -154,6 +155,7 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     createManageTagsTool({ sqlite: deps.sqlite, markdown: deps.markdown }),
     createReadingQueueTool({ sqlite: deps.sqlite }),
     createReadingStatsTool({ sqlite: deps.sqlite }),
+    createStorageHealthTool({ sqlite: deps.sqlite, markdown: deps.markdown, vectorDb: deps.vectorDb }),
   ];
 
   const tools = [...coreTools, ...(deps.pluginTools ?? [])];

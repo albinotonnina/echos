@@ -133,6 +133,19 @@ Aggregates reading progress via direct SQLite COUNT queries on the `notes` table
 
 The digest plugin (`plugins/digest`) includes a reading queue section in its prompt, calling `reading_queue` with `limit=3` to surface top unread items in the daily digest.
 
+### `storage_health` Tool
+
+**Location:** `packages/core/src/agent/tools/storage-health.ts`
+
+Reports data integrity across all three storage layers (SQLite, Markdown files on disk, LanceDB vector embeddings). The tool cross-references:
+
+- **Orphaned markdown files**: IDs present in the markdown index but absent from SQLite.
+- **Orphaned SQLite rows**: Rows whose `file_path` no longer exists on disk.
+- **Broken embeddings**: LanceDB entries whose vector is a zero-vector or empty.
+- **Missing embeddings**: IDs in SQLite that have no corresponding LanceDB entry.
+
+It uses two new `VectorStorage` methods (`listAllIds` and `getEmbeddingHealth`) added to `packages/core/src/storage/vectordb.ts`. Use this tool when the user asks about storage health, data integrity, or orphaned files.
+
 ## Plugin Architecture
 
 Content processors live in `plugins/` as separate workspace packages. Each plugin:

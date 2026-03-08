@@ -23,6 +23,8 @@ export interface VectorStorage {
   search(vector: number[], limit?: number): Promise<VectorSearchResult[]>;
   remove(id: string): Promise<void>;
   close(): void;
+  listAllIds(): Promise<string[]>;
+  getEmbeddingHealth(): Promise<{ id: string; isBroken: boolean }[]>;
 }
 
 const TABLE_NAME = 'documents';
@@ -97,6 +99,29 @@ export async function createVectorStorage(
 
     close(): void {
       logger.info('LanceDB connection closed');
+    },
+
+    async listAllIds(): Promise<string[]> {
+      try {
+        const rows = await table.query().select(['id']).toArray();
+        return rows.map((r) => r['id'] as string);
+      } catch {
+        return [];
+      }
+    },
+
+    async getEmbeddingHealth(): Promise<{ id: string; isBroken: boolean }[]> {
+      try {
+        const rows = await table.query().select(['id', 'vector']).toArray();
+        return rows.map((r) => {
+          const id = r['id'] as string;
+          const vec = r['vector'] as number[];
+          const isBroken = !Array.isArray(vec) || vec.length === 0 || vec.every((v) => v === 0);
+          return { id, isBroken };
+        });
+      } catch {
+        return [];
+      }
     },
   };
 }
