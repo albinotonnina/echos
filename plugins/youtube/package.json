@@ -22,7 +22,7 @@
     "openai": "^6.27.0",
     "pino": "^10.3.1",
     "uuid": "^13.0.0",
-    "youtube-transcript-api-js": "^2.2.0"
+    "youtube-transcript-api-js": "^3.0.1"
   },
   "devDependencies": {
     "@types/node": "^25.3.5",
