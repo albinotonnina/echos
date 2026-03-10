@@ -15,17 +15,17 @@
     "@distube/ytdl-core": "^4.16.12",
     "@echos/core": "workspace:*",
     "@echos/shared": "workspace:*",
-    "@mariozechner/pi-agent-core": "^0.55.3",
-    "@mariozechner/pi-ai": "^0.55.3",
+    "@mariozechner/pi-agent-core": "^0.57.1",
+    "@mariozechner/pi-ai": "^0.57.1",
     "@sinclair/typebox": "^0.34.48",
     "https-proxy-agent": "^7.0.6",
-    "openai": "^6.25.0",
+    "openai": "^6.27.0",
     "pino": "^10.3.1",
     "uuid": "^13.0.0",
     "youtube-transcript-api-js": "^2.2.0"
   },
   "devDependencies": {
-    "@types/node": "^25.3.3",
+    "@types/node": "^25.3.5",
     "@types/uuid": "^11.0.0",
     "typescript": "^5.7.0"
   }

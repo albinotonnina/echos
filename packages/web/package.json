@@ -16,13 +16,13 @@
     "@echos/shared": "workspace:*",
     "@fastify/cors": "^11.2.0",
     "@fastify/static": "^9.0.0",
-    "@mariozechner/pi-agent-core": "^0.55.3",
-    "fastify": "^5.7.4",
+    "@mariozechner/pi-agent-core": "^0.57.1",
+    "fastify": "^5.8.2",
     "pino": "^10.3.1",
     "@fastify/rate-limit": "^10.3.0"
   },
   "devDependencies": {
-    "@types/node": "^25.3.3",
+    "@types/node": "^25.3.5",
     "typescript": "^5.7.0"
   }
 }
