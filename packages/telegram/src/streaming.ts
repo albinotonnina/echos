@@ -41,6 +41,35 @@ function getToolEmoji(toolName: string): string {
 }
 
 /**
+ * Split text into chunks no longer than maxLen, preferring paragraph breaks.
+ */
+function chunkText(text: string, maxLen: number): string[] {
+  if (text.length <= maxLen) return [text];
+  const chunks: string[] = [];
+  const paragraphs = text.split(/\n\n+/);
+  let current = '';
+  for (const para of paragraphs) {
+    const candidate = current ? `${current}\n\n${para}` : para;
+    if (candidate.length <= maxLen) {
+      current = candidate;
+    } else {
+      if (current) chunks.push(current);
+      // If a single paragraph exceeds maxLen, hard-split it
+      if (para.length > maxLen) {
+        for (let i = 0; i < para.length; i += maxLen) {
+          chunks.push(para.slice(i, i + maxLen));
+        }
+        current = '';
+      } else {
+        current = para;
+      }
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks;
+}
+
+/**
  * Convert Claude's standard markdown to Telegram HTML.
  *
  * Telegram HTML supports: <b>, <i>, <u>, <s>, <code>, <pre>, <a href="…">
@@ -317,21 +346,19 @@ export async function streamAgentResponse(
     await updateMessage('Done.');
   }
 
-  // Deliver any created content (full text, sent as separate message so it doesn't get truncated)
+  // Deliver any created content — chunk on paragraph boundaries to avoid Telegram's 4096-char limit
   for (const content of pendingContent) {
-    try {
-      const html = markdownToHtml(content);
-      const truncated =
-        html.length > MAX_MESSAGE_LENGTH ? html.slice(0, MAX_MESSAGE_LENGTH - 3) + '...' : html;
-      await ctx.reply(truncated, { parse_mode: 'HTML' });
-    } catch {
-      // Non-fatal: try plain text fallback
+    const chunks = chunkText(content, MAX_MESSAGE_LENGTH);
+    for (const chunk of chunks) {
       try {
-        const truncated =
-          content.length > MAX_MESSAGE_LENGTH ? content.slice(0, MAX_MESSAGE_LENGTH - 3) + '...' : content;
-        await ctx.reply(truncated);
+        await ctx.reply(markdownToHtml(chunk), { parse_mode: 'HTML' });
       } catch {
-        // ignore
+        // Non-fatal: try plain text fallback
+        try {
+          await ctx.reply(chunk);
+        } catch {
+          // ignore
+        }
       }
     }
   }

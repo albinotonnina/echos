@@ -112,8 +112,11 @@ export function registerChatRoutes(
       });
     }
 
-    // If the agent's text response is empty but a content-creating tool ran, surface its output
-    const finalResponse = responseText || pendingToolContent;
+    // If a tool ran but no post-tool text arrived (toolExecuted still true), the agent's
+    // responseText contains only pre-tool thinking — prefer the tool's own output instead.
+    const finalResponse = toolExecuted
+      ? (pendingToolContent || responseText.trim())
+      : (responseText.trim() || pendingToolContent);
 
     return reply.send({
       response: finalResponse,
