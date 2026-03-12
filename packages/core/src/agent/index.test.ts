@@ -23,13 +23,17 @@ vi.mock('@mariozechner/pi-ai', async (importOriginal) => {
   };
 });
 
+let capturedAgentOpts: unknown;
+
 vi.mock('@mariozechner/pi-agent-core', () => {
   class MockAgent {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     streamFn: ((...args: any[]) => any) | undefined = undefined;
     setSystemPrompt = vi.fn();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-    constructor(_opts: any) {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    constructor(opts: any) {
+      capturedAgentOpts = opts;
+    }
   }
   return { Agent: MockAgent };
 });
@@ -66,6 +70,27 @@ function invokeStreamFn(agent: ReturnType<typeof createEchosAgent>): void {
   const fn = (agent as any).streamFn as ((m: unknown, c: unknown, o: unknown) => void) | undefined;
   fn?.({}, [], {});
 }
+
+describe('createEchosAgent — tool registration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    capturedAgentOpts = undefined;
+  });
+
+  it('registers save_conversation tool when disableCoreTools is false', () => {
+    createEchosAgent(makeMinimalDeps());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tools = (capturedAgentOpts as any)?.initialState?.tools as Array<{ name: string }>;
+    expect(tools.some((t) => t.name === 'save_conversation')).toBe(true);
+  });
+
+  it('does not register save_conversation tool when disableCoreTools is true', () => {
+    createEchosAgent(makeMinimalDeps({ disableCoreTools: true }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tools = (capturedAgentOpts as any)?.initialState?.tools as Array<{ name: string }>;
+    expect(tools.some((t) => t.name === 'save_conversation')).toBe(false);
+  });
+});
 
 describe('createEchosAgent — effectiveCacheRetention', () => {
   beforeEach(() => {

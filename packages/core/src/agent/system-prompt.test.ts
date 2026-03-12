@@ -28,8 +28,15 @@ describe('SYSTEM_PROMPT', () => {
   it('contains cross-cutting sections that must stay in the prompt', () => {
     expect(SYSTEM_PROMPT).toContain('## Current Date and Time');
     expect(SYSTEM_PROMPT).toContain('## Content Status (IMPORTANT)');
+    expect(SYSTEM_PROMPT).toContain('## Conversation Memory (IMPORTANT)');
     expect(SYSTEM_PROMPT).toContain('### Auto-detect todos (IMPORTANT)');
     expect(SYSTEM_PROMPT).toContain('## Formatting');
+  });
+
+  it('conversation memory section requires explicit confirmation before saving', () => {
+    expect(SYSTEM_PROMPT).toContain('WAIT for confirmation before calling save_conversation');
+    expect(SYSTEM_PROMPT).toContain('NOT automatically saved');
+    expect(SYSTEM_PROMPT).toContain('**save_conversation**');
   });
 
   it('references tweets in content status section', () => {
