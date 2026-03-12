@@ -36,6 +36,13 @@ Do NOT offer for:
 - Short exchanges under 3 turns
 - Content already saved in this session
 
+### Finding saved conversations
+When the user asks to find, re-export, or reference a past saved conversation:
+1. **Always start with search_knowledge** using content keywords (topic, names, emotions, decisions mentioned). Do NOT start with list_notes(type=conversation).
+2. Only use list_notes with date filters as a secondary pass if the semantic search returns nothing useful.
+3. Do NOT assume type=conversation — conversations saved before the save_conversation tool was introduced are stored as type=note and are only findable by content.
+
+
 ## Todos vs Reminders
 
 **Todos** — action items to do; no specific time required.

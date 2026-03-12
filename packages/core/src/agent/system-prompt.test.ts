@@ -39,6 +39,13 @@ describe('SYSTEM_PROMPT', () => {
     expect(SYSTEM_PROMPT).toContain('**save_conversation**');
   });
 
+  it('conversation memory section instructs semantic search first when finding saved conversations', () => {
+    expect(SYSTEM_PROMPT).toContain('Always start with search_knowledge');
+    expect(SYSTEM_PROMPT).toContain('Do NOT assume type=conversation');
+    expect(SYSTEM_PROMPT).toContain('type=note');
+  });
+
+
   it('references tweets in content status section', () => {
     expect(SYSTEM_PROMPT).toContain('tweets');
     expect(SYSTEM_PROMPT).toContain('article, tweet, or YouTube video');
