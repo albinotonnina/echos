@@ -1,6 +1,6 @@
 {
   "name": "@echos/plugin-journal",
-  "version": "0.12.4",
+  "version": "0.12.5",
   "description": "EchOS journal plugin — dedicated journaling, AI reflection, and daily prompts",
   "type": "module",
   "main": "./dist/index.js",
