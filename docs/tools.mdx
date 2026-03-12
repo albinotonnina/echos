@@ -255,13 +255,19 @@ What have I told you about my health?
 
 **Tool:** `save_conversation`
 
-Save a summary of the current conversation as a note — useful after a productive discussion you want to preserve.
+Save a summary of the current conversation as a note — useful after a productive discussion you want to preserve. EchOS composes the summary itself from the visible conversation context.
 
 ```
 Save this conversation.
 Save a summary of what we discussed about the API design.
 Note down what we figured out today.
 ```
+
+EchOS will also **proactively offer** to save after personally significant exchanges — for example, after you recount a meaningful experience, share an emotional reflection, or make a significant life decision. It will ask first and only save once you confirm.
+
+It will **not** offer for short exchanges, factual queries, URL saves, or content already saved in the same session.
+
+Saved conversations are stored as `type: conversation`, status `read`, and are fully searchable via `search_knowledge`.
 
 ---
 

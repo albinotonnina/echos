@@ -1,6 +1,6 @@
 {
   "name": "@echos/plugin-digest",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "EchOS digest generation plugin",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,11 +14,11 @@
   "dependencies": {
     "@echos/core": "workspace:*",
     "@echos/shared": "workspace:*",
-    "@mariozechner/pi-agent-core": "^0.55.3",
-    "bullmq": "^5.70.1"
+    "@mariozechner/pi-agent-core": "^0.57.1",
+    "bullmq": "^5.70.4"
   },
   "devDependencies": {
-    "@types/node": "^25.3.3",
+    "@types/node": "^25.3.5",
     "typescript": "^5.7.0"
   }
 }

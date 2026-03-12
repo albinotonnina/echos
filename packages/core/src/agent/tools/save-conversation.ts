@@ -32,7 +32,7 @@ export function saveConversationTool(deps: SaveConversationToolDeps): AgentTool<
     name: 'save_conversation',
     label: 'Save Conversation',
     description:
-      'Save a summary of the current conversation as a note. Only call this when the user explicitly asks to save the conversation or what was discussed. Compose a meaningful summary from the visible conversation context.',
+      'Save a summary of the current conversation as a note. Only call this when the user explicitly asks to save the conversation or what was discussed, or explicitly confirms after you proactively offered. Compose a meaningful summary from the visible conversation context.',
     parameters: schema,
     execute: async (_toolCallId, params: Params) => {
       const now = new Date().toISOString();

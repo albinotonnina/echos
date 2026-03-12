@@ -41,6 +41,35 @@ function getToolEmoji(toolName: string): string {
 }
 
 /**
+ * Split text into chunks no longer than maxLen, preferring paragraph breaks.
+ */
+function chunkText(text: string, maxLen: number): string[] {
+  if (text.length <= maxLen) return [text];
+  const chunks: string[] = [];
+  const paragraphs = text.split(/\n\n+/);
+  let current = '';
+  for (const para of paragraphs) {
+    const candidate = current ? `${current}\n\n${para}` : para;
+    if (candidate.length <= maxLen) {
+      current = candidate;
+    } else {
+      if (current) chunks.push(current);
+      // If a single paragraph exceeds maxLen, hard-split it
+      if (para.length > maxLen) {
+        for (let i = 0; i < para.length; i += maxLen) {
+          chunks.push(para.slice(i, i + maxLen));
+        }
+        current = '';
+      } else {
+        current = para;
+      }
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks;
+}
+
+/**
  * Convert Claude's standard markdown to Telegram HTML.
  *
  * Telegram HTML supports: <b>, <i>, <u>, <s>, <code>, <pre>, <a href="…">
@@ -161,6 +190,7 @@ export async function streamAgentResponse(
 
   let toolExecuted = false;
   const pendingExports: ExportFileResult[] = [];
+  const pendingContent: string[] = [];
 
   /**
    * Send an edit with the current content.
@@ -262,6 +292,19 @@ export async function streamAgentResponse(
         // ignore parse errors — agent will describe the failure in text
       }
     }
+
+    if (event.type === 'tool_execution_end' && !event.isError && event.toolName === 'create_content') {
+      try {
+        const resultContent = (event.result as { content?: Array<{ type: string; text?: string }> } | undefined)
+          ?.content;
+        const textContent = resultContent?.find((c) => c.type === 'text');
+        if (textContent?.text) {
+          pendingContent.push(textContent.text);
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
   });
 
   // Send initial status message
@@ -301,6 +344,23 @@ export async function streamAgentResponse(
     await updateMessage(fallbackText || 'Done.');
   } else {
     await updateMessage('Done.');
+  }
+
+  // Deliver any created content — chunk on paragraph boundaries to avoid Telegram's 4096-char limit
+  for (const content of pendingContent) {
+    const chunks = chunkText(content, MAX_MESSAGE_LENGTH);
+    for (const chunk of chunks) {
+      try {
+        await ctx.reply(markdownToHtml(chunk), { parse_mode: 'HTML' });
+      } catch {
+        // Non-fatal: try plain text fallback
+        try {
+          await ctx.reply(chunk);
+        } catch {
+          // ignore
+        }
+      }
+    }
   }
 
   // Deliver any exported files

@@ -170,11 +170,6 @@ export function createContentTool(
 
         // Format response
         const wordCount = result.content.content.split(/\s+/).length;
-        const previewLength = 500;
-        const preview =
-          result.content.content.length > previewLength
-            ? result.content.content.slice(0, previewLength) + '...'
-            : result.content.content;
 
         const costEstimate = result.tokensUsed
           ? ((result.tokensUsed.input * 3 + result.tokensUsed.output * 15) / 1_000_000).toFixed(4)
@@ -195,17 +190,9 @@ export function createContentTool(
 
 ---
 
-**Preview:**
-
-${preview}
+${result.content.content}
 
 ---
-
-The full content has been saved as a new note. You can:
-- Read it with the note ID above
-- Edit it if needed
-- Tag it or categorize it further
-- Use it as a voice example after editing (if you polish it)
 
 *Note: This content was AI-generated${usingDefault ? ' using a default voice profile' : ' in your voice'}. Review and edit as needed before publishing.*`;
 

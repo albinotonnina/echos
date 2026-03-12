@@ -1,0 +1,66 @@
+{
+  "pi": {
+    "provider": "github-copilot",
+    "model": "claude-sonnet-4.6",
+    "maxConcurrent": 4,
+    "extensionPath": ".hive/pi-extensions/hive.ts"
+  },
+  "sandbox": {
+    "mode": "local"
+  },
+  "git": {
+    "baseBranch": "main",
+    "branchPrefix": "hive/",
+    "autoCreatePR": true,
+    "prLabels": [
+      "hive-agent"
+    ],
+    "cleanupAfterMerge": true,
+    "worktreeDir": ".hive/worktrees"
+  },
+  "monitor": {
+    "intervalMinutes": 2,
+    "maxRetries": 3,
+    "ciTimeoutMinutes": 30,
+    "staleTaskHours": 24,
+    "autoRetry": true
+  },
+  "notifications": {
+    "channels": [
+      "macos"
+    ],
+    "macos": {},
+    "events": [
+      "task_started",
+      "pr_created",
+      "ci_passed",
+      "ci_failed",
+      "review_done",
+      "pr_ready",
+      "task_failed",
+      "task_stale"
+    ]
+  },
+  "review": {
+    "enabled": true,
+    "reviewerCount": 1,
+    "requireCi": true,
+    "autoMerge": false
+  },
+  "orchestrator": {
+    "proactive": false,
+    "memoryHints": 20
+  },
+  "context": {
+    "files": [
+      ".hive/context/HIVE.md"
+    ],
+    "includeReadme": true
+  },
+  "memory": {
+    "enabled": true,
+    "file": ".hive/memory/successful-patterns.jsonl",
+    "failureFile": ".hive/memory/failure-patterns.jsonl",
+    "maxHints": 3
+  }
+}
