@@ -19,6 +19,10 @@ import { timingSafeEqual, createHash } from 'node:crypto';
  * @returns `true` if and only if `a === b`.
  */
 export function timingSafeStringEqual(a: string, b: string): boolean {
+  // CodeQL[js/insufficient-password-hash]: SHA-256 is used here for fixed-length
+  // normalisation before crypto.timingSafeEqual, not for password storage. Hashing
+  // ensures both buffers are always 32 bytes so timingSafeEqual never receives
+  // mismatched-length inputs (which would throw and leak a length side-channel).
   const hashA = createHash('sha256').update(a).digest();
   const hashB = createHash('sha256').update(b).digest();
   return timingSafeEqual(hashA, hashB);

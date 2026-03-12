@@ -49,18 +49,24 @@ describe('validateUrl — cloud metadata rejection', () => {
 
 describe('createRateLimiter — max-keys eviction', () => {
   it('does not grow beyond maxKeys buckets', () => {
-    const limiter = createRateLimiter(10, 1, 5);
+    // 1 token per key, no refill, max 5 buckets
+    const limiter = createRateLimiter(1, 0, 5);
 
-    // Fill up to capacity
-    for (let i = 0; i < 5; i++) {
-      limiter.consume(`user-${i}`);
+    // Oldest bucket: 'user-0' — exhaust it.
+    expect(limiter.consume('user-0')).toBe(true);  // uses the only token
+    expect(limiter.consume('user-0')).toBe(false); // bucket is now exhausted
+
+    // Fill remaining buckets up to capacity with distinct users.
+    for (let i = 1; i < 5; i++) {
+      expect(limiter.consume(`user-${i}`)).toBe(true);
     }
 
-    // Adding a 6th key should evict the oldest, keeping size at 5.
-    // We cannot inspect the internal Map directly, but we can verify that:
-    // a) the call succeeds (no throw)
-    // b) the limiter still grants tokens for the new key
-    expect(limiter.consume('user-new')).toBe(true);
+    // Adding a 6th key should evict the oldest ('user-0'), keeping size at 5.
+    expect(limiter.consume('user-5')).toBe(true);
+
+    // Because 'user-0' was evicted, consuming it again should create
+    // a fresh bucket with a new token, returning true instead of false.
+    expect(limiter.consume('user-0')).toBe(true);
   });
 
   it('still rate-limits after eviction', () => {
@@ -74,6 +80,9 @@ describe('createRateLimiter — max-keys eviction', () => {
 
     // 'b' was not evicted — it is now exhausted
     expect(limiter.consume('b')).toBe(false);
+
+    // Since 'a' was evicted earlier, consuming it again should create a fresh bucket.
+    expect(limiter.consume('a')).toBe(true);
   });
 });
 

@@ -6,8 +6,6 @@ export interface RateLimiter {
 interface TokenBucket {
   tokens: number;
   lastRefill: number;
-  /** Insertion order index — used to evict the oldest bucket when at capacity. */
-  insertedAt: number;
 }
 
 /**
@@ -23,7 +21,6 @@ export function createRateLimiter(
   maxKeys: number = DEFAULT_MAX_KEYS,
 ): RateLimiter {
   const buckets = new Map<string, TokenBucket>();
-  let counter = 0;
 
   function refill(bucket: TokenBucket): void {
     const now = Date.now();
@@ -33,22 +30,13 @@ export function createRateLimiter(
   }
 
   /**
-   * Evict the bucket that was inserted earliest (i.e. has the smallest
-   * `insertedAt` value). This is O(n) over current keys but n ≤ maxKeys and
-   * eviction only happens when we are at capacity — which is rare under normal
-   * usage patterns.
+   * Evict the bucket that was inserted earliest. JavaScript `Map` iterates in
+   * insertion order, so the first key is always the oldest — O(1) deletion.
    */
   function evictOldest(): void {
-    let oldestKey: string | undefined;
-    let oldestAt = Infinity;
-    for (const [key, bucket] of buckets) {
-      if (bucket.insertedAt < oldestAt) {
-        oldestAt = bucket.insertedAt;
-        oldestKey = key;
-      }
-    }
-    if (oldestKey !== undefined) {
-      buckets.delete(oldestKey);
+    const firstKey = buckets.keys().next().value;
+    if (firstKey !== undefined) {
+      buckets.delete(firstKey);
     }
   }
 
@@ -59,7 +47,7 @@ export function createRateLimiter(
         if (buckets.size >= maxKeys) {
           evictOldest();
         }
-        bucket = { tokens: maxTokens, lastRefill: Date.now(), insertedAt: counter++ };
+        bucket = { tokens: maxTokens, lastRefill: Date.now() };
         buckets.set(key, bucket);
       }
 
