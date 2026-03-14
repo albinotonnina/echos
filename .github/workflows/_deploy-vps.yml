@@ -26,6 +26,12 @@ on:
         # once locally) to avoid runtime MITM risk. When absent, falls back to
         # ssh-keyscan (convenient but not MITM-safe).
 
+# Shared concurrency group — enforces mutual exclusion with rollback.yml so
+# that a deploy and a rollback can never run simultaneously on the VPS.
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
 permissions:
   contents: read
 

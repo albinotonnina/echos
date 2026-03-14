@@ -8,7 +8,8 @@ on:
         required: true
         type: string
 
-# Share the concurrency group with deploys — only one deploy/rollback at a time.
+# Same concurrency group as _deploy-vps.yml — only one deploy or rollback
+# may run at a time. Both workflows must use this group to enforce mutual exclusion.
 concurrency:
   group: deploy-vps
   cancel-in-progress: false
