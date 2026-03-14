@@ -1,0 +1,96 @@
+name: Rollback Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to roll back to (e.g. 0.12.4 or v0.12.4)'
+        required: true
+        type: string
+
+# Share the concurrency group with deploys — only one deploy/rollback at a time.
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    name: Rollback to ${{ inputs.version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Guard: only allow rollbacks triggered from the default branch so that
+    # unreviewed workflow definitions cannot access VPS secrets.
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      # ── 0. Normalize the version ──────────────────────────────────────────
+      # Docker images are tagged without a leading 'v' (e.g. 0.12.4, not v0.12.4).
+      - name: Normalize version
+        id: version
+        run: |
+          RAW="${{ inputs.version }}"
+          DOCKER_TAG="${RAW#v}"
+          echo "docker_tag=${DOCKER_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Rolling back to: ghcr.io/${{ github.repository_owner }}/echos:${DOCKER_TAG}"
+
+      # ── 1. Set up SSH ─────────────────────────────────────────────────────
+      - name: Set up SSH
+        env:
+          ORACLE_KNOWN_HOSTS: ${{ secrets.ORACLE_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s' "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          if [ -n "$ORACLE_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$ORACLE_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+          else
+            ssh-keyscan -H "${{ secrets.ORACLE_HOST }}" >> ~/.ssh/known_hosts
+          fi
+
+      # ── 2. Rollback on VPS ────────────────────────────────────────────────
+      # Pull the pinned version, retag it as :latest (so docker-compose.yml
+      # requires no edits), and restart. Does NOT re-upload .env or
+      # docker-compose.yml — only the running image is changed.
+      - name: Rollback on VPS
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            "${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}" << 'ENDSSH'
+            set -e
+            IMAGE="ghcr.io/${{ github.repository_owner }}/echos"
+            DOCKER_TAG="${{ steps.version.outputs.docker_tag }}"
+
+            echo "==> Pulling ${IMAGE}:${DOCKER_TAG}..."
+            docker pull "${IMAGE}:${DOCKER_TAG}"
+
+            echo "==> Retagging as ${IMAGE}:latest..."
+            docker tag "${IMAGE}:${DOCKER_TAG}" "${IMAGE}:latest"
+
+            echo "==> Restarting services..."
+            cd echos/docker
+            docker compose down
+            docker compose up -d
+
+            echo "==> Pruning old images..."
+            docker image prune -f
+
+            echo "==> Waiting for services to stabilise..."
+            sleep 5
+
+            docker compose ps
+            echo ""
+            echo "==> Recent logs:"
+            docker compose logs --tail=20 echos
+          ENDSSH
+
+      # ── 3. Smoke test ─────────────────────────────────────────────────────
+      - name: Health check
+        run: |
+          sleep 10
+          curl --fail --silent --max-time 10 \
+            "http://${{ secrets.ORACLE_HOST }}:${{ secrets.WEB_PORT || '3000' }}/health" \
+            && echo "Health check passed" \
+            || echo "Health check failed (non-fatal — web interface may be disabled)"
+        continue-on-error: true
