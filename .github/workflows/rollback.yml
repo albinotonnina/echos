@@ -32,8 +32,26 @@ jobs:
         id: version
         run: |
           RAW="${{ inputs.version }}"
-          DOCKER_TAG="${RAW#v}"
-          echo "docker_tag=${DOCKER_TAG}" >> "$GITHUB_OUTPUT"
+          RAW_STRIPPED="${RAW#v}"
+
+          # Validate: must not be empty after stripping leading 'v'
+          if [ -z "$RAW_STRIPPED" ]; then
+            echo "Error: version input is empty after stripping leading 'v'." >&2
+            exit 1
+          fi
+
+          # Validate: allow only [0-9A-Za-z._-] to avoid injection/newlines
+          case "$RAW_STRIPPED" in
+            *[!0-9A-Za-z._-]*)
+              echo "Error: version '$RAW_STRIPPED' contains invalid characters. Allowed: 0-9 A-Z a-z . _ -" >&2
+              exit 1
+              ;;
+          esac
+
+          DOCKER_TAG="$RAW_STRIPPED"
+
+          # Write sanitized value to GITHUB_OUTPUT
+          printf 'docker_tag=%s\n' "$DOCKER_TAG" >> "$GITHUB_OUTPUT"
           echo "Rolling back to: ghcr.io/${{ github.repository_owner }}/echos:${DOCKER_TAG}"
 
       # ── 1. Set up SSH ─────────────────────────────────────────────────────
