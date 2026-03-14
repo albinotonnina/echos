@@ -100,6 +100,30 @@ describe('reading_queue — with items', () => {
   });
 });
 
+describe('reading_queue — details.items shape', () => {
+  it('propagates sourceUrl into details.items when set', async () => {
+    sqlite.upsertNote(
+      makeMeta({ id: 'with-url', title: 'Has URL', status: 'saved', sourceUrl: 'https://example.com/article' }),
+      '', '',
+    );
+    const result = await callTool({});
+    const items = (result.details as { items: Array<{ id: string; sourceUrl?: string }> }).items;
+    const item = items.find((i) => i.id === 'with-url');
+    expect(item?.sourceUrl).toBe('https://example.com/article');
+  });
+
+  it('omits sourceUrl from details.items (undefined) when not set', async () => {
+    sqlite.upsertNote(
+      makeMeta({ id: 'no-url', title: 'No URL', status: 'saved' }),
+      '', '',
+    );
+    const result = await callTool({});
+    const items = (result.details as { items: Array<{ id: string; sourceUrl?: string }> }).items;
+    const item = items.find((i) => i.id === 'no-url');
+    expect(item?.sourceUrl).toBeUndefined();
+  });
+});
+
 describe('reading_queue — relevance sorting', () => {
   it('falls back to recency order when there are no recent reads', async () => {
     // saved oldest → newest: old, mid, new

@@ -121,6 +121,20 @@ describe('list_reminders tool', () => {
         expect(text).toContain('high');
     });
 
+    it('includes details.items with id, title, and completed for each reminder', async () => {
+        sqlite.upsertReminder(makeReminder({ id: 'r1', title: 'Task A', completed: false }));
+        sqlite.upsertReminder(makeReminder({ id: 'r2', title: 'Task B', completed: true, kind: 'reminder' }));
+        const tool = listRemindersTool({ sqlite });
+        const result = await tool.execute('tc', {});
+        const details = result.details as {
+            count: number;
+            items: Array<{ id: string; title: string; completed: boolean }>;
+        };
+        expect(details.items).toHaveLength(2);
+        expect(details.items[0]).toMatchObject({ id: 'r1', title: 'Task A', completed: false });
+        expect(details.items[1]).toMatchObject({ id: 'r2', title: 'Task B', completed: true });
+    });
+
     it('does NOT return todos when listing reminders', async () => {
         sqlite.upsertReminder(makeReminder({ id: 'r1', title: 'My reminder', kind: 'reminder' }));
         sqlite.upsertReminder(makeReminder({ id: 't1', title: 'My todo', kind: 'todo' }));
