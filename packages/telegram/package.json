@@ -14,13 +14,13 @@
   "dependencies": {
     "@echos/core": "workspace:*",
     "@echos/shared": "workspace:*",
-    "@mariozechner/pi-agent-core": "^0.57.1",
+    "@mariozechner/pi-agent-core": "^0.62.0",
     "grammy": "^1.41.1",
-    "openai": "^6.27.0",
+    "openai": "^6.32.0",
     "pino": "^10.3.1"
   },
   "devDependencies": {
-    "@types/node": "^25.3.5",
+    "@types/node": "^25.5.0",
     "typescript": "^5.7.0"
   }
 }
