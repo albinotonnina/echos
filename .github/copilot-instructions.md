@@ -1,5 +1,36 @@
 # Copilot Instructions for EchOS
 
+## ⛔ STOP — READ THIS FIRST BEFORE TOUCHING ANY FILE ⛔
+
+### Git Worktrees Are MANDATORY. No Exceptions.
+
+**NEVER make code changes directly on `main`. ALWAYS work in a git worktree.**
+
+Before writing a single line of code, creating a file, or running any build command:
+
+```bash
+# Replace FEATURE_NAME with your actual feature name (e.g. 'auth-fixes')
+# 1. Create a worktree (from the main repo root)
+git worktree add ../echos-FEATURE_NAME -b feature/FEATURE_NAME
+
+# 2. Move into it — ALL work happens here
+cd ../echos-FEATURE_NAME
+
+# 3. When done and merged, clean up
+git worktree remove ../echos-FEATURE_NAME
+```
+
+Rules:
+- Worktrees live as **siblings** of the main repo: `../echos-FEATURE_NAME`
+- Branch naming: `feature/FEATURE_NAME`, `fix/FEATURE_NAME`, `chore/FEATURE_NAME`
+- If you are already inside a sibling worktree directory (e.g. `../echos-FEATURE_NAME`) and `git worktree list` shows it as a worktree, proceed
+- If you are in the original repo directory (e.g. `echos/`, often on `main`) and have not created a worktree yet — **stop and create one now**
+- This rule applies to every task: features, bug fixes, typo corrections, documentation edits — everything
+
+**Skipping worktrees is not a shortcut. It is a mistake.**
+
+---
+
 ## Project Overview
 
 EchOS is a secure, self-hosted, agent-driven personal knowledge management system. It uses an LLM agent with tools (not rigid command routing) to interact naturally across Telegram, Web, and CLI interfaces.
@@ -160,9 +191,54 @@ Use `createLogger(name)` from `@echos/shared/logging`. Security events use `crea
 - Tests live in `packages/*/src/**/*.test.ts`
 - Test security-critical functions thoroughly
 - Run tests with `pnpm vitest run` from root
-- Build with `pnpm -r build` (must pass before committing)
+
+## Build Verification (MANDATORY before every commit)
+
+**Always run `pnpm -r build` before committing.** TypeScript compilation errors in test files (e.g. unused `@ts-expect-error` directives, type errors in mock code) are caught by `tsc` during the build — not by the test runner alone — because `tsc` includes `*.test.ts` files in the workspace build.
+
+```bash
+pnpm -r build   # must pass with zero errors
+pnpm vitest run  # must pass (or failures must be pre-existing, not introduced)
+```
+
+Never commit if `pnpm -r build` reports errors.
+
+## Documentation
+
+After completing any feature work, ALWAYS update the relevant documentation:
+- Architecture changes → `docs/ARCHITECTURE.mdx`
+- New interfaces or API changes → `docs/INTERFACES.mdx`
+- New plugins or plugin changes → `docs/PLUGINS.mdx`
+- Deployment changes → `docs/DEPLOYMENT.mdx`
+- Security changes → `docs/SECURITY.mdx`
+- Setup or configuration changes → `docs/SETUP_FIXES.mdx`
+- Categorization logic changes → `docs/CATEGORIZATION.mdx`
+- Import/export changes → `docs/KNOWLEDGE_IMPORT.mdx`
+
+Review `docs/TROUBLESHOOTING.mdx` to add any new common issues or solutions.
+
+## Recurring Workflows (Skills)
+
+Three canonical workflows are defined as skills. Follow them exactly when triggered:
+
+- **Updating the Homebrew formula** → `update-homebrew-formula` skill
+- **Creating a branch before a PR** → `create-branch` skill
+- **Reviewing and resolving PR comments** → `review-pr-comments` skill
+
+## Git — Non-interactive Commands
+
+Never let git open an interactive editor (vim, nano, etc.). Always use environment variables or flags to keep git fully non-interactive:
+
+- `git rebase --continue` → prefix with `GIT_EDITOR=true` so the commit message is accepted as-is:
+  ```bash
+  GIT_EDITOR=true git rebase --continue
+  ```
+- `git commit` → use `-m "message"` (never rely on the editor fallback)
+- `git merge` → use `--no-edit` when the default message is acceptable
 
 ## Do NOT
+
+- **Make code changes directly on `main` — always use a git worktree (see top of this file)**
 
 - Use `eval()`, `Function()`, or `vm` module
 - Execute shell commands with user input
