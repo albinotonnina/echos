@@ -1,6 +1,7 @@
 ---
-title: "Distribution & Installation"
-description: "How to install EchOS — one-liner, Homebrew, Docker, or manual setup."
+title: "Installation"
+sidebarTitle: "Installation"
+description: "How to install and update EchOS — one-liner, Homebrew, Docker, or manual setup."
 ---
 
 # Installing EchOS
@@ -191,16 +192,68 @@ pnpm echos "what did I save yesterday?"
 
 ## Updating
 
-```bash
-# If installed via install.sh or git clone
-cd echos
-git pull
-pnpm install
-pnpm build
+<Tabs>
+  <Tab title="Homebrew">
+    ```bash
+    brew update
+    brew upgrade echos
+    ```
 
-# If installed via Homebrew
-brew upgrade echos
+    Homebrew handles the full cycle — pulls the new version, rebuilds, and restarts the service if it was running.
+
+    ```bash
+    # Verify the new version
+    echos --version
+
+    # Restart if needed
+    brew services restart echos
+    ```
+  </Tab>
+  <Tab title="Source (git clone / install.sh)">
+    Stop EchOS before updating, then pull and rebuild:
+
+    ```bash
+    cd echos
+
+    # Stop the running daemon first
+    # (Ctrl+C if foreground, or pm2 stop echos, or systemctl stop echos)
+
+    git pull
+    pnpm install
+    pnpm build
+
+    # Restart
+    pnpm start
+    ```
+
+    <Warning>
+      Always run `pnpm install` after pulling — new versions may add or update dependencies.
+    </Warning>
+  </Tab>
+  <Tab title="Docker">
+    ```bash
+    cd echos
+    git pull
+    cd docker
+    docker compose down
+    docker compose up -d --build
+    ```
+
+    The `--build` flag ensures the image is rebuilt with the latest code.
+  </Tab>
+</Tabs>
+
+### Checking your version
+
+```bash
+# CLI
+echos --version
+
+# Or from the repo
+git describe --tags --abbrev=0
 ```
+
+See [Releases](https://github.com/albinotonnina/echos/releases) for changelogs.
 
 ---
 

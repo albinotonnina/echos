@@ -17,6 +17,10 @@
       "url": "https://github.com/albinotonnina/echos"
     }
   ],
+  "topbarCtaButton": {
+    "name": "Install",
+    "url": "/distribution"
+  },
   "redirects": [
     { "source": "/DEPLOYMENT", "destination": "/deployment" },
     { "source": "/ARCHITECTURE", "destination": "/architecture" },
@@ -42,6 +46,7 @@
       "group": "Getting Started",
       "pages": [
         "introduction",
+        "distribution",
         "deployment",
         "interfaces",
         "troubleshooting"
@@ -69,8 +74,7 @@
         "security",
         "remote-access",
         "oracle-cloud-vault",
-        "releasing",
-        "distribution"
+        "releasing"
       ]
     }
   ]
