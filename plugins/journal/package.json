@@ -14,14 +14,14 @@
   "dependencies": {
     "@echos/core": "workspace:*",
     "@echos/shared": "workspace:*",
-    "@mariozechner/pi-agent-core": "^0.57.1",
-    "@mariozechner/pi-ai": "^0.57.1",
-    "@sinclair/typebox": "^0.34.48",
-    "bullmq": "^5.70.4",
+    "@mariozechner/pi-agent-core": "^0.63.1",
+    "@mariozechner/pi-ai": "^0.63.1",
+    "@sinclair/typebox": "^0.34.49",
+    "bullmq": "^5.71.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "@types/node": "^25.3.5",
+    "@types/node": "^25.5.0",
     "@types/uuid": "^11.0.0",
     "typescript": "^5.7.0"
   }
