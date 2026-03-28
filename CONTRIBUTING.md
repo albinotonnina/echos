@@ -26,8 +26,26 @@ pnpm start
 
 ## Development workflow
 
+### Local dev server
+
 ```bash
-pnpm dev             # watch mode — rebuilds packages on change
+pnpm dev:local       # interactive worktree picker → starts EchOS daemon
+pnpm cli:local       # interactive worktree picker → starts EchOS CLI
+```
+
+Both commands:
+1. List all git worktrees (or run directly on main if none exist)
+2. Let you pick which one to work in
+3. Load `.env` and set `ECHOS_HOME` to the main repo's `data/` folder
+4. Start the daemon or CLI from the selected worktree
+
+All worktrees share the same knowledge base, database, and configuration — no need to duplicate data or environment files. You can also run them directly: `./scripts/dev.sh` or `./scripts/dev.sh cli`
+
+### Other commands
+
+```bash
+pnpm dev             # TypeScript watch mode — rebuilds packages on change
+pnpm start           # start daemon (uses ECHOS_HOME/.env, not for worktrees)
 pnpm test            # run tests
 pnpm typecheck       # TypeScript strict check across all packages
 pnpm lint            # ESLint
