@@ -19,7 +19,7 @@
     "@mozilla/readability": "^0.6.0",
     "@sinclair/typebox": "^0.34.48",
     "isomorphic-dompurify": "3.0.0",
-    "jsdom": "^28.1.0",
+    "jsdom": "^29.0.0",
     "pino": "^10.3.1",
     "uuid": "^13.0.0"
   },
