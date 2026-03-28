@@ -3,13 +3,18 @@
   "name": "EchOS",
   "logo": {
     "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "dark": "/logo/dark.svg",
+    "height": 100
   },
   "favicon": "/favicon.svg",
+  "css": "/global.css",
   "colors": {
-    "primary": "#0D9373",
-    "light": "#07C983",
-    "dark": "#0D9373"
+    "primary": "#C4863A",
+    "light": "#D9A05C",
+    "dark": "#A86E2D",
+    "background": {
+      "dark": "#0A0A0A"
+    }
   },
   "topbarLinks": [
     {
@@ -17,6 +22,15 @@
       "url": "https://github.com/albinotonnina/echos"
     }
   ],
+  "topbarCtaButton": {
+    "name": "Install",
+    "url": "https://github.com/albinotonnina/echos#quick-start"
+  },
+  "feedback": {
+    "thumbsRating": true,
+    "suggestEdit": true,
+    "raiseIssue": true
+  },
   "redirects": [
     { "source": "/DEPLOYMENT", "destination": "/deployment" },
     { "source": "/ARCHITECTURE", "destination": "/architecture" },
