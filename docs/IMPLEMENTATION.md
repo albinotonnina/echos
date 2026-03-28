@@ -30,9 +30,9 @@ Core data safety features and foundational infrastructure that other phases depe
 **Files to modify:**
 
 - `packages/shared/src/types/` — Add `deleted` to `ContentStatus` union type (`saved | read | archived | deleted`). Add `deletedAt?: string` (ISO date) to note metadata interface.
-- `packages/core/src/storage/sqlite-store.ts` — Update `deleteNote()` to set `status = 'deleted'` and `deletedAt = now` instead of removing the row. Add `purgeNote(id)` for permanent deletion. Update all list/search queries to exclude `status = 'deleted'` by default.
-- `packages/core/src/storage/markdown-store.ts` — On soft delete, move the `.md` file from `knowledge/` to `knowledge/.trash/` (preserving the file for Obsidian users). On purge, remove the file from `.trash/`. On restore, move it back.
-- `packages/core/src/storage/vector-store.ts` — On soft delete, keep vectors (they're cheap). On purge, remove vectors.
+- `packages/core/src/storage/sqlite.ts` — Update `deleteNote()` to set `status = 'deleted'` and `deletedAt = now` instead of removing the row. Add `purgeNote(id)` for permanent deletion. Update all list/search queries to exclude `status = 'deleted'` by default.
+- `packages/core/src/storage/markdown.ts` — On soft delete, move the `.md` file from `knowledge/` to `knowledge/.trash/` (preserving the file for Obsidian users). On purge, remove the file from `.trash/`. On restore, move it back.
+- `packages/core/src/storage/vectordb.ts` — On soft delete, keep vectors (they're cheap). On purge, remove vectors.
 - `packages/core/src/agent/tools/delete-note.ts` — Update tool to soft-delete. Response message should say "moved to trash" not "permanently deleted". Add optional `permanent: boolean` parameter (default false) for explicit hard delete.
 - `packages/core/src/agent/tools/index.ts` — Register the new `restore_note` tool.
 
@@ -43,8 +43,9 @@ Core data safety features and foundational infrastructure that other phases depe
 
 **Background job:**
 
-- `packages/scheduler/src/jobs/trash-purge.ts` — New BullMQ job `trash_purge`. Runs daily (`0 3 * * *`). Finds all notes with `status = 'deleted'` and `deletedAt` older than 30 days. Calls `purgeNote()` for each. Logs count of purged notes.
-- `packages/scheduler/src/index.ts` — Register the `trash_purge` job.
+- `packages/scheduler/src/workers/trash-purge.ts` — New BullMQ processor for `trash_purge`. Runs daily (`0 3 * * *`). Finds all notes with `status = 'deleted'` and `deletedAt` older than 30 days. Calls `purgeNote()` for each. Logs count of purged notes.
+- `packages/scheduler/src/workers/processor.ts` — Register the `trash_purge` processor in `createJobRouter`.
+- `packages/scheduler/src/index.ts` — Register the `trash_purge` schedule via `ScheduleManager`.
 
 **Acceptance criteria:**
 
@@ -78,7 +79,7 @@ Core data safety features and foundational infrastructure that other phases depe
 
 **Files to modify:**
 
-- `packages/core/src/storage/sqlite-store.ts` — Add `revisions` table creation to schema migration. Add `initRevisions()` call.
+- `packages/core/src/storage/sqlite.ts` — Add `revisions` table creation to schema migration. Add `initRevisions()` call.
 - `packages/core/src/agent/tools/update-note.ts` — Before applying update, call `saveRevision()` with the current state.
 - `packages/core/src/agent/tools/index.ts` — Register `note_history` and `restore_version` tools.
 
@@ -114,12 +115,13 @@ Core data safety features and foundational infrastructure that other phases depe
   - `create` — Trigger a manual backup now
   - `list` — Show existing backups with size and age
   - `prune` — Remove old backups beyond retention count
-- `packages/scheduler/src/jobs/backup.ts` — New BullMQ job `backup`. Configurable cron (default: `0 2 * * *` — 2 AM daily). Calls `createBackup()`, then `pruneBackups()`.
+- `packages/scheduler/src/workers/backup.ts` — New BullMQ processor for `backup`. Configurable cron (default: `0 2 * * *` — 2 AM daily). Calls `createBackup()`, then `pruneBackups()`.
 
 **Files to modify:**
 
 - `packages/shared/src/config/` — Add `backup` config section: `{ enabled: boolean, cron: string, backupDir: string, retentionCount: number }` with defaults `{ enabled: true, cron: '0 2 * * *', backupDir: './data/backups', retentionCount: 7 }`
-- `packages/scheduler/src/index.ts` — Register the `backup` job.
+- `packages/scheduler/src/workers/processor.ts` — Register the `backup` processor in `createJobRouter`.
+- `packages/scheduler/src/index.ts` — Register the `backup` schedule via `ScheduleManager`.
 - `packages/core/src/agent/tools/index.ts` — Register `manage_backups` tool.
 
 **Acceptance criteria:**
@@ -155,7 +157,7 @@ Core data safety features and foundational infrastructure that other phases depe
 
 **Files to modify:**
 
-- `packages/core/src/storage/sqlite-store.ts` — Add query methods:
+- `packages/core/src/storage/sqlite.ts` — Add query methods:
   - `getContentTypeCounts(): Promise<Record<ContentType, number>>`
   - `getStatusCounts(): Promise<Record<ContentStatus, number>>`
   - `getWeeklyCreationCounts(weeks: number): Promise<{week: string, count: number}[]>`
@@ -239,7 +241,7 @@ New plugins for capturing knowledge from additional sources.
 **Files to modify:**
 
 - `pnpm-workspace.yaml` — Add `plugins/audio` if not glob-matched.
-- `docker/Dockerfile` — Add COPY lines for pdf plugin.
+- `docker/Dockerfile` — Add COPY lines for audio plugin.
 - Root `tsconfig.json` — Add path alias.
 - Daemon entry point — Register audio plugin.
 
@@ -331,7 +333,8 @@ New plugins for capturing knowledge from additional sources.
 **Files to modify:**
 
 - Standard plugin checklist
-- `packages/scheduler/src/index.ts` — Register `rss_poll` job
+- `packages/scheduler/src/workers/processor.ts` — Register the `rss_poll` processor in `createJobRouter`
+- `packages/scheduler/src/index.ts` — Register the `rss_poll` schedule via `ScheduleManager`
 
 **Acceptance criteria:**
 
@@ -476,7 +479,7 @@ Features that help users discover connections and patterns in their knowledge.
 
 **Files to modify:**
 
-- `packages/core/src/storage/vector-store.ts` — Add `findByVector(vector: number[], limit: number, excludeIds: string[]): Promise<SimilarResult[]>` if not already available (may need to expose raw vector query).
+- `packages/core/src/storage/vectordb.ts` — Add `findByVector(vector: number[], limit: number, excludeIds: string[]): Promise<SimilarResult[]>` if not already available (may need to expose raw vector query).
 - `packages/core/src/agent/tools/index.ts` — Register `find_similar` tool.
 
 **Acceptance criteria:**
@@ -516,7 +519,7 @@ Features that help users discover connections and patterns in their knowledge.
 
 **Files to modify:**
 
-- `packages/core/src/storage/sqlite-store.ts` — Add `saved_searches` table to schema migration.
+- `packages/core/src/storage/sqlite.ts` — Add `saved_searches` table to schema migration.
 - `packages/core/src/agent/tools/index.ts` — Register `manage_saved_searches` tool.
 
 **Acceptance criteria:**
@@ -543,8 +546,8 @@ Tools for organizing knowledge and managing tasks more effectively.
 **Files to modify:**
 
 - `packages/shared/src/types/` — Add `pinned?: boolean` and `pinnedAt?: string` to note metadata.
-- `packages/core/src/storage/sqlite-store.ts` — Add `pinned` and `pinnedAt` columns to notes table (migration). Update `listNotes()` to sort pinned notes first when no explicit sort is specified.
-- `packages/core/src/storage/markdown-store.ts` — Include `pinned` and `pinnedAt` in YAML frontmatter.
+- `packages/core/src/storage/sqlite.ts` — Add `pinned` and `pinnedAt` columns to notes table (migration). Update `listNotes()` to sort pinned notes first when no explicit sort is specified.
+- `packages/core/src/storage/markdown.ts` — Include `pinned` and `pinnedAt` in YAML frontmatter.
 - `packages/core/src/agent/tools/list-notes.ts` — Add `pinnedOnly?: boolean` filter parameter. When true, return only pinned notes.
 
 **Files to create:**
@@ -613,9 +616,9 @@ Tools for organizing knowledge and managing tasks more effectively.
 **Files to modify:**
 
 - `packages/shared/src/types/` — Add to reminder type: `recurrence?: { pattern: 'daily' | 'weekly' | 'monthly' | 'cron', cronExpression?: string, endDate?: string }`.
-- `packages/core/src/storage/sqlite-store.ts` — Add `recurrence` column (JSON) to reminders table. Add `getRecurringReminders()` query.
-- `packages/core/src/agent/tools/add-reminder.ts` — Add `recurrence` parameter. Validate cron expressions. Support natural language: "every day", "every Monday", "every month on the 1st".
-- `packages/scheduler/src/jobs/reminder-check.ts` — When a recurring reminder fires:
+- `packages/core/src/storage/sqlite.ts` — Add `recurrence` column (JSON) to reminders table. Add `getRecurringReminders()` query.
+- `packages/core/src/agent/tools/reminder.ts` — Add `recurrence` parameter. Validate cron expressions. Support natural language: "every day", "every Monday", "every month on the 1st".
+- `packages/scheduler/src/workers/reminder.ts` — When a recurring reminder fires:
   1. Broadcast the reminder as usual
   2. Instead of marking complete, calculate the next occurrence date
   3. Update `dueDate` to next occurrence
@@ -643,10 +646,10 @@ Tools for organizing knowledge and managing tasks more effectively.
 **Files to modify:**
 
 - `packages/shared/src/types/` — Add to todo type: `dueDate?: string`, `priority?: 'low' | 'medium' | 'high'`.
-- `packages/core/src/storage/sqlite-store.ts` — Add `dueDate` and `priority` columns to todos table. Update queries to support sorting by priority and due date.
-- `packages/core/src/agent/tools/add-reminder.ts` — When creating a todo (not a reminder), accept optional `dueDate` and `priority` parameters.
+- `packages/core/src/storage/sqlite.ts` — Add `dueDate` and `priority` columns to todos table. Update queries to support sorting by priority and due date.
+- `packages/core/src/agent/tools/reminder.ts` — When creating a todo (not a reminder), accept optional `dueDate` and `priority` parameters.
 - `packages/core/src/agent/tools/list-todos.ts` — Add filters: `priority?: string`, `overdue?: boolean`, `dueBefore?: string`. Default sort: overdue first, then by priority (high→low), then by due date (nearest first).
-- `packages/scheduler/src/jobs/reminder-check.ts` — Check for overdue todos. If a todo is overdue by > 24h and hasn't been notified, broadcast a reminder.
+- `packages/scheduler/src/workers/reminder.ts` — Check for overdue todos. If a todo is overdue by > 24h and hasn't been notified, broadcast a reminder.
 
 **Acceptance criteria:**
 
@@ -687,7 +690,7 @@ Tools for organizing knowledge and managing tasks more effectively.
 
 **Files to modify:**
 
-- `packages/core/src/storage/sqlite-store.ts` — Add collection tables to schema migration.
+- `packages/core/src/storage/sqlite.ts` — Add collection tables to schema migration.
 - `packages/core/src/agent/tools/index.ts` — Register `manage_collections` tool.
 
 **Acceptance criteria:**
@@ -805,12 +808,13 @@ Enhanced AI capabilities for deeper knowledge work.
   - `dismiss`: Hide a suggestion (won't regenerate for 7 days)
   - `act`: Execute the suggested action (triggers the relevant tool)
 
-- `packages/scheduler/src/jobs/suggestions.ts` — Background job `generate_suggestions`. Runs daily (`0 8 * * *`). Regenerates suggestions, respecting dismissals.
+- `packages/scheduler/src/workers/suggestions.ts` — New BullMQ processor for `generate_suggestions`. Runs daily (`0 8 * * *`). Regenerates suggestions, respecting dismissals.
 
 **Files to modify:**
 
 - `packages/core/src/agent/system-prompt.ts` — Add instruction: "If suggestions are available, mention the most relevant one naturally in conversation (don't force it)."
-- `packages/scheduler/src/index.ts` — Register `generate_suggestions` job.
+- `packages/scheduler/src/workers/processor.ts` — Register the `generate_suggestions` processor in `createJobRouter`.
+- `packages/scheduler/src/index.ts` — Register the `generate_suggestions` schedule via `ScheduleManager`.
 - `packages/core/src/agent/tools/index.ts` — Register `get_suggestions` tool.
 
 **Acceptance criteria:**
@@ -965,9 +969,9 @@ Improvements to existing interfaces and new integration points.
 **Files to modify:**
 
 - `packages/web/src/routes/index.ts` — Mount share routes (outside auth middleware).
-- `packages/core/src/storage/sqlite-store.ts` — Add `share_links` table to schema migration.
+- `packages/core/src/storage/sqlite.ts` — Add `share_links` table to schema migration.
 - `packages/core/src/agent/tools/index.ts` — Register `share_note` tool.
-- `packages/scheduler/src/jobs/` — Add cleanup for expired share links (can piggyback on `export_cleanup` job or create new one).
+- `packages/scheduler/src/workers/export-cleanup.ts` — Extend the existing export-cleanup processor to also purge expired share links from the `share_links` table.
 
 **Acceptance criteria:**
 
@@ -1037,7 +1041,7 @@ Improvements to existing interfaces and new integration points.
 
 **Files to modify:**
 
-- `packages/core/src/storage/sqlite-store.ts` — Add `getActivityTimeline(dateFrom, dateTo)` query that unions across created/updated/status-changed events.
+- `packages/core/src/storage/sqlite.ts` — Add `getActivityTimeline(dateFrom, dateTo)` query that unions across created/updated/status-changed events.
 - `packages/core/src/agent/tools/index.ts` — Register `activity_timeline` tool.
 
 **Acceptance criteria:**

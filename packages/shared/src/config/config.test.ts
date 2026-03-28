@@ -90,6 +90,44 @@ describe('loadConfig', () => {
     }
   });
 
+  it('accepts valid WHISPER_LANGUAGE (ISO-639-1 code)', () => {
+    const config = loadConfig({ ...validEnv, WHISPER_LANGUAGE: 'en' });
+    expect(config.whisperLanguage).toBe('en');
+  });
+
+  it('normalizes WHISPER_LANGUAGE to lowercase', () => {
+    const config = loadConfig({ ...validEnv, WHISPER_LANGUAGE: 'EN' });
+    expect(config.whisperLanguage).toBe('en');
+  });
+
+  it('trims whitespace from WHISPER_LANGUAGE', () => {
+    const config = loadConfig({ ...validEnv, WHISPER_LANGUAGE: ' fr ' });
+    expect(config.whisperLanguage).toBe('fr');
+  });
+
+  it('treats empty WHISPER_LANGUAGE as unset', () => {
+    const config = loadConfig({ ...validEnv, WHISPER_LANGUAGE: '' });
+    expect(config.whisperLanguage).toBeUndefined();
+  });
+
+  it('treats whitespace-only WHISPER_LANGUAGE as unset', () => {
+    const config = loadConfig({ ...validEnv, WHISPER_LANGUAGE: '   ' });
+    expect(config.whisperLanguage).toBeUndefined();
+  });
+
+  it('rejects invalid WHISPER_LANGUAGE values', () => {
+    expect(() => loadConfig({ ...validEnv, WHISPER_LANGUAGE: 'english' })).toThrow('Invalid configuration');
+    resetConfig();
+    expect(() => loadConfig({ ...validEnv, WHISPER_LANGUAGE: 'e' })).toThrow('Invalid configuration');
+    resetConfig();
+    expect(() => loadConfig({ ...validEnv, WHISPER_LANGUAGE: 'en-US' })).toThrow('Invalid configuration');
+  });
+
+  it('defaults whisperLanguage to undefined when not set', () => {
+    const config = loadConfig(validEnv);
+    expect(config.whisperLanguage).toBeUndefined();
+  });
+
   it('resolves ECHOS_HOME from env parameter for storage defaults', () => {
     const customHome = join(tmpdir(), 'custom-echos');
     const config = loadConfig({ ...validEnv, ECHOS_HOME: customHome });

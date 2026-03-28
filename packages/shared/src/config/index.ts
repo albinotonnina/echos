@@ -32,6 +32,18 @@ export const configSchema = z
   // Optional
   openaiApiKey: z.string().optional(),
 
+  // Whisper transcription language (ISO-639-1 code, e.g. 'en', 'fr', 'de').
+  // If not set, Whisper auto-detects the language (may misidentify short clips).
+  whisperLanguage: z.preprocess(
+    (val) => {
+      if (typeof val !== 'string') return val;
+      const trimmed = val.trim();
+      if (trimmed === '') return undefined;
+      return trimmed.toLowerCase();
+    },
+    z.string().regex(/^[a-z]{2}$/, 'Must be an ISO-639-1 language code (e.g. en, fr, de)').optional(),
+  ),
+
   // Multi-provider LLM support
   llmApiKey: z.string().min(1).optional(),
   llmBaseUrl: z.string().url().optional(),
@@ -119,6 +131,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     allowedUserIds: env['ALLOWED_USER_IDS'],
     anthropicApiKey: env['ANTHROPIC_API_KEY'],
     openaiApiKey: env['OPENAI_API_KEY'],
+    whisperLanguage: env['WHISPER_LANGUAGE'],
     llmApiKey: env['LLM_API_KEY'],
     llmBaseUrl: env['LLM_BASE_URL'],
     redisUrl: env['REDIS_URL'],

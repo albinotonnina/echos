@@ -1,6 +1,6 @@
 {
   "name": "@echos/cli",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -22,11 +22,11 @@
     "@echos/plugin-twitter": "workspace:*",
     "@echos/plugin-resurface": "workspace:*",
     "@echos/plugin-journal": "workspace:*",
-    "@mariozechner/pi-agent-core": "^0.57.1",
+    "@mariozechner/pi-agent-core": "^0.63.1",
     "pino": "^10.3.1"
   },
   "devDependencies": {
-    "@types/node": "^25.3.5",
+    "@types/node": "^25.5.0",
     "typescript": "^5.7.0"
   }
 }

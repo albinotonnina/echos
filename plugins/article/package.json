@@ -1,6 +1,6 @@
 {
   "name": "@echos/plugin-article",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -14,18 +14,18 @@
   "dependencies": {
     "@echos/core": "workspace:*",
     "@echos/shared": "workspace:*",
-    "@mariozechner/pi-agent-core": "^0.57.1",
-    "@mariozechner/pi-ai": "^0.57.1",
+    "@mariozechner/pi-agent-core": "^0.63.1",
+    "@mariozechner/pi-ai": "^0.63.1",
     "@mozilla/readability": "^0.6.0",
-    "@sinclair/typebox": "^0.34.48",
-    "isomorphic-dompurify": "3.0.0",
-    "jsdom": "^28.1.0",
+    "@sinclair/typebox": "^0.34.49",
+    "isomorphic-dompurify": "3.7.1",
+    "jsdom": "^29.0.1",
     "pino": "^10.3.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "@types/node": "^25.3.5",
-    "@types/jsdom": "^28.0.0",
+    "@types/node": "^25.5.0",
+    "@types/jsdom": "^28.0.1",
     "@types/uuid": "^11.0.0",
     "typescript": "^5.7.0"
   }

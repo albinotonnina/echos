@@ -642,6 +642,23 @@ WEBSHARE_PROXY_PASSWORD=your_password
 
 When set, transcript requests and audio downloads route through `p.webshare.io:80`.
 
+### Whisper transcribes audio in the wrong language
+
+**Problem**: When a YouTube video has no captions and falls back to Whisper transcription, or when you send a Telegram voice message, Whisper may misidentify the language — e.g. transcribing English audio as Welsh or another language.
+
+**Symptoms**:
+
+- Transcript output is garbled or in the wrong language
+- Voice message responses don't match what you said
+
+**Fix**: Pin the transcription language by setting `WHISPER_LANGUAGE` in your `.env`:
+
+```bash
+WHISPER_LANGUAGE=en
+```
+
+This accepts an [ISO-639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) two-letter code (e.g. `en`, `fr`, `de`, `es`, `it`, `ja`). When set, Whisper skips auto-detection and transcribes in the specified language. If unset, Whisper auto-detects (which can fail on short clips or accented speech).
+
 ---
 
 ## Twitter / X Issues

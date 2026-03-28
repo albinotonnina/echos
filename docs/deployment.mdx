@@ -241,6 +241,7 @@ See `.env.example` for the full list. Required:
 Optional:
 - `LLM_BASE_URL` - Custom OpenAI-compatible endpoint (e.g. DeepInfra); requires `LLM_API_KEY`
 - `OPENAI_API_KEY` - Required for embeddings and Whisper transcription
+- `WHISPER_LANGUAGE` - ISO-639-1 code (e.g. `en`, `fr`, `de`) to pin Whisper transcription language. If unset, Whisper auto-detects. See [Troubleshooting](/troubleshooting#whisper-transcribes-audio-in-the-wrong-language).
 - `CACHE_RETENTION` - Prompt cache TTL for Anthropic models: `long` (1h, default), `short` (5min), `none` (off). Always `none` for custom endpoints.
 
 Redis (required):

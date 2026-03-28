@@ -280,7 +280,7 @@ export function createTelegramAdapter(options: TelegramAdapterOptions): Telegram
 
     await ctx.react('🤗').catch(() => undefined);
     const agent = getOrCreateSession(userId, agentDeps);
-    await handleVoiceMessage(ctx, agent, config.openaiApiKey, logger);
+    await handleVoiceMessage(ctx, agent, config.openaiApiKey, logger, config.whisperLanguage);
   });
 
   // Handle photo messages

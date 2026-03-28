@@ -17,6 +17,7 @@ export async function handleVoiceMessage(
   agent: Agent,
   openaiApiKey: string,
   logger: Logger,
+  language?: string,
 ): Promise<void> {
   const voice = ctx.message?.voice;
   if (!voice) return;
@@ -66,6 +67,7 @@ export async function handleVoiceMessage(
       file: audioStream,
       model: 'whisper-1',
       response_format: 'text',
+      ...(language ? { language } : {}),
     });
 
     const transcribedText = typeof transcription === 'string' ? transcription.trim() : '';
