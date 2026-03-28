@@ -41,7 +41,7 @@ export function createRevisionStorage(db: Database.Database): RevisionStorage {
     listByNote: db.prepare(`
       SELECT id, note_id, title, content, tags, category, created_at
       FROM revisions WHERE note_id = ?
-      ORDER BY created_at DESC LIMIT ?
+      ORDER BY created_at DESC, id DESC LIMIT ?
     `),
     getById: db.prepare(`
       SELECT id, note_id, title, content, tags, category, created_at
@@ -51,7 +51,7 @@ export function createRevisionStorage(db: Database.Database): RevisionStorage {
     deleteOldest: db.prepare(`
       DELETE FROM revisions WHERE id IN (
         SELECT id FROM revisions WHERE note_id = ?
-        ORDER BY created_at DESC LIMIT -1 OFFSET ?
+        ORDER BY created_at DESC, id DESC LIMIT -1 OFFSET ?
       )
     `),
   };

@@ -42,14 +42,26 @@ export function restoreVersionTool(deps: RestoreVersionToolDeps): AgentTool<type
         throw new Error(`Revision ${params.revisionId} does not belong to note ${params.noteId}`);
       }
 
-      // Save current state as a revision before restoring
-      deps.revisions.saveRevision(
-        note.id,
-        note.title,
-        note.content,
-        note.tags,
-        note.category,
-      );
+      // Save current state as a revision before restoring.
+      // Prefer markdown file (source of truth) over SQLite when available.
+      const mdNote = deps.markdown.read(note.filePath);
+      if (mdNote) {
+        deps.revisions.saveRevision(
+          note.id,
+          mdNote.metadata.title,
+          mdNote.content,
+          mdNote.metadata.tags.join(','),
+          mdNote.metadata.category,
+        );
+      } else {
+        deps.revisions.saveRevision(
+          note.id,
+          note.title,
+          note.content,
+          note.tags,
+          note.category,
+        );
+      }
 
       // Restore from revision
       const restoredTags = revision.tags ? revision.tags.split(',').filter(Boolean) : [];
@@ -61,7 +73,7 @@ export function restoreVersionTool(deps: RestoreVersionToolDeps): AgentTool<type
 
       let updated: { metadata: NoteMetadata; content: string; filePath: string };
 
-      if (deps.markdown.read(note.filePath)) {
+      if (mdNote) {
         updated = deps.markdown.update(note.filePath, partialMeta, revision.content);
       } else {
         const metadata: NoteMetadata = {

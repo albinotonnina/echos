@@ -37,15 +37,27 @@ export function updateNoteTool(deps: UpdateNoteToolDeps): AgentTool<typeof schem
         throw new Error(`Note not found: ${params.id}`);
       }
 
-      // Save current state as a revision before modifying
+      // Save current state as a revision before modifying.
+      // Prefer markdown file (source of truth) over SQLite when available.
       if (deps.revisions) {
-        deps.revisions.saveRevision(
-          row.id,
-          row.title,
-          row.content,
-          row.tags,
-          row.category,
-        );
+        const mdNote = deps.markdown.read(row.filePath);
+        if (mdNote) {
+          deps.revisions.saveRevision(
+            row.id,
+            mdNote.metadata.title,
+            mdNote.content,
+            mdNote.metadata.tags.join(','),
+            mdNote.metadata.category,
+          );
+        } else {
+          deps.revisions.saveRevision(
+            row.id,
+            row.title,
+            row.content,
+            row.tags,
+            row.category,
+          );
+        }
       }
 
       const partialMeta: Partial<NoteMetadata> = {};
