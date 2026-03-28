@@ -35,9 +35,15 @@ export function deleteNoteTool(deps: DeleteNoteToolDeps): AgentTool<typeof schem
         throw new Error(`Note not found: ${params.id}`);
       }
 
+      // Use the markdown index to get the actual file path on disk.
+      // SQLite file_path may be stale or relative; the markdown index is
+      // built by scanning real files and always has correct absolute paths.
+      const mdNote = deps.markdown.readById(params.id);
+      const actualFilePath = mdNote?.filePath ?? row.filePath;
+
       if (params.permanent) {
         // Hard delete: remove from all stores
-        deps.markdown.remove(row.filePath);
+        deps.markdown.remove(actualFilePath);
         deps.sqlite.purgeNote(params.id);
         await deps.vectorDb.remove(params.id);
 
@@ -53,7 +59,7 @@ export function deleteNoteTool(deps: DeleteNoteToolDeps): AgentTool<typeof schem
       }
 
       // Soft delete: move to trash, update file_path in SQLite
-      const trashPath = deps.markdown.moveToTrash(row.filePath);
+      const trashPath = deps.markdown.moveToTrash(actualFilePath);
       deps.sqlite.deleteNote(params.id, trashPath);
       // Keep vectors — they're cheap and will be removed on purge
 
