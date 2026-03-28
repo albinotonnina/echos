@@ -5,12 +5,14 @@ import { validateContentSize } from '@echos/shared';
 import type { SqliteStorage } from '../../storage/sqlite.js';
 import type { MarkdownStorage } from '../../storage/markdown.js';
 import type { VectorStorage } from '../../storage/vectordb.js';
+import type { RevisionStorage } from '../../storage/revisions.js';
 
 export interface UpdateNoteToolDeps {
   sqlite: SqliteStorage;
   markdown: MarkdownStorage;
   vectorDb: VectorStorage;
   generateEmbedding: (text: string) => Promise<number[]>;
+  revisions?: RevisionStorage;
 }
 
 const schema = Type.Object({
@@ -33,6 +35,17 @@ export function updateNoteTool(deps: UpdateNoteToolDeps): AgentTool<typeof schem
       const row = deps.sqlite.getNote(params.id);
       if (!row) {
         throw new Error(`Note not found: ${params.id}`);
+      }
+
+      // Save current state as a revision before modifying
+      if (deps.revisions) {
+        deps.revisions.saveRevision(
+          row.id,
+          row.title,
+          row.content,
+          row.tags,
+          row.category,
+        );
       }
 
       const partialMeta: Partial<NoteMetadata> = {};

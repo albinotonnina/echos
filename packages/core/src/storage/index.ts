@@ -22,3 +22,8 @@ export {
 } from './reconciler.js';
 export { createFileWatcher, type WatcherOptions, type FileWatcher } from './watcher.js';
 export { createEmbeddingFn, type EmbeddingOptions } from './embeddings.js';
+export {
+  createRevisionStorage,
+  type RevisionStorage,
+  type Revision,
+} from './revisions.js';

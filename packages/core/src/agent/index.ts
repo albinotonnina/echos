@@ -30,11 +30,14 @@ import {
   createReadingQueueTool,
   createReadingStatsTool,
   saveConversationTool,
+  noteHistoryTool,
+  restoreVersionTool,
 } from './tools/index.js';
 import type { SqliteStorage } from '../storage/sqlite.js';
 import type { MarkdownStorage } from '../storage/markdown.js';
 import type { VectorStorage } from '../storage/vectordb.js';
 import type { SearchService } from '../storage/search.js';
+import { createRevisionStorage } from '../storage/revisions.js';
 
 export interface AgentDeps {
   sqlite: SqliteStorage;
@@ -93,6 +96,8 @@ export function createEchosAgent(deps: AgentDeps): Agent {
   const effectiveCacheRetention =
     (model.provider as string) === 'anthropic' ? (deps.cacheRetention ?? 'long') : 'none';
 
+  const revisions = createRevisionStorage(deps.sqlite.db);
+
   const storageDeps = {
     sqlite: deps.sqlite,
     markdown: deps.markdown,
@@ -118,7 +123,7 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     }),
     getNoteTool({ sqlite: deps.sqlite, markdown: deps.markdown }),
     listNotesTool({ sqlite: deps.sqlite }),
-    updateNoteTool(storageDeps),
+    updateNoteTool({ ...storageDeps, revisions }),
     deleteNoteTool({
       sqlite: deps.sqlite,
       markdown: deps.markdown,
@@ -163,6 +168,8 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     createReadingQueueTool({ sqlite: deps.sqlite }),
     createReadingStatsTool({ sqlite: deps.sqlite }),
     saveConversationTool(storageDeps),
+    noteHistoryTool({ sqlite: deps.sqlite, revisions }),
+    restoreVersionTool({ ...storageDeps, revisions }),
   ];
 
   const tools = [...coreTools, ...(deps.pluginTools ?? [])];
