@@ -8,6 +8,7 @@ export interface ProcessorDeps {
   contentProcessor: (job: Job<JobData>) => Promise<void>;
   reminderProcessor: (job: Job<JobData>) => Promise<void>;
   exportCleanupProcessor?: (job: Job<JobData>) => Promise<void>;
+  trashPurgeProcessor?: (job: Job<JobData>) => Promise<void>;
   logger: Logger;
 }
 
@@ -30,6 +31,18 @@ export function createJobRouter(deps: ProcessorDeps) {
       if (deps.exportCleanupProcessor) {
         await deps.exportCleanupProcessor(job);
       }
+      return;
+    }
+
+    if (type === 'trash_purge' || type === 'trash-purge') {
+      if (!deps.trashPurgeProcessor) {
+        deps.logger.warn(
+          { type, jobId: job.id },
+          'Received trash_purge job but no trashPurgeProcessor is configured',
+        );
+        return;
+      }
+      await deps.trashPurgeProcessor(job);
       return;
     }
 

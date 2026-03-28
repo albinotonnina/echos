@@ -42,6 +42,14 @@ export class ScheduleManager {
     );
     updatedIds.add('export-cleanup');
 
+    // Always schedule trash purge (runs daily at 3 AM)
+    await this.queue.upsertJobScheduler(
+      'trash-purge',
+      { pattern: '0 3 * * *' },
+      { name: 'trash_purge', data: { type: 'trash_purge' } },
+    );
+    updatedIds.add('trash-purge');
+
     // Remove schedulers that are no longer enabled/in DB (except hardcoded reminder check)
     for (const id of existingIds) {
       if (!updatedIds.has(id)) {

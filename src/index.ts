@@ -33,6 +33,7 @@ import {
   createContentProcessor,
   createReminderCheckProcessor,
   createExportCleanupProcessor,
+  createTrashPurgeProcessor,
   createJobRouter,
   createManageScheduleTool,
   type QueueService,
@@ -311,6 +312,7 @@ async function main(): Promise<void> {
   });
 
   const exportCleanupProcessor = createExportCleanupProcessor({ exportsDir, logger });
+  const trashPurgeProcessor = createTrashPurgeProcessor({ sqlite, markdown, vectorDb, logger });
 
   const scheduleManager = new ScheduleManager(
     queueService.queue,
@@ -328,6 +330,7 @@ async function main(): Promise<void> {
     contentProcessor,
     reminderProcessor,
     exportCleanupProcessor,
+    trashPurgeProcessor,
     logger,
   });
 

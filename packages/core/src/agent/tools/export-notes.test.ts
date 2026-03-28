@@ -36,6 +36,7 @@ function makeRow(overrides: Partial<NoteRow> = {}): NoteRow {
     imageUrl: null,
     imageMetadata: null,
     ocrText: null,
+    deletedAt: null,
     ...overrides,
   };
 }

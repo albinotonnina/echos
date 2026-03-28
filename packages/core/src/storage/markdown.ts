@@ -1,5 +1,5 @@
-import { readFileSync, writeFileSync, unlinkSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { readFileSync, writeFileSync, unlinkSync, existsSync, mkdirSync, readdirSync, renameSync } from 'node:fs';
+import { join, dirname, relative } from 'node:path';
 import matter from 'gray-matter';
 import type { Logger } from 'pino';
 import type { NoteMetadata, Note, ContentType, ContentStatus, InputSource } from '@echos/shared';
@@ -10,6 +10,12 @@ export interface MarkdownStorage {
   readById(id: string): Note | undefined;
   update(filePath: string, metadata: Partial<NoteMetadata>, content?: string): Note;
   remove(filePath: string): void;
+  /** Move a markdown file to the .trash/ subdirectory (soft delete) */
+  moveToTrash(filePath: string): string;
+  /** Move a markdown file from .trash/ back to its original location (restore) */
+  restoreFromTrash(trashFilePath: string, originalFilePath: string): void;
+  /** Permanently remove a file (purge from trash) */
+  purge(filePath: string): void;
   list(type?: ContentType): Note[];
   registerFile(id: string, filePath: string): void;
   unregisterFile(filePath: string): void;
@@ -42,6 +48,7 @@ function metadataToFrontmatter(meta: NoteMetadata): Record<string, unknown> {
   if (meta.gist) fm['gist'] = meta.gist;
   if (meta.status) fm['status'] = meta.status;
   if (meta.inputSource) fm['inputSource'] = meta.inputSource;
+  if (meta.deletedAt) fm['deletedAt'] = meta.deletedAt;
   return fm;
 }
 
@@ -61,6 +68,7 @@ function frontmatterToMetadata(data: Record<string, unknown>): NoteMetadata {
   if (data['gist']) meta.gist = data['gist'] as string;
   if (data['status']) meta.status = data['status'] as ContentStatus;
   if (data['inputSource']) meta.inputSource = data['inputSource'] as InputSource;
+  if (data['deletedAt']) meta.deletedAt = data['deletedAt'] as string;
   return meta;
 }
 
@@ -95,6 +103,11 @@ export function createMarkdownStorage(baseDir: string, logger: Logger): Markdown
   }
 
   scanDirectory(baseDir);
+
+  // Also scan .trash/ directory for soft-deleted files
+  const trashDir = join(baseDir, '.trash');
+  scanDirectory(trashDir);
+
   logger.info({ baseDir, fileCount: idIndex.size }, 'Markdown storage initialized');
 
   return {
@@ -163,6 +176,59 @@ export function createMarkdownStorage(baseDir: string, logger: Logger): Markdown
       if (existsSync(filePath)) {
         unlinkSync(filePath);
         logger.debug({ filePath }, 'Note removed');
+      }
+    },
+
+    moveToTrash(filePath: string): string {
+      const trashDir = join(baseDir, '.trash');
+      // Preserve relative path structure inside .trash/
+      const rel = relative(baseDir, filePath);
+      const trashPath = join(trashDir, rel);
+      mkdirSync(dirname(trashPath), { recursive: true });
+
+      if (existsSync(filePath)) {
+        renameSync(filePath, trashPath);
+      }
+
+      // Update indexes to point to the new trash path
+      const id = pathIndex.get(filePath);
+      if (id) {
+        pathIndex.delete(filePath);
+        idIndex.set(id, trashPath);
+        pathIndex.set(trashPath, id);
+      }
+
+      logger.debug({ filePath, trashPath }, 'Note moved to trash');
+      return trashPath;
+    },
+
+    restoreFromTrash(trashFilePath: string, originalFilePath: string): void {
+      mkdirSync(dirname(originalFilePath), { recursive: true });
+
+      if (existsSync(trashFilePath)) {
+        renameSync(trashFilePath, originalFilePath);
+      }
+
+      // Update indexes to point back to original path
+      const id = pathIndex.get(trashFilePath);
+      if (id) {
+        pathIndex.delete(trashFilePath);
+        idIndex.set(id, originalFilePath);
+        pathIndex.set(originalFilePath, id);
+      }
+
+      logger.debug({ trashFilePath, originalFilePath }, 'Note restored from trash');
+    },
+
+    purge(filePath: string): void {
+      const id = pathIndex.get(filePath);
+      if (id) {
+        idIndex.delete(id);
+      }
+      pathIndex.delete(filePath);
+      if (existsSync(filePath)) {
+        unlinkSync(filePath);
+        logger.debug({ filePath }, 'Note purged permanently');
       }
     },
 
