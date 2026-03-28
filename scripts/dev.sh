@@ -5,13 +5,17 @@ set -euo pipefail
 # EchOS local dev launcher
 #
 # Detects git worktrees, lets you pick one (or stay on main),
-# then starts the daemon sharing the main repo's data/ and .env
-# so every worktree uses the same knowledge base.
+# then starts the daemon or CLI sharing the main repo's data/
+# and .env so every worktree uses the same knowledge base.
 #
 # Usage:
-#   ./scripts/dev.sh          # interactive picker → starts daemon
+#   ./scripts/dev.sh          # picker → daemon
+#   ./scripts/dev.sh cli      # picker → interactive CLI
 #   pnpm dev:local            # same, via npm script
+#   pnpm cli:local            # same for CLI
 # ─────────────────────────────────────────────────────────────
+
+MODE="${1:-daemon}"
 
 # Resolve the main repo root (where .git is a directory, not a file).
 # Works whether invoked from main or from inside a worktree.
@@ -101,13 +105,14 @@ else
   branch="${branches[$idx]}"
 fi
 
-# ── Launch ───────────────────────────────────────────────────
+# ── Setup environment ────────────────────────────────────────
 
 echo ""
 echo "  Branch: $branch"
 echo "  Path:   $target"
 echo "  Data:   $DATA_DIR"
 echo "  Env:    $ENV_FILE"
+echo "  Mode:   $MODE"
 echo ""
 
 cd "$target"
@@ -128,7 +133,17 @@ set +a
 # Point storage paths at the main repo's data directory.
 export ECHOS_HOME="$DATA_DIR"
 
-echo "Starting EchOS daemon..."
-echo ""
+# ── Launch ───────────────────────────────────────────────────
 
-exec tsx src/index.ts
+case "$MODE" in
+  cli)
+    echo "Starting EchOS CLI..."
+    echo ""
+    exec tsx packages/cli/src/index.ts "$@"
+    ;;
+  *)
+    echo "Starting EchOS daemon..."
+    echo ""
+    exec tsx src/index.ts
+    ;;
+esac
