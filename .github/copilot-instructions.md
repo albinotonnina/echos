@@ -37,7 +37,7 @@ EchOS is a secure, self-hosted, agent-driven personal knowledge management syste
 
 **Key Principle**: Security-first. Every feature must consider security implications.
 
-## Tech Stack
+## Tech Stack (Do Not Change Without Discussion)
 
 - **Runtime**: Node.js 20+ with TypeScript (strict mode, ESM)
 - **Package Manager**: pnpm workspaces (monorepo)
@@ -62,8 +62,14 @@ echos/
 │   ├── cli/          # CLI binary (pnpm echos) — standalone terminal interface
 │   └── scheduler/    # Background jobs (BullMQ) and cron tasks
 ├── plugins/
-│   ├── youtube/      # YouTube transcript extraction plugin
-│   └── article/      # Web article extraction plugin
+│   ├── article/          # Web article extraction plugin
+│   ├── content-creation/ # Content creation and drafting plugin
+│   ├── digest/           # Digest and summary generation plugin
+│   ├── image/            # Image processing plugin
+│   ├── journal/          # Journaling and reflective writing plugin
+│   ├── resurface/        # Resurfacing / spaced-repetition plugin
+│   ├── twitter/          # Twitter/X ingestion plugin
+│   └── youtube/          # YouTube transcript extraction plugin
 ├── docker/           # Docker configuration
 ├── scripts/          # Deploy, backup, setup scripts
 └── data/             # Runtime data (gitignored)
@@ -93,7 +99,7 @@ export default myPlugin;
 Plugins receive a `PluginContext` with access to storage, embeddings, logger, and config.
 Register plugins via `PluginRegistry` in the entry point.
 
-**Adding a new plugin checklist:**
+**CRITICAL — Adding a new plugin checklist (ALWAYS do ALL of these):**
 
 1. Create `plugins/<name>/package.json` with the plugin package
 2. Add `plugins/<name>/package.json` to `pnpm-workspace.yaml` (if not glob-matched)
@@ -119,7 +125,7 @@ Never write `async (_toolCallId, params: Params)` without the `: string` annotat
 Core tools use TypeBox schemas for pi-agent-core compatibility:
 
 ```typescript
-import { Type } from '@sinclair/typebox';
+import { Type } from '@mariozechner/pi-ai';
 
 const CreateNoteTool = {
   name: 'create_note',
@@ -164,7 +170,7 @@ All config is Zod-validated via `@echos/shared/config`. Use `loadConfig()`.
 
 Use `createLogger(name)` from `@echos/shared/logging`. Security events use `createAuditLogger()`.
 
-## Security Requirements
+## Security Requirements (CRITICAL)
 
 - ALWAYS verify user ID before processing
 - ALWAYS validate URLs (SSRF prevention via `validateUrl()`)
