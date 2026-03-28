@@ -17,7 +17,14 @@ export interface SqliteStorage {
   // Notes index
   upsertNote(meta: NoteMetadata, content: string, filePath: string, contentHash?: string): void;
   updateNoteStatus(id: string, status: ContentStatus): void;
+  /** Soft-delete: sets status='deleted' and deletedAt=now */
   deleteNote(id: string): void;
+  /** Permanently remove a note row from the database */
+  purgeNote(id: string): void;
+  /** Restore a soft-deleted note back to 'saved' status */
+  restoreNote(id: string): void;
+  /** List all soft-deleted notes */
+  listDeletedNotes(): NoteRow[];
   getNote(id: string): NoteRow | undefined;
   getNoteByFilePath(filePath: string): NoteRow | undefined;
   listNotes(opts?: ListNotesOptions): NoteRow[];
@@ -70,6 +77,7 @@ export interface NoteRow {
   imageUrl: string | null;
   imageMetadata: string | null;
   ocrText: string | null;
+  deletedAt: string | null;
 }
 
 export interface ListNotesOptions {
@@ -322,42 +330,57 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
     `CREATE INDEX IF NOT EXISTS idx_notes_status_last_surfaced ON notes(last_surfaced, status)`,
   );
 
+  // Migration: add deleted_at column for soft-delete (trash) support
+  try {
+    db.exec(`ALTER TABLE notes ADD COLUMN deleted_at TEXT DEFAULT NULL`);
+  } catch {
+    // Column already exists — that's fine
+  }
+  db.exec(
+    `CREATE INDEX IF NOT EXISTS idx_notes_deleted_at ON notes(deleted_at)`,
+  );
+
   logger.info({ dbPath }, 'SQLite database initialized');
 
   // Prepared statements
   const stmts = {
     upsertNote: db.prepare(`
-      INSERT INTO notes (id, type, title, content, file_path, tags, links, category, source_url, author, gist, created, updated, content_hash, status, input_source, image_path, image_url, image_metadata, ocr_text)
-      VALUES (@id, @type, @title, @content, @filePath, @tags, @links, @category, @sourceUrl, @author, @gist, @created, @updated, @contentHash, @status, @inputSource, @imagePath, @imageUrl, @imageMetadata, @ocrText)
+      INSERT INTO notes (id, type, title, content, file_path, tags, links, category, source_url, author, gist, created, updated, content_hash, status, input_source, image_path, image_url, image_metadata, ocr_text, deleted_at)
+      VALUES (@id, @type, @title, @content, @filePath, @tags, @links, @category, @sourceUrl, @author, @gist, @created, @updated, @contentHash, @status, @inputSource, @imagePath, @imageUrl, @imageMetadata, @ocrText, @deletedAt)
       ON CONFLICT(id) DO UPDATE SET
         title=@title, content=@content, file_path=@filePath, tags=@tags, links=@links,
         category=@category, source_url=@sourceUrl, author=@author, gist=@gist, updated=@updated,
-        content_hash=@contentHash, status=@status, input_source=@inputSource, image_path=@imagePath, image_url=@imageUrl, image_metadata=@imageMetadata, ocr_text=@ocrText
+        content_hash=@contentHash, status=@status, input_source=@inputSource, image_path=@imagePath, image_url=@imageUrl, image_metadata=@imageMetadata, ocr_text=@ocrText, deleted_at=@deletedAt
     `),
     updateNoteStatus: db.prepare(`UPDATE notes SET status=?, updated=? WHERE id=?`),
-    deleteNote: db.prepare('DELETE FROM notes WHERE id = ?'),
+    softDeleteNote: db.prepare(`UPDATE notes SET status='deleted', deleted_at=?, updated=? WHERE id=?`),
+    restoreNote: db.prepare(`UPDATE notes SET status='saved', deleted_at=NULL, updated=? WHERE id=?`),
+    purgeNote: db.prepare('DELETE FROM notes WHERE id = ?'),
     getNote: db.prepare(
-      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText FROM notes WHERE id = ?',
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText, deleted_at AS deletedAt FROM notes WHERE id = ?',
     ),
     getNoteByFilePath: db.prepare(
-      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText FROM notes WHERE file_path = ?',
+      'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText, deleted_at AS deletedAt FROM notes WHERE file_path = ?',
     ),
     searchFts: db.prepare(`
-      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, notes.content_hash AS contentHash, notes.status, notes.input_source AS inputSource, notes.image_path AS imagePath, notes.image_url AS imageUrl, notes.image_metadata AS imageMetadata, notes.ocr_text AS ocrText, bm25(notes_fts) as rank
+      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, notes.content_hash AS contentHash, notes.status, notes.input_source AS inputSource, notes.image_path AS imagePath, notes.image_url AS imageUrl, notes.image_metadata AS imageMetadata, notes.ocr_text AS ocrText, notes.deleted_at AS deletedAt, bm25(notes_fts) as rank
       FROM notes_fts
       JOIN notes ON notes.rowid = notes_fts.rowid
-      WHERE notes_fts MATCH ?
+      WHERE notes_fts MATCH ? AND (notes.status IS NULL OR notes.status != 'deleted')
       ORDER BY rank
       LIMIT ?
     `),
     searchFtsWithType: db.prepare(`
-      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, notes.content_hash AS contentHash, notes.status, notes.input_source AS inputSource, notes.image_path AS imagePath, notes.image_url AS imageUrl, notes.image_metadata AS imageMetadata, notes.ocr_text AS ocrText, bm25(notes_fts) as rank
+      SELECT notes.id, notes.type, notes.title, notes.content, notes.file_path AS filePath, notes.tags, notes.links, notes.category, notes.source_url AS sourceUrl, notes.author, notes.gist, notes.created, notes.updated, notes.content_hash AS contentHash, notes.status, notes.input_source AS inputSource, notes.image_path AS imagePath, notes.image_url AS imageUrl, notes.image_metadata AS imageMetadata, notes.ocr_text AS ocrText, notes.deleted_at AS deletedAt, bm25(notes_fts) as rank
       FROM notes_fts
       JOIN notes ON notes.rowid = notes_fts.rowid
-      WHERE notes_fts MATCH ? AND notes.type = ?
+      WHERE notes_fts MATCH ? AND notes.type = ? AND (notes.status IS NULL OR notes.status != 'deleted')
       ORDER BY rank
       LIMIT ?
     `),
+    listDeletedNotes: db.prepare(
+      "SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText, deleted_at AS deletedAt FROM notes WHERE status = 'deleted' ORDER BY deleted_at DESC",
+    ),
     upsertReminder: db.prepare(`
       INSERT INTO reminders (id, title, description, due_date, priority, completed, kind, created, updated)
       VALUES (@id, @title, @description, @dueDate, @priority, @completed, @kind, @created, @updated)
@@ -411,7 +434,7 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
             CASE WHEN instr(tags || ',', ',') > 0
                  THEN substr(tags || ',', instr(tags || ',', ',') + 1)
                  ELSE '' END
-          FROM notes WHERE tags != ''
+          FROM notes WHERE tags != '' AND (status IS NULL OR status != 'deleted')
           UNION ALL
           SELECT
             rowid,
@@ -493,6 +516,7 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
         imageUrl: meta.imageUrl ?? null,
         imageMetadata: meta.imageMetadata ?? null,
         ocrText: meta.ocrText ?? null,
+        deletedAt: meta.deletedAt ?? null,
       });
     },
 
@@ -501,7 +525,20 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
     },
 
     deleteNote(id: string): void {
-      stmts.deleteNote.run(id);
+      const now = new Date().toISOString();
+      stmts.softDeleteNote.run(now, now, id);
+    },
+
+    purgeNote(id: string): void {
+      stmts.purgeNote.run(id);
+    },
+
+    restoreNote(id: string): void {
+      stmts.restoreNote.run(new Date().toISOString(), id);
+    },
+
+    listDeletedNotes(): NoteRow[] {
+      return stmts.listDeletedNotes.all() as NoteRow[];
     },
 
     getNote(id: string): NoteRow | undefined {
@@ -518,13 +555,17 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       const conditions: string[] = [];
       const params: unknown[] = [];
 
-      if (opts.type) {
-        conditions.push('type = ?');
-        params.push(opts.type);
-      }
+      // Exclude deleted notes by default unless explicitly requesting deleted status
       if (opts.status) {
         conditions.push('status = ?');
         params.push(opts.status);
+      } else {
+        conditions.push("(status IS NULL OR status != 'deleted')");
+      }
+
+      if (opts.type) {
+        conditions.push('type = ?');
+        params.push(opts.type);
       }
       if (opts.dateFrom) {
         conditions.push('created >= ?');
@@ -542,7 +583,7 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       }
 
       const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-      const sql = `SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText FROM notes ${where} ORDER BY created DESC LIMIT ? OFFSET ?`;
+      const sql = `SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText, deleted_at AS deletedAt FROM notes ${where} ORDER BY created DESC LIMIT ? OFFSET ?`;
       params.push(limit, offset);
 
       return db.prepare(sql).all(...params) as NoteRow[];

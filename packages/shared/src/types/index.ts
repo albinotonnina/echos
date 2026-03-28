@@ -1,6 +1,6 @@
 export type ContentType = 'note' | 'journal' | 'article' | 'youtube' | 'tweet' | 'reminder' | 'conversation' | 'image';
 
-export type ContentStatus = 'saved' | 'read' | 'archived';
+export type ContentStatus = 'saved' | 'read' | 'archived' | 'deleted';
 
 export type InputSource = 'text' | 'voice' | 'url' | 'file' | 'image';
 
@@ -22,6 +22,8 @@ export interface NoteMetadata {
   imageUrl?: string;
   imageMetadata?: string;
   ocrText?: string;
+  /** ISO date when the note was soft-deleted (moved to trash) */
+  deletedAt?: string;
 }
 
 export interface Note {
@@ -86,7 +88,7 @@ export interface ScheduleEntry {
  * Schedule IDs reserved for internal system use.
  * User-created schedules must not use these IDs.
  */
-export const RESERVED_SCHEDULE_IDS = new Set(['reminder-check']);
+export const RESERVED_SCHEDULE_IDS = new Set(['reminder-check', 'trash-purge']);
 
 export interface ProcessedContent {
   title: string;

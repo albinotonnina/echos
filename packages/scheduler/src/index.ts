@@ -11,4 +11,5 @@ export { createManageScheduleTool, type ManageScheduleToolDeps } from './tools/m
 export { createContentProcessor, type ContentWorkerDeps } from './workers/content.js';
 export { createReminderCheckProcessor, type ReminderWorkerDeps } from './workers/reminder.js';
 export { createExportCleanupProcessor, type ExportCleanupDeps } from './workers/export-cleanup.js';
+export { createTrashPurgeProcessor, type TrashPurgeDeps } from './workers/trash-purge.js';
 export { createJobRouter, type ProcessorDeps } from './workers/processor.js';
