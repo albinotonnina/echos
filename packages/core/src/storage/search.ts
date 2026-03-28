@@ -90,6 +90,8 @@ export function createSearchService(
         if (opts.type && vr.type !== opts.type) continue;
         const noteRow = sqlite.getNote(vr.id);
         if (!noteRow) continue;
+        // Exclude soft-deleted notes from search results
+        if (noteRow.status === 'deleted') continue;
         results.push(noteRowToSearchResult(noteRow, vr.score, mdStorage, logger));
       }
 
@@ -118,11 +120,12 @@ export function createSearchService(
       // Fuse rankings
       const fused = reciprocalRankFusion(ftsRanked, vectorRanked);
 
-      // Resolve notes
+      // Resolve notes (exclude soft-deleted)
       const results: SearchResult[] = [];
       for (const { id, score } of fused.slice(0, limit)) {
         const noteRow = sqlite.getNote(id);
         if (!noteRow) continue;
+        if (noteRow.status === 'deleted') continue;
         results.push(noteRowToSearchResult(noteRow, score, mdStorage, logger));
       }
 

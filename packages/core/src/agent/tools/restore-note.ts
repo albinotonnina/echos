@@ -32,49 +32,18 @@ export function restoreNoteTool(deps: RestoreNoteToolDeps): AgentTool<typeof sch
         throw new Error(`Note "${row.title}" is not in the trash (status=${row.status ?? 'none'})`);
       }
 
-      // The file is currently in .trash/ — compute the original path.
-      // The trash path preserves the relative structure, so we reverse it.
+      // file_path in SQLite now points to the .trash/ location (updated during soft-delete).
+      // Derive the original path by removing the /.trash/ segment.
       const trashFilePath = row.filePath;
-      // .trash/ is inserted after baseDir: knowledge/.trash/type/category/file.md
-      // Original path: knowledge/type/category/file.md
+      if (!trashFilePath.includes('/.trash/')) {
+        throw new Error(
+          `Note "${row.title}" has status=deleted but file_path does not contain /.trash/: ${trashFilePath}`,
+        );
+      }
       const originalFilePath = trashFilePath.replace('/.trash/', '/');
 
       deps.markdown.restoreFromTrash(trashFilePath, originalFilePath);
-      deps.sqlite.restoreNote(params.noteId);
-
-      // Update the file_path in SQLite to point to the restored location
-      const restoredRow = deps.sqlite.getNote(params.noteId);
-      if (restoredRow) {
-        // Re-upsert to update the file_path column
-        const tags = restoredRow.tags ? restoredRow.tags.split(',').filter(Boolean) : [];
-        const links = restoredRow.links ? restoredRow.links.split(',').filter(Boolean) : [];
-        deps.sqlite.upsertNote(
-          {
-            id: restoredRow.id,
-            type: restoredRow.type,
-            title: restoredRow.title,
-            created: restoredRow.created,
-            updated: restoredRow.updated,
-            tags,
-            links,
-            category: restoredRow.category,
-            ...(restoredRow.sourceUrl !== null ? { sourceUrl: restoredRow.sourceUrl } : {}),
-            ...(restoredRow.author !== null ? { author: restoredRow.author } : {}),
-            ...(restoredRow.gist !== null ? { gist: restoredRow.gist } : {}),
-            status: 'saved',
-            ...(restoredRow.inputSource !== null
-              ? { inputSource: restoredRow.inputSource as 'text' | 'voice' | 'url' | 'file' | 'image' }
-              : {}),
-            ...(restoredRow.imagePath !== null ? { imagePath: restoredRow.imagePath } : {}),
-            ...(restoredRow.imageUrl !== null ? { imageUrl: restoredRow.imageUrl } : {}),
-            ...(restoredRow.imageMetadata !== null ? { imageMetadata: restoredRow.imageMetadata } : {}),
-            ...(restoredRow.ocrText !== null ? { ocrText: restoredRow.ocrText } : {}),
-          },
-          restoredRow.content,
-          originalFilePath,
-          restoredRow.contentHash ?? undefined,
-        );
-      }
+      deps.sqlite.restoreNote(params.noteId, originalFilePath);
 
       return {
         content: [

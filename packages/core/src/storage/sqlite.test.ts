@@ -66,12 +66,14 @@ describe('SQLite Notes', () => {
 
   it('should soft-delete a note (move to trash)', () => {
     storage.upsertNote(makeMeta(), 'content', '/test.md');
-    storage.deleteNote('test-1');
+    storage.deleteNote('test-1', '/trash/test.md');
     // Soft-deleted: still retrievable but marked as deleted
     const row = storage.getNote('test-1');
     expect(row).toBeDefined();
     expect(row!.status).toBe('deleted');
     expect(row!.deletedAt).toBeTruthy();
+    // file_path updated to trash location
+    expect(row!.filePath).toBe('/trash/test.md');
     // Excluded from default listNotes
     expect(storage.listNotes()).toHaveLength(0);
     // Visible via listDeletedNotes
@@ -85,14 +87,15 @@ describe('SQLite Notes', () => {
     expect(storage.getNote('test-1')).toBeUndefined();
   });
 
-  it('should restore a soft-deleted note', () => {
+  it('should restore a soft-deleted note with updated file_path', () => {
     storage.upsertNote(makeMeta(), 'content', '/test.md');
-    storage.deleteNote('test-1');
-    storage.restoreNote('test-1');
+    storage.deleteNote('test-1', '/trash/test.md');
+    storage.restoreNote('test-1', '/test.md');
     const row = storage.getNote('test-1');
     expect(row).toBeDefined();
     expect(row!.status).toBe('saved');
     expect(row!.deletedAt).toBeNull();
+    expect(row!.filePath).toBe('/test.md');
     // Visible in default listNotes again
     expect(storage.listNotes()).toHaveLength(1);
   });

@@ -52,9 +52,9 @@ export function deleteNoteTool(deps: DeleteNoteToolDeps): AgentTool<typeof schem
         };
       }
 
-      // Soft delete: move to trash
-      deps.markdown.moveToTrash(row.filePath);
-      deps.sqlite.deleteNote(params.id);
+      // Soft delete: move to trash, update file_path in SQLite
+      const trashPath = deps.markdown.moveToTrash(row.filePath);
+      deps.sqlite.deleteNote(params.id, trashPath);
       // Keep vectors — they're cheap and will be removed on purge
 
       return {

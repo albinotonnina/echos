@@ -17,12 +17,12 @@ export interface SqliteStorage {
   // Notes index
   upsertNote(meta: NoteMetadata, content: string, filePath: string, contentHash?: string): void;
   updateNoteStatus(id: string, status: ContentStatus): void;
-  /** Soft-delete: sets status='deleted' and deletedAt=now */
-  deleteNote(id: string): void;
+  /** Soft-delete: sets status='deleted', deletedAt=now, and updates file_path to the trash location */
+  deleteNote(id: string, trashFilePath?: string): void;
   /** Permanently remove a note row from the database */
   purgeNote(id: string): void;
-  /** Restore a soft-deleted note back to 'saved' status */
-  restoreNote(id: string): void;
+  /** Restore a soft-deleted note back to 'saved' status and update file_path to the restored location */
+  restoreNote(id: string, restoredFilePath?: string): void;
   /** List all soft-deleted notes */
   listDeletedNotes(): NoteRow[];
   getNote(id: string): NoteRow | undefined;
@@ -353,8 +353,8 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
         content_hash=@contentHash, status=@status, input_source=@inputSource, image_path=@imagePath, image_url=@imageUrl, image_metadata=@imageMetadata, ocr_text=@ocrText, deleted_at=@deletedAt
     `),
     updateNoteStatus: db.prepare(`UPDATE notes SET status=?, updated=? WHERE id=?`),
-    softDeleteNote: db.prepare(`UPDATE notes SET status='deleted', deleted_at=?, updated=? WHERE id=?`),
-    restoreNote: db.prepare(`UPDATE notes SET status='saved', deleted_at=NULL, updated=? WHERE id=?`),
+    softDeleteNote: db.prepare(`UPDATE notes SET status='deleted', deleted_at=?, file_path=?, updated=? WHERE id=?`),
+    restoreNote: db.prepare(`UPDATE notes SET status='saved', deleted_at=NULL, file_path=?, updated=? WHERE id=?`),
     purgeNote: db.prepare('DELETE FROM notes WHERE id = ?'),
     getNote: db.prepare(
       'SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText, deleted_at AS deletedAt FROM notes WHERE id = ?',
@@ -524,17 +524,22 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       stmts.updateNoteStatus.run(status, new Date().toISOString(), id);
     },
 
-    deleteNote(id: string): void {
+    deleteNote(id: string, trashFilePath?: string): void {
       const now = new Date().toISOString();
-      stmts.softDeleteNote.run(now, now, id);
+      const row = stmts.getNote.get(id) as NoteRow | undefined;
+      const filePath = trashFilePath ?? row?.filePath ?? '';
+      stmts.softDeleteNote.run(now, filePath, now, id);
     },
 
     purgeNote(id: string): void {
       stmts.purgeNote.run(id);
     },
 
-    restoreNote(id: string): void {
-      stmts.restoreNote.run(new Date().toISOString(), id);
+    restoreNote(id: string, restoredFilePath?: string): void {
+      const now = new Date().toISOString();
+      const row = stmts.getNote.get(id) as NoteRow | undefined;
+      const filePath = restoredFilePath ?? row?.filePath ?? '';
+      stmts.restoreNote.run(filePath, now, id);
     },
 
     listDeletedNotes(): NoteRow[] {

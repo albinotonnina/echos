@@ -35,9 +35,14 @@ export function createJobRouter(deps: ProcessorDeps) {
     }
 
     if (type === 'trash_purge' || type === 'trash-purge') {
-      if (deps.trashPurgeProcessor) {
-        await deps.trashPurgeProcessor(job);
+      if (!deps.trashPurgeProcessor) {
+        deps.logger.warn(
+          { type, jobId: job.id },
+          'Received trash_purge job but no trashPurgeProcessor is configured',
+        );
+        return;
       }
+      await deps.trashPurgeProcessor(job);
       return;
     }
 
