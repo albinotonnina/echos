@@ -44,6 +44,13 @@ import { streamSimple } from '@mariozechner/pi-ai';
 function makeMinimalDeps(overrides: Partial<AgentDeps> = {}): AgentDeps {
   return {
     sqlite: {
+      db: {
+        prepare: vi.fn().mockReturnValue({
+          run: vi.fn(),
+          get: vi.fn(),
+          all: vi.fn().mockReturnValue([]),
+        }),
+      },
       listTopMemories: vi.fn().mockReturnValue([]),
       getAgentVoice: vi.fn().mockReturnValue(null),
     } as unknown as AgentDeps['sqlite'],
