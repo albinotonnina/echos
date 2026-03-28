@@ -30,15 +30,16 @@ pnpm start
 
 ```bash
 pnpm dev:local       # interactive worktree picker → starts EchOS daemon
+pnpm cli:local       # interactive worktree picker → starts EchOS CLI
 ```
 
-This script:
-1. Lists all git worktrees (or runs directly on main if none exist)
-2. Lets you pick which one to work in
-3. Loads `.env` and sets `ECHOS_HOME` to the main repo's `data/` folder
-4. Starts the EchOS daemon (`tsx src/index.ts`)
+Both commands:
+1. List all git worktrees (or run directly on main if none exist)
+2. Let you pick which one to work in
+3. Load `.env` and set `ECHOS_HOME` to the main repo's `data/` folder
+4. Start the daemon or CLI from the selected worktree
 
-All worktrees share the same knowledge base, database, and configuration — no need to duplicate data or environment files. You can also run it directly from a worktree: `./scripts/dev.sh`
+All worktrees share the same knowledge base, database, and configuration — no need to duplicate data or environment files. You can also run them directly: `./scripts/dev.sh` or `./scripts/dev.sh cli`
 
 ### Other commands
 

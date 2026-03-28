@@ -8,6 +8,7 @@
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
     "dev:local": "./scripts/dev.sh",
+    "cli:local": "./scripts/dev.sh cli",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint packages/*/src --ext .ts",
