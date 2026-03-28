@@ -258,7 +258,8 @@ async function transcribeWithWhisper(
   audioFilePath: string,
   videoId: string,
   openaiApiKey: string,
-  logger: Logger
+  logger: Logger,
+  language?: string,
 ): Promise<string> {
   logger.debug({ videoId, audioFilePath }, 'Transcribing with Whisper');
 
@@ -272,6 +273,7 @@ async function transcribeWithWhisper(
       file: audioStream,
       model: 'whisper-1',
       response_format: 'text',
+      ...(language ? { language } : {}),
     });
 
     if (!transcription || typeof transcription !== 'string') {
@@ -379,7 +381,8 @@ export async function processYoutube(
   url: string,
   logger: Logger,
   openaiApiKey?: string,
-  proxyConfig?: ProxyConfig
+  proxyConfig?: ProxyConfig,
+  whisperLanguage?: string,
 ): Promise<ProcessedContent> {
   logger.debug({ url, hasProxy: !!proxyConfig }, 'Processing YouTube video');
 
@@ -416,7 +419,7 @@ export async function processYoutube(
 
     try {
       audioFilePath = await downloadAudio(videoId, logger, proxyConfig);
-      transcript = await transcribeWithWhisper(audioFilePath, videoId, openaiApiKey, logger);
+      transcript = await transcribeWithWhisper(audioFilePath, videoId, openaiApiKey, logger, whisperLanguage);
       transcriptSource = 'whisper';
 
       logger.info({ videoId, source: 'whisper' }, 'Transcript obtained from Whisper');

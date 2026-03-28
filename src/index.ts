@@ -300,6 +300,7 @@ async function main(): Promise<void> {
     generateEmbedding,
     logger,
     ...(config.openaiApiKey ? { openaiApiKey: config.openaiApiKey } : {}),
+    ...(config.whisperLanguage ? { whisperLanguage: config.whisperLanguage } : {}),
   });
 
   const reminderProcessor = createReminderCheckProcessor({

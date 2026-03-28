@@ -30,6 +30,7 @@ type Params = Static<typeof schema>;
 
 export function createSaveYoutubeTool(context: PluginContext): AgentTool<typeof schema> {
   const openaiApiKey = context.config['openaiApiKey'] as string | undefined;
+  const whisperLanguage = context.config['whisperLanguage'] as string | undefined;
   const proxyUsername = context.config['webshareProxyUsername'] as string | undefined;
   const proxyPassword = context.config['webshareProxyPassword'] as string | undefined;
   const proxyConfig: ProxyConfig =
@@ -49,7 +50,7 @@ export function createSaveYoutubeTool(context: PluginContext): AgentTool<typeof 
         details: { phase: 'fetching' },
       });
 
-      const processed = await processYoutube(params.url, context.logger, openaiApiKey, proxyConfig);
+      const processed = await processYoutube(params.url, context.logger, openaiApiKey, proxyConfig, whisperLanguage);
       validateContentSize(processed.content, { label: 'video transcript' });
 
       const now = new Date().toISOString();
