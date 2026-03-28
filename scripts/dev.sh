@@ -16,6 +16,7 @@ set -euo pipefail
 # ─────────────────────────────────────────────────────────────
 
 MODE="${1:-daemon}"
+shift 2>/dev/null || true
 
 # Resolve the main repo root (where .git is a directory, not a file).
 # Works whether invoked from main or from inside a worktree.
@@ -131,7 +132,12 @@ source "$ENV_FILE"
 set +a
 
 # Point storage paths at the main repo's data directory.
+# The .env may contain relative paths (e.g. ./data/db) which would resolve
+# against the worktree cwd. Override them with absolute paths.
 export ECHOS_HOME="$DATA_DIR"
+export KNOWLEDGE_DIR="$DATA_DIR/knowledge"
+export DB_PATH="$DATA_DIR/db"
+export SESSION_DIR="$DATA_DIR/sessions"
 
 # ── Launch ───────────────────────────────────────────────────
 
