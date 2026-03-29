@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:20.18.0-alpine AS base
 # su-exec: lightweight setuid helper for dropping privileges in entrypoints
 RUN apk add --no-cache su-exec && \
     corepack enable && corepack prepare pnpm@10.30.1 --activate
