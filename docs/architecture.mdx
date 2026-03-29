@@ -254,6 +254,30 @@ The week-fill loop mirrors SQLite's `strftime('%W')` semantics (week 0 = days be
 
 Requires `knowledgeDir` and `dbPath` on `AgentDeps` (both optional, defaulting to `./data/knowledge` and `./data/db`).
 
+## Note Templates
+
+**Location:** `packages/core/src/templates/index.ts`
+
+The template module allows users to create notes from pre-defined structures. Templates are stored as markdown files with YAML frontmatter in `<knowledgeDir>/templates/`.
+
+### Built-in Templates
+
+Five templates are scaffolded automatically on first use: Meeting Notes, Book Review, Project Brief, Weekly Review, and Decision Log. Each template uses `{{placeholder}}` syntax for variable substitution.
+
+### API
+
+| Function | Description |
+|----------|-------------|
+| `listTemplates(knowledgeDir)` | Scan templates directory, parse frontmatter, return `Template[]` |
+| `getTemplate(knowledgeDir, name)` | Find a template by name or filename slug |
+| `applyTemplate(template, variables)` | Replace `{{key}}` placeholders with values |
+| `createDefaultTemplates(knowledgeDir)` | Scaffold built-in templates if they don't exist |
+| `saveCustomTemplate(knowledgeDir, ...)` | Save a user-created template |
+
+**Tool:** `use_template` (`packages/core/src/agent/tools/use-template.ts`)
+
+Actions: `list` (show templates), `use` (create a note from template), `create` (save a custom template). Using a template creates a real note persisted to markdown, SQLite, and the vector store.
+
 ## Knowledge Graph
 
 **Location:** `packages/core/src/graph/index.ts`

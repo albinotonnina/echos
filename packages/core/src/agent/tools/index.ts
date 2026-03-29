@@ -33,3 +33,4 @@ export { createKnowledgeStatsTool, type KnowledgeStatsToolDeps } from './knowled
 export { createExploreGraphTool, type ExploreGraphToolDeps } from './explore-graph.js';
 export { findSimilarTool, type FindSimilarToolDeps } from './find-similar.js';
 export { createSuggestLinksTool, type SuggestLinksToolDeps } from './suggest-links.js';
+export { createUseTemplateTool, type UseTemplateToolDeps } from './use-template.js';

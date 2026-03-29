@@ -37,6 +37,7 @@ import {
   createExploreGraphTool,
   findSimilarTool,
   createSuggestLinksTool,
+  createUseTemplateTool,
 } from './tools/index.js';
 import type { BackupConfig } from '../backup/index.js';
 import type { SqliteStorage } from '../storage/sqlite.js';
@@ -207,6 +208,13 @@ export function createEchosAgent(deps: AgentDeps): Agent {
       sqlite: deps.sqlite,
       vectorDb: deps.vectorDb,
       generateEmbedding: deps.generateEmbedding,
+    }),
+    createUseTemplateTool({
+      sqlite: deps.sqlite,
+      markdown: deps.markdown,
+      vectorDb: deps.vectorDb,
+      generateEmbedding: deps.generateEmbedding,
+      knowledgeDir: deps.knowledgeDir ?? './data/knowledge',
     }),
   ];
 

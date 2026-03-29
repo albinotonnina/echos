@@ -269,6 +269,29 @@ Statuses: `saved` (unread, default), `read` (consumed), `archived` (hidden from 
 
 ---
 
+### Note Templates
+
+#### Use templates
+
+**Tool:** `use_template`
+
+Manage and use note templates to quickly create structured notes. Templates are stored as markdown files with frontmatter in `<knowledgeDir>/templates/`. Five built-in templates are scaffolded automatically on first use: Meeting Notes, Book Review, Project Brief, Weekly Review, and Decision Log.
+
+```
+Show me available templates.
+Create a meeting note using the meeting-notes template.
+Create a new template for code reviews.
+```
+
+Actions:
+- `list` — Show all available templates with descriptions
+- `use` — Create a real note from a template, filling in `{{placeholder}}` variables
+- `create` — Save a new custom template with placeholder variables
+
+Parameters: `action` (required), `templateName` (for use), `variables` (for use — fills placeholders), `title`, `description`, `content`, `category`, `tags` (for create).
+
+---
+
 ### Todos & Reminders
 
 EchOS distinguishes two kinds of time-management items stored in the same underlying table:
@@ -723,6 +746,9 @@ Send me a weekly digest every Sunday.
 | *"Export my knowledge graph"* | `explore_graph` (action=export) |
 | *"Show graph topology / hub notes / orphans"* | `explore_graph` (action=stats) |
 | *"Find notes similar to abc-123"* | `find_similar` |
+| *"Show me available templates"* | `use_template` (action=list) |
+| *"Create a meeting note from template"* | `use_template` (action=use) |
+| *"Create a new template for X"* | `use_template` (action=create) |
 | *"Mark article as read"* | `mark_content` |
 | *"What should I read next?"* | `reading_queue` |
 | *"Show my reading list / queue"* | `reading_queue` |
