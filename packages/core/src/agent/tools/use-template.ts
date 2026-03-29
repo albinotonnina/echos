@@ -2,7 +2,7 @@ import { Type, StringEnum, type Static } from '@mariozechner/pi-ai';
 import type { AgentTool } from '@mariozechner/pi-agent-core';
 import { v4 as uuidv4 } from 'uuid';
 import type { NoteMetadata, ContentType, InputSource } from '@echos/shared';
-import { validateContentSize } from '@echos/shared';
+import { validateContentSize, ValidationError } from '@echos/shared';
 import type { SqliteStorage } from '../../storage/sqlite.js';
 import type { MarkdownStorage } from '../../storage/markdown.js';
 import type { VectorStorage } from '../../storage/vectordb.js';
@@ -97,15 +97,7 @@ export function createUseTemplateTool(deps: UseTemplateToolDeps): AgentTool<type
 
       if (params.action === 'use') {
         if (!params.templateName) {
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: 'Please provide a templateName to use a template.',
-              },
-            ],
-            details: {},
-          };
+          throw new ValidationError('use action requires a "templateName" parameter');
         }
 
         const template = getTemplate(deps.knowledgeDir, params.templateName);
@@ -122,9 +114,12 @@ export function createUseTemplateTool(deps: UseTemplateToolDeps): AgentTool<type
           };
         }
 
-        const variables = params.variables ?? {};
+        const variables: Record<string, string> = { ...(params.variables ?? {}) };
+        if (params.title && !variables['title']) {
+          variables['title'] = params.title;
+        }
         const noteContent = applyTemplate(template.content, variables);
-        const noteTitle = params.title ?? variables['title'] ?? template.name;
+        const noteTitle = variables['title'] ?? params.title ?? template.name;
 
         validateContentSize(noteContent, { label: 'template note content' });
 
@@ -169,24 +164,13 @@ export function createUseTemplateTool(deps: UseTemplateToolDeps): AgentTool<type
 
       if (params.action === 'create') {
         if (!params.title) {
-          return {
-            content: [
-              { type: 'text' as const, text: 'Please provide a title for the new template.' },
-            ],
-            details: {},
-          };
+          throw new ValidationError('create action requires a "title" parameter');
         }
         if (!params.content) {
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: 'Please provide content for the new template. Use {{placeholder}} for variables.',
-              },
-            ],
-            details: {},
-          };
+          throw new ValidationError('create action requires a "content" parameter');
         }
+
+        validateContentSize(params.content, { label: 'template content' });
 
         const filePath = saveCustomTemplate(
           deps.knowledgeDir,
@@ -208,15 +192,7 @@ export function createUseTemplateTool(deps: UseTemplateToolDeps): AgentTool<type
         };
       }
 
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: 'Unknown action. Use "list", "use", or "create".',
-          },
-        ],
-        details: {},
-      };
+      throw new ValidationError(`Unknown action: ${String(params.action)}. Use "list", "use", or "create".`);
     },
   };
 }

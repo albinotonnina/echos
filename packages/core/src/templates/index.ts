@@ -41,19 +41,29 @@ export function listTemplates(knowledgeDir: string): Template[] {
 
   for (const file of files) {
     const filePath = join(dir, file);
-    const raw = readFileSync(filePath, 'utf-8');
-    const parsed = matter(raw);
-    const fm = parsed.data as TemplateFrontmatter;
     const slug = basename(file, '.md');
 
-    templates.push({
-      name: fm.name ?? slug,
-      description: fm.description ?? '',
-      category: fm.category ?? 'general',
-      tags: fm.tags ?? [],
-      content: parsed.content.trim(),
-      filePath,
-    });
+    try {
+      const raw = readFileSync(filePath, 'utf-8');
+      const parsed = matter(raw);
+      const fm = parsed.data as TemplateFrontmatter;
+      const rawTags = fm.tags;
+      const tags = Array.isArray(rawTags)
+        ? rawTags.filter((t): t is string => typeof t === 'string')
+        : [];
+
+      templates.push({
+        name: fm.name ?? slug,
+        description: fm.description ?? '',
+        category: fm.category ?? 'general',
+        tags,
+        content: parsed.content.trim(),
+        filePath,
+      });
+    } catch {
+      // Skip unreadable or malformed template files
+      continue;
+    }
   }
 
   return templates;
@@ -289,11 +299,12 @@ export function saveCustomTemplate(
   tags?: string[],
 ): string {
   const dir = ensureTemplatesDir(knowledgeDir);
-  const slug = name
+  const rawSlug = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 60);
+  const slug = rawSlug || `template-${Date.now()}`;
   const filePath = join(dir, `${slug}.md`);
 
   const frontmatter: TemplateFrontmatter = {
