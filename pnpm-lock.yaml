@@ -20,6 +20,9 @@ importers:
       '@echos/plugin-article':
         specifier: workspace:*
         version: link:plugins/article
+      '@echos/plugin-audio':
+        specifier: workspace:*
+        version: link:plugins/audio
       '@echos/plugin-content-creation':
         specifier: workspace:*
         version: link:plugins/content-creation
@@ -32,6 +35,9 @@ importers:
       '@echos/plugin-journal':
         specifier: workspace:*
         version: link:plugins/journal
+      '@echos/plugin-pdf':
+        specifier: workspace:*
+        version: link:plugins/pdf
       '@echos/plugin-resurface':
         specifier: workspace:*
         version: link:plugins/resurface

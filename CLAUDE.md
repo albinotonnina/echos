@@ -93,10 +93,11 @@ Register plugins via `PluginRegistry` in the entry point.
 **CRITICAL — Adding a new plugin checklist (ALWAYS do ALL of these):**
 1. Create `plugins/<name>/package.json` with the plugin package
 2. Add `plugins/<name>/package.json` to `pnpm-workspace.yaml` (if not glob-matched)
-3. In the `deps` stage in `docker/Dockerfile`, add `COPY plugins/<name>/package.json plugins/<name>/`
-4. In the `production` stage in `docker/Dockerfile`, add `COPY --from=deps /app/plugins/<name>/package.json plugins/<name>/`
-5. Add the plugin's TypeScript path alias to the root `tsconfig.json` `paths` section
-6. Register the plugin in the daemon entry point
+3. Add `"@echos/plugin-<name>": "workspace:*"` to the **root `package.json` `dependencies`** — without this, `pnpm install --prod` in Docker will NOT link the plugin and you get `ERR_MODULE_NOT_FOUND` at runtime
+4. In the `deps` stage in `docker/Dockerfile`, add `COPY plugins/<name>/package.json plugins/<name>/`
+5. In the `production` stage in `docker/Dockerfile`, add `COPY --from=deps /app/plugins/<name>/package.json plugins/<name>/`
+6. Add the plugin's TypeScript path alias to the root `tsconfig.json` `paths` section (e.g. `"@echos/plugin-<name>": ["./plugins/<name>/src/index.ts"]`)
+7. Register the plugin in the daemon entry point (`src/index.ts`: import + `pluginRegistry.register()`)
 
 **CRITICAL — Tool `execute` signatures must always include explicit types (for new/modified tools):**
 The `execute` function in `AgentTool` must always have an explicitly typed first parameter to avoid `TS7006` implicit `any` errors in plugin builds where TypeScript path resolution may differ from the root workspace. This applies especially when creating new tools or updating plugins:
