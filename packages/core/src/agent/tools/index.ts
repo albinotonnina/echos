@@ -33,5 +33,9 @@ export { createKnowledgeStatsTool, type KnowledgeStatsToolDeps } from './knowled
 export { createExploreGraphTool, type ExploreGraphToolDeps } from './explore-graph.js';
 export { findSimilarTool, type FindSimilarToolDeps } from './find-similar.js';
 export { createSuggestLinksTool, type SuggestLinksToolDeps } from './suggest-links.js';
+export {
+  searchConversationsTool,
+  type SearchConversationsToolDeps,
+} from './search-conversations.js';
 export { createUseTemplateTool, type UseTemplateToolDeps } from './use-template.js';
 export { createSynthesizeNotesTool, type SynthesizeNotesToolDeps } from './synthesize.js';

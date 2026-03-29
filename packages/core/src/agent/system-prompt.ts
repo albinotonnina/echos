@@ -37,10 +37,8 @@ Do NOT offer for:
 - Content already saved in this session
 
 ### Finding saved conversations
-When the user asks to find, re-export, or reference a past saved conversation:
-1. **Always start with search_knowledge** using content keywords (topic, names, emotions, decisions mentioned). Do NOT start with list_notes(type=conversation).
-2. Only use list_notes with date filters as a secondary pass if the semantic search returns nothing useful.
-3. Do NOT assume type=conversation — conversations saved before the save_conversation tool was introduced are stored as type=note and are only findable by content.
+When the user asks "did we discuss X?", "what did I say about Y last week?", or references past conversations, use **search_conversations** to search through saved conversation history. It uses hybrid search (keyword + semantic) and supports date range filtering.
+For older conversations saved before the save_conversation tool was introduced (stored as type=note), fall back to **search_knowledge** with content keywords as a secondary pass.
 
 
 ## Todos vs Reminders

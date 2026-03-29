@@ -37,6 +37,7 @@ import {
   createExploreGraphTool,
   findSimilarTool,
   createSuggestLinksTool,
+  searchConversationsTool,
   createUseTemplateTool,
   createSynthesizeNotesTool,
 } from './tools/index.js';
@@ -208,6 +209,10 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     createSuggestLinksTool({
       sqlite: deps.sqlite,
       vectorDb: deps.vectorDb,
+      generateEmbedding: deps.generateEmbedding,
+    }),
+    searchConversationsTool({
+      search: deps.search,
       generateEmbedding: deps.generateEmbedding,
     }),
     createUseTemplateTool({
