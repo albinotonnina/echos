@@ -1207,9 +1207,18 @@ Phase 8: Platform Polish                                │
 ├── 8.01 Telegram Rich Cards ── depends on 1.01, 4.01 ─┘
 ├── 8.02 Web Chat UI
 └── 8.03 Documentation ── depends on all previous
+
+Phase 9: Codebase Modularization (no dependencies, all independent)
+├── 9.01 Modularize Daemon Entry Point
+├── 9.02 Split SQLite Storage
+├── 9.03 Split Telegram Bot
+├── 9.04 Extract Agent Tool Factory
+├── 9.05 Split Web Chat Routes
+├── 9.06 Auto-Generated Plugin Config
+└── 9.07 Dockerfile Plugin Auto-Copy ── depends on 9.06
 ```
 
-**Parallelization:** Phases 1-4 are fully independent — all 18 tasks can be worked in parallel. Phase 5.03 depends on 3.02. Phase 8.01 depends on 1.01 and 4.01. Phase 8.03 depends on everything.
+**Parallelization:** Phases 1-4 are fully independent — all 18 tasks can be worked in parallel. Phase 5.03 depends on 3.02. Phase 8.01 depends on 1.01 and 4.01. Phase 8.03 depends on everything. Phase 9 tasks are all independent (except 9.07 depends on 9.06) and can be done at any time — they're pure refactors with no feature dependencies.
 
 **Recommended execution order for a single agent:**
 1. 1.01 → 1.02 → 1.03 → 1.04 (safety first)
@@ -1220,3 +1229,228 @@ Phase 8: Platform Polish                                │
 6. 6.01 → 6.02 → 6.03 → 6.04 (interfaces)
 7. 7.01 → 7.02 (search)
 8. 8.01 → 8.02 → 8.03 (polish)
+9. 9.01 → 9.02 → 9.03 → 9.04 → 9.05 → 9.06 → 9.07 (modularization)
+
+**Note:** Phase 9 should ideally be done **before** other phases to reduce merge conflicts during their implementation. Running 9.01–9.05 first makes all subsequent feature work less conflict-prone.
+
+---
+
+## Phase 9: Codebase Modularization
+
+Split monolithic files and automate plugin registration boilerplate to reduce merge conflicts when working on parallel features. Every task in this phase is a pure refactor — no new features, no API changes, no consumer changes. The public interfaces (`SqliteStorage`, `createEchosAgent`, `createTelegramAdapter`, `registerChatRoutes`, etc.) remain identical; only the internal file structure changes.
+
+**Guiding principles:**
+- Facade pattern: callers never know the file was split
+- No new dependencies or packages
+- Each task must pass `pnpm -r build && pnpm vitest run` with zero regressions
+- Each task is independent unless explicitly noted — safe to parallelize
+
+---
+
+### 9.01 — Modularize Daemon Entry Point (`src/index.ts`)
+
+**Description:** The daemon entry point (`src/index.ts`, ~460 lines) is the single most-conflicted file in the codebase. Every new plugin, interface, or scheduler job requires edits here. It currently contains: a Redis TCP check utility, storage initialization, plugin imports/registration, agent deps assembly, scheduler setup, interface adapter wiring, and graceful shutdown. Split it into focused modules so parallel features rarely touch the same file.
+
+**Files to create:**
+
+- `src/plugin-loader.ts` — Auto-discovers plugins at runtime. Reads the `plugins/` directory (using `readdirSync`), validates each dirname matches `/^[a-z0-9-]+$/`, then dynamically imports `@echos/plugin-<dirname>` via `import()`. Returns `EchosPlugin[]`. Logs a warning and continues if any single plugin fails to load. This eliminates the need for manual imports and `pluginRegistry.register()` calls — **new plugins are picked up automatically** just by existing in the `plugins/` directory.
+- `src/redis-check.ts` — Extract `checkRedisConnection()` and the `RedisCheckResult` interface. Pure utility, zero coupling to the rest of the daemon. ~90 lines.
+- `src/storage-init.ts` — Extract storage initialization into `initStorage(config, logger)`. Creates and returns `{ sqlite, markdown, vectorDb, search, generateEmbedding }`. Also runs `reconcileStorage()` and starts the file watcher. ~60 lines.
+- `src/scheduler-setup.ts` — Extract all scheduler/queue/worker setup into `setupScheduler(...)`. Takes config, storage objects, plugin registry, notification service. Creates queue, processors, workers, schedule manager. Returns `{ queueService, worker, scheduleManager }`. ~80 lines.
+- `src/shutdown.ts` — Extract graceful shutdown into `createShutdownHandler(resources)`. Takes all closeable resources, returns a function that shuts them down in order. ~30 lines.
+
+**Files to modify:**
+
+- `src/index.ts` — Slim down to a ~50-line orchestrator:
+  1. `loadConfig()`
+  2. `initStorage(config, logger)`
+  3. `loadPlugins()` → register loop
+  4. `pluginRegistry.setupAll(...)`
+  5. Assemble `agentDeps`
+  6. Create interface adapters (Telegram, Web) — these stay inline (2-3 lines each)
+  7. `setupScheduler(...)`
+  8. Start interfaces
+  9. `createShutdownHandler(...)`
+  - Remove all 11 plugin `import` statements
+  - Remove all 11 `pluginRegistry.register()` calls (replaced by `loadPlugins()` loop)
+  - Remove `checkRedisConnection()` function body (now imported)
+
+**Acceptance criteria:**
+
+- `pnpm -r build` passes
+- Daemon starts and logs show all 11 plugins registered via auto-discovery
+- Redis check still runs at startup, fatal-exits on failure
+- Scheduler initializes correctly (schedules sync, worker processes jobs)
+- Graceful shutdown works (SIGINT/SIGTERM close all resources in order)
+- `src/index.ts` is under 80 lines
+- No manual plugin imports remain — adding a new plugin only requires creating the `plugins/<name>/` directory (plus package.json, tsconfig, Dockerfile entries per the plugin checklist)
+- Existing tests pass without changes
+
+**Dependencies:** None
+
+---
+
+### 9.02 — Split SQLite Storage (`packages/core/src/storage/sqlite.ts`)
+
+**Description:** The SQLite storage module (~1000 lines) is the largest source file in the codebase. It contains the full database interface: schema creation, migrations, prepared statements, note CRUD with FTS5 search, reminders, schedules, memory, tag management, and aggregation queries. Any two features that touch storage will conflict. Split it into domain-specific modules behind the existing `SqliteStorage` facade.
+
+**Files to create:**
+
+- `packages/core/src/storage/sqlite-schema.ts` — Schema creation DDL (tables, indexes, FTS5 virtual table), migration logic, and all prepared statement initialization. Exports `initSchema(db: Database.Database, logger: Logger): PreparedStatements` where `PreparedStatements` is a typed object holding all `db.prepare()` results. Other domain modules receive this object instead of calling `db.prepare()` themselves.
+- `packages/core/src/storage/sqlite-notes.ts` — Note CRUD operations: `upsertNote`, `updateNoteStatus`, `deleteNote`, `purgeNote`, `restoreNote`, `listDeletedNotes`, `getNote`, `getNoteByFilePath`, `listNotes`, `searchFts`, and any note-specific helpers. Exports a factory: `createNoteOps(db, stmts, logger) => NoteOps`.
+- `packages/core/src/storage/sqlite-reminders.ts` — Reminder and todo CRUD: `upsertReminder`, `getReminder`, `listReminders`, `listTodos`. Exports `createReminderOps(db, stmts, logger) => ReminderOps`.
+- `packages/core/src/storage/sqlite-schedules.ts` — Schedule CRUD: `upsertSchedule`, `getSchedule`, `listSchedules`, `deleteSchedule`. Exports `createScheduleOps(db, stmts, logger) => ScheduleOps`.
+- `packages/core/src/storage/sqlite-memory.ts` — Memory operations: `upsertMemory`, `getMemory`, `listAllMemories`, `listTopMemories`, `searchMemory`. Exports `createMemoryOps(db, stmts, logger) => MemoryOps`.
+- `packages/core/src/storage/sqlite-stats.ts` — Aggregation and analytics queries: `getTopTagsWithCounts`, `renameTag`, `mergeTag`, `getContentTypeCounts`, `getStatusCounts`, `getWeeklyCreationCounts`, `getCategoryFrequencies`, `getLinkCount`, and any other statistical methods. Exports `createStatsOps(db, stmts, logger) => StatsOps`.
+
+**Files to modify:**
+
+- `packages/core/src/storage/sqlite.ts` — Becomes a thin facade (~80 lines). `createSqliteStorage()` calls `initSchema()`, then composes all domain factories into a single object that satisfies the existing `SqliteStorage` interface using object spread: `return { db, close, ...createNoteOps(...), ...createReminderOps(...), ... }`. The `SqliteStorage` interface definition stays in this file, unchanged.
+
+**Acceptance criteria:**
+
+- `SqliteStorage` interface is unchanged — no consumer file needs modification
+- `createSqliteStorage()` return type is identical
+- All existing SQLite tests pass without changes (`pnpm vitest run`)
+- `pnpm -r build` passes
+- Each new file is under 250 lines
+- `sqlite.ts` (the facade) is under 100 lines
+- Prepared statements are initialized once in `sqlite-schema.ts` and shared across all domain modules
+
+**Dependencies:** None
+
+---
+
+### 9.03 — Split Telegram Bot (`packages/telegram/src/index.ts`)
+
+**Description:** The Telegram adapter (~550 lines) contains all bot logic in a single file: command handlers (/start, /reset, /usage, /model, /followup, /version), callback query handler (inline keyboard button presses with 2-phase execution pattern), and message handlers (text, voice/audio with Whisper, photos). Split into focused handler modules so that adding a new command doesn't conflict with improving voice message handling.
+
+**Files to create:**
+
+- `packages/telegram/src/commands.ts` — All `bot.command()` handlers (/start, /reset, /usage, /model, /followup, /version). Exports `registerCommands(bot, deps): void` where `deps` contains `agentDeps`, `config`, `logger`, per-user sessions/agents, and any shared helpers. Each command handler is a named function for testability.
+- `packages/telegram/src/callbacks.ts` — Callback query handler for inline keyboard button presses. Contains the 2-phase execution pattern (confirm → execute). Exports `registerCallbacks(bot, deps): void`.
+- `packages/telegram/src/messages.ts` — Message handlers for text, voice/audio (Whisper transcription), and photo messages. Exports `registerMessageHandlers(bot, deps): void`.
+
+**Files to modify:**
+
+- `packages/telegram/src/index.ts` — Becomes adapter orchestrator (~100 lines). Creates the bot instance, defines the shared `deps` object, calls `registerCommands(bot, deps)`, `registerCallbacks(bot, deps)`, `registerMessageHandlers(bot, deps)`. Implements `InterfaceAdapter` (start/stop). All public exports (`createTelegramAdapter`, `TelegramAdapter`) remain unchanged.
+
+**Acceptance criteria:**
+
+- `createTelegramAdapter` signature and return type unchanged
+- `pnpm -r build` passes
+- `index.ts` is under 120 lines
+- Commands, callbacks, and message handlers are in separate files
+- Shared types/helpers (e.g. per-user session map, `runAgent()` helper) are defined in `index.ts` and passed via `deps`, or extracted to a `types.ts` if needed
+- No circular imports
+
+**Dependencies:** None
+
+---
+
+### 9.04 — Extract Agent Tool Factory (`packages/core/src/agent/index.ts`)
+
+**Description:** The agent factory (~330 lines) imports 38 tool constructors and has a 140-line tool instantiation array inside `createEchosAgent()`. Any new core tool requires edits to the import block and the instantiation array — guaranteed conflict if two tools are added in parallel. Extract the tool array into a separate module, and move the `AgentDeps` interface to its own file since it's frequently imported from other packages.
+
+**Files to create:**
+
+- `packages/core/src/agent/create-agent-tools.ts` — Exports `createAgentTools(deps: AgentToolDeps): AgentTool[]`. Contains all 38 tool imports and the full instantiation array. The `AgentToolDeps` type is a subset of what each tool needs (storage, embeddings, config, logger, etc.). ~180 lines. Adding a new core tool means editing only this file — not the main agent factory.
+- `packages/core/src/agent/types.ts` — Exports `AgentDeps` interface (~30 fields) and `AgentToolDeps` type. These are stable, widely-imported types that benefit from their own file.
+
+**Files to modify:**
+
+- `packages/core/src/agent/index.ts` — Remove tool imports and instantiation array. Import `createAgentTools` from `./create-agent-tools.js` and `AgentDeps` from `./types.js`. `createEchosAgent()` calls `const tools = createAgentTools(toolDeps)` then passes `tools` to the agent. Re-export `AgentDeps` for backward compatibility. ~120 lines.
+- `packages/core/src/index.ts` — Update re-exports if `AgentDeps` path changed (should still re-export from `./agent/index.js`).
+
+**Acceptance criteria:**
+
+- `createEchosAgent()` behaves identically
+- `AgentDeps` is importable from `@echos/core` as before (re-exported)
+- `pnpm -r build` passes
+- `index.ts` is under 130 lines
+- All 38 tool imports are in `create-agent-tools.ts`, not in `index.ts`
+- Adding a new tool only requires editing `create-agent-tools.ts` and `tools/index.ts` barrel
+
+**Dependencies:** None
+
+---
+
+### 9.05 — Split Web Chat Routes (`packages/web/src/api/chat.ts`)
+
+**Description:** The web chat API (~305 lines) contains all chat-related endpoints in a single file: the main streaming `/api/chat` handler, plus `/api/chat/model`, `/api/chat/steer`, `/api/chat/followup`, `/api/chat/reset`. It also embeds agent session management (a `Map<userId, Agent>`) and auth checks. Split session management into its own module and group secondary routes separately from the main streaming handler.
+
+**Files to create:**
+
+- `packages/web/src/api/sessions.ts` — Agent session management. Exports `createSessionManager(agentDeps, logger)` which returns an object with: `getOrCreateAgent(userId)`, `resetSession(userId)`, `isAllowed(userId, allowedSet)`, and the internal session `Map`. This decouples session lifecycle from route handling.
+- `packages/web/src/api/chat-routes.ts` — Secondary chat endpoints: `/api/chat/model`, `/api/chat/steer`, `/api/chat/followup`, `/api/chat/reset`. Exports `registerChatRoutes(app, sessionManager, config, logger)`. Each route is a focused function. ~130 lines.
+
+**Files to modify:**
+
+- `packages/web/src/api/chat.ts` — Keeps only the main `POST /api/chat` streaming endpoint and the `registerChatApi()` entry point that wires everything. Imports `createSessionManager` from `./sessions.js` and `registerChatRoutes` from `./chat-routes.js`. ~120 lines.
+
+**Acceptance criteria:**
+
+- All web chat endpoints behave identically
+- `pnpm -r build` passes
+- `chat.ts` is under 140 lines
+- Session management is testable in isolation
+- Auth check (`isAllowed`) is defined once, not duplicated per route
+
+**Dependencies:** None
+
+---
+
+### 9.06 — Auto-Generated Plugin Config (`tsconfig.json` paths + `package.json` deps)
+
+**Description:** Every new plugin currently requires manual entries in three root config files: `tsconfig.json` (path alias), root `package.json` (workspace dependency), and `docker/Dockerfile` (COPY lines). These are the most common merge conflict sources when two plugins are developed in parallel. Create a codegen script that auto-generates these entries by scanning the `plugins/` and `packages/` directories, so conflicts can be resolved by re-running the script instead of manual merge resolution.
+
+**Files to create:**
+
+- `scripts/sync-plugin-config.ts` — Codegen script that:
+  1. Scans `plugins/*/package.json` and `packages/*/package.json`, reads each `name` field
+  2. Generates `tsconfig.paths.json` containing all `compilerOptions.paths` entries (both packages and plugins), alphabetically sorted
+  3. Updates root `package.json` `dependencies` section: ensures every `@echos/plugin-*` and `@echos/*` workspace package has a `"workspace:*"` entry
+  4. Prints a summary of what was added/removed
+  5. Exit code 0 if files are already in sync, exit code 1 if changes were written (useful in CI)
+- `tsconfig.paths.json` — Auto-generated file containing `{ "compilerOptions": { "paths": { ... } } }`. Committed to the repo so IDE tooling works without running the script. Can be trivially regenerated after merge conflicts.
+
+**Files to modify:**
+
+- `tsconfig.json` — Remove the `paths` block from `compilerOptions`. Add `"extends": "./tsconfig.paths.json"` so paths are inherited from the generated file. Keep all other compiler options as-is.
+- `package.json` — Add script: `"sync-plugins": "tsx scripts/sync-plugin-config.ts"`. The `dependencies` section contents are now managed by the script (but still committed and editable by hand if needed).
+- `.github/copilot-instructions.md` — Add note to plugin checklist: "Run `pnpm sync-plugins` after creating a new plugin directory"
+- `CLAUDE.md` — Same note added to plugin checklist
+
+**Acceptance criteria:**
+
+- Running `pnpm sync-plugins` generates `tsconfig.paths.json` that matches the current `tsconfig.json` paths exactly
+- Running `pnpm sync-plugins` ensures root `package.json` has all workspace deps
+- `pnpm -r build` passes after the migration (paths now come from `tsconfig.paths.json`)
+- Simulated merge conflict resolution: after a conflict in `tsconfig.paths.json`, re-run `pnpm sync-plugins` → file is regenerated correctly
+- Script is idempotent — running it twice produces no diff
+- `tsconfig.json` no longer contains any `paths` entries
+
+**Dependencies:** None
+
+---
+
+### 9.07 — Dockerfile Plugin Auto-Copy
+
+**Description:** The Dockerfile has 22 per-plugin `COPY` lines across two stages (`deps` and `production`). Every new plugin adds two tightly-packed lines in both stages — guaranteed merge conflicts when two plugins are added in parallel. Refactor to use a shell-based approach that auto-discovers plugins, so the Dockerfile doesn't need per-plugin edits.
+
+**Files to modify:**
+
+- `docker/Dockerfile` — In the `deps` stage: replace the 11 individual `COPY plugins/<name>/package.json plugins/<name>/` lines with a two-step approach:
+  1. `COPY plugins/ /tmp/all-plugins/` — Copy the entire plugins directory (this layer changes whenever any plugin source changes, but that's acceptable since the next `pnpm install` layer is also invalidated by lockfile changes)
+  2. `RUN` a shell one-liner that extracts only `package.json` files: `for d in /tmp/all-plugins/*/; do name=$(basename "$d"); mkdir -p "plugins/$name" && cp "$d/package.json" "plugins/$name/"; done && rm -rf /tmp/all-plugins`
+  - In the `production` stage: replace the 11 individual `COPY --from=deps /app/plugins/<name>/package.json plugins/<name>/` lines with the same pattern using `--from=deps`. Keep the `packages/*` COPY lines as-is (there are only 6, they're stable).
+
+**Acceptance criteria:**
+
+- `docker build -f docker/Dockerfile .` succeeds from the repo root
+- Container starts and all 11 plugins load correctly
+- No per-plugin COPY lines remain in the Dockerfile (only `COPY plugins/` and the extraction `RUN`)
+- `packages/*` COPY lines are unchanged (stable, not worth automating)
+- Adding a new plugin no longer requires any Dockerfile edit
+
+**Dependencies:** 9.06 (the Dockerfile should reflect the same "auto-discover plugins" philosophy; do this after the codegen script so both follow the same convention)
