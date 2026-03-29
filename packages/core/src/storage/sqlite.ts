@@ -633,8 +633,10 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
       }
 
       const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-      const sql = `SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText, deleted_at AS deletedAt FROM notes ${where} ORDER BY created DESC LIMIT ? OFFSET ?`;
-      params.push(limit, offset);
+      // limit: 0 means "no limit" — omit the LIMIT/OFFSET clause entirely
+      const pagination = limit > 0 ? ' LIMIT ? OFFSET ?' : '';
+      const sql = `SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText, deleted_at AS deletedAt FROM notes ${where} ORDER BY created DESC${pagination}`;
+      if (limit > 0) params.push(limit, offset);
 
       return db.prepare(sql).all(...params) as NoteRow[];
     },

@@ -32,9 +32,12 @@ export interface TopologyStats {
 // ── Builder ───────────────────────────────────────────────────────────────────
 
 export function buildGraph(sqlite: SqliteStorage): KnowledgeGraph {
-  // No limit: load all notes. Only id/title/type/tags/links/category are used
-  // (content is part of NoteRow but we ignore it here).
-  const rows = sqlite.listNotes();
+  // Load all notes without pagination. Only id/title/type/tags/links/category are
+  // used; content is ignored here but still fetched by listNotes. The limit of
+  // 100_000 matches the ceiling used elsewhere (e.g. reconciler.ts) and avoids
+  // unbounded allocations while safely covering realistic knowledge-base sizes.
+  // Note: limit: 0 would be LIMIT 0 in SQL (returns zero rows) — do NOT use it.
+  const rows = sqlite.listNotes({ limit: 100_000 });
 
   const nodeMap = new Map<string, GraphNode>();
   for (const row of rows) {

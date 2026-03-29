@@ -133,7 +133,7 @@ export async function reconcileStorage(opts: ReconcileOptions): Promise<Reconcil
   }
 
   // Remove SQLite/LanceDB records for files that no longer exist on disk
-  const allNotes = sqlite.listNotes({ limit: 100000 });
+  const allNotes = sqlite.listNotes({ limit: 0 });
   for (const row of allNotes) {
     if (!seenIds.has(row.id)) {
       sqlite.deleteNote(row.id);
