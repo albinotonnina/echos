@@ -52,6 +52,7 @@ import resurfacePlugin from '@echos/plugin-resurface';
 import journalPlugin from '@echos/plugin-journal';
 import pdfPlugin from '@echos/plugin-pdf';
 import audioPlugin from '@echos/plugin-audio';
+import rssPlugin from '@echos/plugin-rss';
 
 const logger = createLogger('echos');
 
@@ -214,6 +215,7 @@ async function main(): Promise<void> {
   pluginRegistry.register(journalPlugin);
   pluginRegistry.register(pdfPlugin);
   pluginRegistry.register(audioPlugin);
+  pluginRegistry.register(rssPlugin);
 
   let agentDeps: AgentDeps;
   let notificationService: import('@echos/shared').NotificationService;
@@ -236,6 +238,7 @@ async function main(): Promise<void> {
       ...(config.webshareProxyPassword ? { webshareProxyPassword: config.webshareProxyPassword } : {}),
       knowledgeDir: config.knowledgeDir,
       defaultModel: config.defaultModel,
+      dbPath: config.dbPath,
     },
   });
 

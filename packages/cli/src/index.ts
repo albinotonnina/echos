@@ -32,6 +32,7 @@ import youtubePlugin from '@echos/plugin-youtube';
 import twitterPlugin from '@echos/plugin-twitter';
 import resurfacePlugin from '@echos/plugin-resurface';
 import journalPlugin from '@echos/plugin-journal';
+import rssPlugin from '@echos/plugin-rss';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -76,6 +77,7 @@ async function runCli(): Promise<void> {
   pluginRegistry.register(twitterPlugin);
   pluginRegistry.register(resurfacePlugin);
   pluginRegistry.register(journalPlugin);
+  pluginRegistry.register(rssPlugin);
 
   await pluginRegistry.setupAll({
     sqlite,
@@ -93,6 +95,7 @@ async function runCli(): Promise<void> {
       ...(process.env['OPENAI_API_KEY'] ? { openaiApiKey: process.env['OPENAI_API_KEY'] } : {}),
       knowledgeDir,
       ...(process.env['DEFAULT_MODEL'] ? { defaultModel: process.env['DEFAULT_MODEL'] } : {}),
+      dbPath,
     },
   });
 

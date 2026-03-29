@@ -33,7 +33,8 @@
       "@echos/plugin-twitter": ["./plugins/twitter/src/index.ts"],
       "@echos/plugin-journal": ["./plugins/journal/src/index.ts"],
       "@echos/plugin-pdf": ["./plugins/pdf/src/index.ts"],
-      "@echos/plugin-audio": ["./plugins/audio/src/index.ts"]
+      "@echos/plugin-audio": ["./plugins/audio/src/index.ts"],
+      "@echos/plugin-rss": ["./plugins/rss/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "dist", "data"]

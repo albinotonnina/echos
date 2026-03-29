@@ -23,6 +23,7 @@ export interface PluginContext {
     anthropicApiKey?: string;
     knowledgeDir?: string;
     defaultModel?: string;
+    dbPath?: string;
   };
 }
 
