@@ -172,6 +172,24 @@ Aggregates reading progress via direct SQLite COUNT queries on the `notes` table
 
 The digest plugin (`plugins/digest`) includes a reading queue section in its prompt, calling `reading_queue` with `limit=3` to surface top unread items in the daily digest.
 
+### `knowledge_stats` Tool
+
+**Location:** `packages/core/src/agent/tools/knowledge-stats.ts`
+
+Returns a comprehensive overview of the entire knowledge base. Uses seven query methods added to `SqliteStorage`:
+
+- `getContentTypeCounts()` — `GROUP BY type` count of non-deleted notes
+- `getStatusCounts()` — single-pass CASE SUM for saved/read/archived/unset buckets
+- `getDistinctTagCount()` — recursive CTE to enumerate and COUNT(DISTINCT) all comma-separated tags
+- `getLinkCount()` — SUM of comma-count+1 per note link list
+- `getWeeklyCreationCounts(weeks)` — `strftime('%Y-W%W', created)` GROUP BY for the past N weeks
+- `getTagFrequencies(limit)` — delegates to the existing `getTopTagsWithCounts` prepared statement
+- `getCategoryFrequencies(limit)` — `GROUP BY category ORDER BY count DESC`
+
+The week-fill loop mirrors SQLite's `strftime('%W')` semantics (week 0 = days before the year's first Monday) so `weekMap.get(week)` matches correctly. Storage sizes are computed asynchronously via `fs/promises` (`readdir` + `stat`) with all three paths running in parallel.
+
+Requires `knowledgeDir` and `dbPath` on `AgentDeps` (both optional, defaulting to `./data/knowledge` and `./data/db`).
+
 ## Plugin Architecture
 
 Content processors live in `plugins/` as separate workspace packages. Each plugin:

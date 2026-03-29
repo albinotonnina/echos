@@ -106,6 +106,8 @@ async function runCli(): Promise<void> {
     ...(process.env['DEFAULT_MODEL'] ? { modelId: process.env['DEFAULT_MODEL'] } : {}),
     logger,
     pluginTools: pluginRegistry.getTools(),
+    knowledgeDir,
+    dbPath,
   });
   agent.sessionId = 'cli-local';
 

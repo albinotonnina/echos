@@ -29,6 +29,7 @@ import {
   createManageTagsTool,
   createReadingQueueTool,
   createReadingStatsTool,
+  createKnowledgeStatsTool,
   saveConversationTool,
   createManageBackupsTool,
   noteHistoryTool,
@@ -72,6 +73,10 @@ export interface AgentDeps {
   backupConfig?: BackupConfig;
   /** Number of backups to retain when pruning (default: 7) */
   backupRetentionCount?: number;
+  /** Path to the knowledge markdown files directory (used by knowledge_stats tool) */
+  knowledgeDir?: string;
+  /** Path to the database directory containing echos.db and vectors/ (used by knowledge_stats tool) */
+  dbPath?: string;
 }
 
 function pickApiKey(provider: string, deps: AgentDeps): string {
@@ -173,6 +178,11 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     createManageTagsTool({ sqlite: deps.sqlite, markdown: deps.markdown }),
     createReadingQueueTool({ sqlite: deps.sqlite }),
     createReadingStatsTool({ sqlite: deps.sqlite }),
+    createKnowledgeStatsTool({
+      sqlite: deps.sqlite,
+      knowledgeDir: deps.knowledgeDir ?? './data/knowledge',
+      dbPath: deps.dbPath ?? './data/db',
+    }),
     saveConversationTool(storageDeps),
     ...(deps.backupConfig
       ? [

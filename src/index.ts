@@ -259,6 +259,8 @@ async function main(): Promise<void> {
     exportsDir,
     backupConfig,
     backupRetentionCount: config.backupRetentionCount,
+    knowledgeDir: config.knowledgeDir,
+    dbPath: config.dbPath,
   };
 
   const interfaces: InterfaceAdapter[] = [];

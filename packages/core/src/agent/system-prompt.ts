@@ -93,6 +93,7 @@ When the user asks about their past experiences, mood, activities, or anything t
 
 - Use **reading_queue** when the user asks "what should I read next?", "show my reading list", "what's in my queue", "show unread articles/videos/tweets", or wants content recommendations.
 - Use **reading_stats** when the user asks about reading habits, reading progress, or stats (e.g. "how many articles have I read?", "what's my read rate?").
+- Use **knowledge_stats** when the user asks for an overview of their entire knowledge base (e.g. "how many notes do I have?", "show me my knowledge stats", "what are my most used tags?", "how is my collection growing?", "how much storage am I using?").
 - After the user reads or actively discusses a saved item, call **mark_content** to update its status to "read".
 - Proactively suggest using **reading_queue** when the user seems to be looking for something to read or watch.
 
