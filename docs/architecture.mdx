@@ -127,7 +127,7 @@ Every call to `update_note` automatically snapshots the previous state in SQLite
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `id` | UUID | Unique revision identifier |
+| `id` | TEXT (UUID string) | Unique revision identifier |
 | `note_id` | string | FK to `notes.id` |
 | `title` | string | Note title at snapshot time |
 | `content` | string | Full note body at snapshot time |
