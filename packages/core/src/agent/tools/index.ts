@@ -31,8 +31,11 @@ export { noteHistoryTool, type NoteHistoryToolDeps } from './note-history.js';
 export { restoreVersionTool, type RestoreVersionToolDeps } from './restore-version.js';
 export { createKnowledgeStatsTool, type KnowledgeStatsToolDeps } from './knowledge-stats.js';
 export { createExploreGraphTool, type ExploreGraphToolDeps } from './explore-graph.js';
+export { findSimilarTool, type FindSimilarToolDeps } from './find-similar.js';
 export { createSuggestLinksTool, type SuggestLinksToolDeps } from './suggest-links.js';
 export {
   searchConversationsTool,
   type SearchConversationsToolDeps,
 } from './search-conversations.js';
+export { createUseTemplateTool, type UseTemplateToolDeps } from './use-template.js';
+export { createSynthesizeNotesTool, type SynthesizeNotesToolDeps } from './synthesize.js';

@@ -18,9 +18,18 @@ export interface VectorSearchResult {
   score: number;
 }
 
+export interface SimilarResult {
+  id: string;
+  text: string;
+  type: string;
+  title: string;
+  similarity: number;
+}
+
 export interface VectorStorage {
   upsert(doc: VectorDocument): Promise<void>;
   search(vector: number[], limit?: number): Promise<VectorSearchResult[]>;
+  findByVector(vector: number[], limit: number, excludeIds: string[]): Promise<SimilarResult[]>;
   remove(id: string): Promise<void>;
   close(): void;
 }
@@ -84,6 +93,35 @@ export async function createVectorStorage(
         title: row['title'] as string,
         score: row['_distance'] != null ? 1 / (1 + (row['_distance'] as number)) : 0,
       }));
+    },
+
+    async findByVector(
+      vector: number[],
+      limit: number,
+      excludeIds: string[],
+    ): Promise<SimilarResult[]> {
+      // Fetch extra results to account for excluded IDs
+      const fetchLimit = limit + excludeIds.length;
+      const results = await table.search(vector).limit(fetchLimit).toArray();
+      const excludeSet = new Set(excludeIds);
+      return results
+        .filter((row) => !excludeSet.has(row['id'] as string))
+        .slice(0, limit)
+        .map((row) => {
+          const rawDistance = row['_distance'];
+          // Convert distance to similarity percentage (0-100%)
+          const similarity =
+            typeof rawDistance === 'number'
+              ? Math.round((1 / (1 + rawDistance)) * 100 * 100) / 100
+              : 0;
+          return {
+            id: row['id'] as string,
+            text: row['text'] as string,
+            type: row['type'] as string,
+            title: row['title'] as string,
+            similarity,
+          };
+        });
     },
 
     async remove(id: string): Promise<void> {

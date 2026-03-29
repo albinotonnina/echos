@@ -202,6 +202,25 @@ Which notes aren't linked to anything?
 
 ---
 
+#### Find similar notes
+
+**Tool:** `find_similar`
+
+Given a note ID, finds the most semantically similar notes by comparing embedding vectors. Unlike `search_knowledge` (which takes a text query), this tool takes an existing note as the reference point and returns nearest neighbors ranked by similarity percentage.
+
+- Returns similarity as a percentage (0–100%)
+- Highlights shared tags and categories between the reference note and each result
+- Supports type filtering via `excludeType` to omit certain content types (e.g. reminders)
+- Excludes the reference note itself from results
+
+```
+Find notes similar to abc-123.
+What's related to this note? (note id: xyz-456)
+Show me notes like abc-123 but exclude reminders.
+```
+
+---
+
 #### Categorize a note
 
 **Tool:** `categorize_note`
@@ -234,6 +253,23 @@ Parameters: `noteId` (required), `limit` (default 5, max 20). Excludes notes alr
 
 ---
 
+#### Synthesize notes
+
+**Tool:** `synthesize_notes`
+
+Combine multiple notes into a new synthesis note. Select source notes by IDs, a search query, or tags. Supports four output formats.
+
+```
+Synthesize my notes about TypeScript patterns into a summary.
+Create a comparison of my notes tagged "database".
+Give me an executive brief from notes abc-123, def-456, ghi-789.
+Create a timeline from my notes about the project launch.
+```
+
+Parameters: `title` (required), `noteIds` / `query` / `tags` (at least one), `format` (`summary` | `brief` | `comparison` | `timeline`, default `summary`), `maxNotes` (default 10, max 20). The synthesis note is auto-tagged with `synthesis` plus all source tags, and bidirectionally linked to every source note.
+
+---
+
 #### Mark content status
 
 **Tool:** `mark_content`
@@ -247,6 +283,29 @@ I've read the Redis docs, mark them as read.
 ```
 
 Statuses: `saved` (unread, default), `read` (consumed), `archived` (hidden from search).
+
+---
+
+### Note Templates
+
+#### Use templates
+
+**Tool:** `use_template`
+
+Manage and use note templates to quickly create structured notes. Templates are stored as markdown files with frontmatter in `<knowledgeDir>/templates/`. Five built-in templates are scaffolded automatically on first use: Meeting Notes, Book Review, Project Brief, Weekly Review, and Decision Log.
+
+```
+Show me available templates.
+Create a meeting note using the meeting-notes template.
+Create a new template for code reviews.
+```
+
+Actions:
+- `list` — Show all available templates with descriptions
+- `use` — Create a real note from a template, filling in `{{placeholder}}` variables
+- `create` — Save a new custom template with placeholder variables
+
+Parameters: `action` (required), `templateName` (for use), `variables` (for use — fills placeholders), `title`, `description`, `content`, `category`, `tags` (for create).
 
 ---
 
@@ -703,6 +762,13 @@ Send me a weekly digest every Sunday.
 | *"What's connected to note abc / around this topic?"* | `explore_graph` (action=around) |
 | *"Export my knowledge graph"* | `explore_graph` (action=export) |
 | *"Show graph topology / hub notes / orphans"* | `explore_graph` (action=stats) |
+| *"Find notes similar to abc-123"* | `find_similar` |
+| *"Show me available templates"* | `use_template` (action=list) |
+| *"Create a meeting note from template"* | `use_template` (action=use) |
+| *"Create a new template for X"* | `use_template` (action=create) |
+| *"Synthesize my notes about X"* | `synthesize_notes` |
+| *"Create a brief from these notes"* | `synthesize_notes` |
+| *"Compare my notes tagged Y"* | `synthesize_notes` |
 | *"Mark article as read"* | `mark_content` |
 | *"What should I read next?"* | `reading_queue` |
 | *"Show my reading list / queue"* | `reading_queue` |

@@ -16,6 +16,7 @@ let markdown: MarkdownStorage;
 const mockVectorDb = {
   upsert: async () => {},
   search: async () => [],
+  findByVector: async () => [],
   remove: async () => {},
   close: () => {},
 };
