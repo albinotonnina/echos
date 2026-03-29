@@ -70,6 +70,8 @@
     "@echos/plugin-twitter": "workspace:*",
     "@echos/plugin-resurface": "workspace:*",
     "@echos/plugin-journal": "workspace:*",
+    "@echos/plugin-pdf": "workspace:*",
+    "@echos/plugin-audio": "workspace:*",
     "@echos/plugin-rss": "workspace:*",
     "tsx": "^4.21.0"
   },
