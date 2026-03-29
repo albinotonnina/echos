@@ -137,7 +137,7 @@ Every call to `update_note` automatically snapshots the previous state in SQLite
 
 ### Auto-prune
 
-Each save checks the total revision count for the note. If it exceeds 50, the oldest revisions are deleted in the same transaction. The cap is enforced in `RevisionStorage.saveRevision()`.
+Each save checks the total revision count for the note. If it exceeds 50, the oldest revisions are deleted as part of the same save operation. The cap is enforced in `RevisionStorage.saveRevision()`.
 
 ### Agent tools
 
@@ -164,7 +164,7 @@ To permanently delete without going through trash, pass `permanent=true` — thi
 
 ### Recovery
 
-`restore_note` reverses the process: the `.md` file is moved back from `.trash/` to its original path, and `status` and `file_path` are restored in SQLite.
+`restore_note` reverses the process: the `.md` file is moved back from `.trash/` to its original path, and in SQLite the `file_path` is updated and `status` is set back to `'saved'` (previous statuses such as `read`/`archived` are not currently preserved).
 
 The `.trash/` subdirectory is inside the knowledge directory, so it remains visible in Obsidian and other markdown editors.
 
