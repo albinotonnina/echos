@@ -115,6 +115,44 @@ Export files are written to `data/exports/` (configurable via `exportsDir` in `A
 | **CLI** | Inline content → stdout; file exports → `--output` path or `./fileName` in CWD; path printed to stderr |
 | **Web** | `GET /api/export/:fileName` download endpoint; agent includes the URL in its text response |
 
+## Automated Backups
+
+Backups are created by `packages/core/src/backup/index.ts` and triggered by the scheduler or the `manage_backups` agent tool.
+
+### Backup Contents
+
+Each backup is a `.tar.gz` archive containing:
+- `knowledge/` — all markdown notes
+- `db/echos.db` — SQLite database (consistent snapshot via the `.backup()` API)
+- `db/vectors/` — LanceDB vector data
+- `backup-manifest.json` — version, timestamp, note count
+
+### Configuration
+
+| Env var | Default | Description |
+|---------|---------|-------------|
+| `BACKUP_ENABLED` | `true` | Enable/disable scheduled backups |
+| `BACKUP_CRON` | `0 2 * * *` | Cron schedule (default: daily at 2 AM) |
+| `BACKUP_DIR` | `~/echos/backups` | Where backup archives are stored |
+| `BACKUP_RETENTION_COUNT` | `7` | Number of most-recent backups to keep |
+
+### `manage_backups` Tool
+
+**Location:** `packages/core/src/agent/tools/backup.ts`
+
+Accepts an `action` parameter:
+- `create` — trigger a manual backup immediately
+- `list` — list existing backups with size and age
+- `prune` — remove backups beyond the retention count
+
+### Backup Scheduler
+
+The `backup` cron job runs at the configured schedule (default `0 2 * * *`). After creating a backup it automatically prunes old backups beyond the retention count. The schedule is only registered when `BACKUP_ENABLED=true`.
+
+### Restore
+
+`restoreBackup(backupPath, targetDir)` extracts a backup to a target directory. It does **not** overwrite live data — the user must manually swap directories after verifying the restored data.
+
 ## Reading Queue
 
 Two core tools provide reading queue intelligence for saveable content types (articles, YouTube videos, tweets):

@@ -54,3 +54,13 @@ export { PluginRegistry, type EchosPlugin, type PluginContext, type ScheduledJob
 export { analyzeStyle, type StyleProfile } from './style/analyzer.js';
 export { computeSessionUsage, type SessionUsage } from './agent/usage-tracker.js';
 export { type ExportFileResult } from './export/index.js';
+export {
+  createBackup,
+  listBackups,
+  restoreBackup,
+  pruneBackups,
+  formatBytes,
+  type BackupConfig,
+  type BackupResult,
+  type BackupInfo,
+} from './backup/index.js';

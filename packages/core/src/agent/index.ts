@@ -30,7 +30,9 @@ import {
   createReadingQueueTool,
   createReadingStatsTool,
   saveConversationTool,
+  createManageBackupsTool,
 } from './tools/index.js';
+import type { BackupConfig } from '../backup/index.js';
 import type { SqliteStorage } from '../storage/sqlite.js';
 import type { MarkdownStorage } from '../storage/markdown.js';
 import type { VectorStorage } from '../storage/vectordb.js';
@@ -63,6 +65,10 @@ export interface AgentDeps {
   disableCoreTools?: boolean;
   /** Directory for writing temporary export files (default: ./data/exports) */
   exportsDir?: string;
+  /** Backup configuration. When provided, the manage_backups tool is registered. */
+  backupConfig?: BackupConfig;
+  /** Number of backups to retain when pruning (default: 7) */
+  backupRetentionCount?: number;
 }
 
 function pickApiKey(provider: string, deps: AgentDeps): string {
@@ -163,6 +169,14 @@ export function createEchosAgent(deps: AgentDeps): Agent {
     createReadingQueueTool({ sqlite: deps.sqlite }),
     createReadingStatsTool({ sqlite: deps.sqlite }),
     saveConversationTool(storageDeps),
+    ...(deps.backupConfig
+      ? [
+          createManageBackupsTool({
+            backupConfig: deps.backupConfig,
+            retentionCount: deps.backupRetentionCount ?? 7,
+          }),
+        ]
+      : []),
   ];
 
   const tools = [...coreTools, ...(deps.pluginTools ?? [])];

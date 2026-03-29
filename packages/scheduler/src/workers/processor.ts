@@ -9,6 +9,7 @@ export interface ProcessorDeps {
   reminderProcessor: (job: Job<JobData>) => Promise<void>;
   exportCleanupProcessor?: (job: Job<JobData>) => Promise<void>;
   trashPurgeProcessor?: (job: Job<JobData>) => Promise<void>;
+  backupProcessor?: (job: Job<JobData>) => Promise<void>;
   logger: Logger;
 }
 
@@ -43,6 +44,18 @@ export function createJobRouter(deps: ProcessorDeps) {
         return;
       }
       await deps.trashPurgeProcessor(job);
+      return;
+    }
+
+    if (type === 'backup') {
+      if (!deps.backupProcessor) {
+        deps.logger.warn(
+          { type, jobId: job.id },
+          'Received backup job but no backupProcessor is configured',
+        );
+        return;
+      }
+      await deps.backupProcessor(job);
       return;
     }
 

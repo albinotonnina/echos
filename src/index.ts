@@ -34,6 +34,7 @@ import {
   createReminderCheckProcessor,
   createExportCleanupProcessor,
   createTrashPurgeProcessor,
+  createBackupProcessor,
   createJobRouter,
   createManageScheduleTool,
   type QueueService,
@@ -154,8 +155,14 @@ async function main(): Promise<void> {
   const config = loadConfig();
   logger.info('Starting EchOS...');
 
-  // Derive exportsDir alongside the other data directories
+  // Derive exportsDir and backupDir alongside the other data directories
   const exportsDir = join(config.dbPath, '..', 'exports');
+  const backupConfig = {
+    knowledgeDir: config.knowledgeDir,
+    dbFilePath: join(config.dbPath, 'echos.db'),
+    vectorsDir: join(config.dbPath, 'vectors'),
+    backupDir: config.backupDir,
+  };
 
   // Initialize storage
   const sqlite = createSqliteStorage(join(config.dbPath, 'echos.db'), logger);
@@ -249,6 +256,8 @@ async function main(): Promise<void> {
     logger,
     pluginTools: [...pluginRegistry.getTools(), manageScheduleTool],
     exportsDir,
+    backupConfig,
+    backupRetentionCount: config.backupRetentionCount,
   };
 
   const interfaces: InterfaceAdapter[] = [];
@@ -313,12 +322,18 @@ async function main(): Promise<void> {
 
   const exportCleanupProcessor = createExportCleanupProcessor({ exportsDir, logger });
   const trashPurgeProcessor = createTrashPurgeProcessor({ sqlite, markdown, vectorDb, logger });
+  const backupProcessor = createBackupProcessor({
+    backupConfig,
+    retentionCount: config.backupRetentionCount,
+    logger,
+  });
 
   const scheduleManager = new ScheduleManager(
     queueService.queue,
     sqlite,
     pluginRegistry.getJobs(),
     logger,
+    { enabled: config.backupEnabled, cron: config.backupCron },
   );
   manageScheduleTool.setScheduleManager(scheduleManager);
 
@@ -331,6 +346,7 @@ async function main(): Promise<void> {
     reminderProcessor,
     exportCleanupProcessor,
     trashPurgeProcessor,
+    backupProcessor,
     logger,
   });
 

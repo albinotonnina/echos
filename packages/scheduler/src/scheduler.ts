@@ -3,12 +3,18 @@ import type { Logger } from 'pino';
 import type { SqliteStorage, ScheduledJob } from '@echos/core';
 import { RESERVED_SCHEDULE_IDS } from '@echos/shared';
 
+export interface BackupScheduleConfig {
+  enabled: boolean;
+  cron: string;
+}
+
 export class ScheduleManager {
   constructor(
     private readonly queue: Queue,
     private readonly sqlite: SqliteStorage,
     private readonly jobs: Map<string, ScheduledJob>,
     private readonly logger: Logger,
+    private readonly backupScheduleConfig?: BackupScheduleConfig,
   ) { }
 
   /**
@@ -49,6 +55,19 @@ export class ScheduleManager {
       { name: 'trash_purge', data: { type: 'trash_purge' } },
     );
     updatedIds.add('trash-purge');
+
+    // Schedule backup job (configurable cron, enabled by default)
+    if (this.backupScheduleConfig?.enabled) {
+      await this.queue.upsertJobScheduler(
+        'backup',
+        { pattern: this.backupScheduleConfig.cron },
+        { name: 'backup', data: { type: 'backup' } },
+      );
+      updatedIds.add('backup');
+    } else {
+      // Ensure any previously-registered backup schedule is removed
+      await this.removeSchedule('backup');
+    }
 
     // Remove schedulers that are no longer enabled/in DB (except hardcoded reminder check)
     for (const id of existingIds) {
