@@ -33,7 +33,7 @@ RUN pnpm install --frozen-lockfile --prod=false
 
 # Build
 FROM deps AS build
-COPY tsconfig.json ./
+COPY tsconfig.json tsconfig.paths.json ./
 COPY packages/ packages/
 COPY plugins/ plugins/
 RUN pnpm build
