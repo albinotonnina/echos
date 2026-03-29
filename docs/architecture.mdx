@@ -63,6 +63,17 @@ User Input (any interface)
 @echos/plugin-twitter  ← shared, core (Twitter/X tweet and thread extraction)
 ```
 
+## Daemon Entry Point (`src/`)
+
+The daemon entry point (`src/index.ts`) is a thin orchestrator (~78 lines) that delegates to focused modules:
+
+- **`src/plugin-loader.ts`** — Auto-discovers plugins by scanning the `plugins/` directory at runtime. No manual imports needed.
+- **`src/redis-check.ts`** — Redis TCP pre-flight check (`checkRedisConnection`). Fatal-exits if Redis is unreachable.
+- **`src/storage-init.ts`** — Initializes SQLite, Markdown, Vector, and Search storage; runs reconciliation; starts the file watcher.
+- **`src/scheduler-setup.ts`** — Creates BullMQ queue, processors, workers, and schedule manager.
+- **`src/shutdown.ts`** — Graceful shutdown handler that closes all resources in order.
+- **`src/agent-deps.ts`** — Builds the `AgentDeps` object and plugin config from the application config.
+
 ## Scheduler & Notifications
 
 The scheduler package (`@echos/scheduler`) runs background jobs via BullMQ + Redis. It is always enabled and requires a running Redis instance.
@@ -355,7 +366,7 @@ Content processors live in `plugins/` as separate workspace packages. Each plugi
 - Implements the `EchosPlugin` interface from `@echos/core`
 - Returns agent tools from its `setup(context)` method
 - Receives a `PluginContext` with storage, embeddings, logger, and config
-- Is registered via `PluginRegistry` in the application entry point
+- Is auto-discovered at runtime by `src/plugin-loader.ts` (scans `plugins/` directory) and registered via `PluginRegistry`
 
 Core tools (create_note, search, get, list, update, delete_note, restore_note, list_trash, note_history, restore_version, reminders, memory, linking, categorize_note, save_conversation, mark_content, export_notes, manage_tags) remain in `@echos/core`.
 Domain-specific processors (YouTube, article, image, etc.) are plugins.

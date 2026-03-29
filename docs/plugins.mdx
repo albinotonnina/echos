@@ -270,16 +270,9 @@ export default myPlugin;
 
 </Step>
 
-<Step title="Register it">
+<Step title="Auto-discovery">
 
-In `src/index.ts`, import and register:
-
-```typescript
-import myPlugin from '@echos/plugin-my-plugin';
-
-// After creating the PluginRegistry:
-pluginRegistry.register(myPlugin);
-```
+Plugins are **auto-discovered** at runtime — `src/plugin-loader.ts` scans the `plugins/` directory and dynamically imports any `@echos/plugin-<dirname>` package. No manual import or registration in `src/index.ts` is needed.
 
 </Step>
 

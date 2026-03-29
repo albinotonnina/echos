@@ -88,7 +88,7 @@ export default myPlugin;
 ```
 
 Plugins receive a `PluginContext` with access to storage, embeddings, logger, and config.
-Register plugins via `PluginRegistry` in the entry point.
+Plugins are **auto-discovered** at runtime by `src/plugin-loader.ts` — no manual imports or registration needed.
 
 **CRITICAL — Adding a new plugin checklist (ALWAYS do ALL of these):**
 1. Create `plugins/<name>/package.json` with the plugin package
@@ -97,7 +97,8 @@ Register plugins via `PluginRegistry` in the entry point.
 4. In the `deps` stage in `docker/Dockerfile`, add `COPY plugins/<name>/package.json plugins/<name>/`
 5. In the `production` stage in `docker/Dockerfile`, add `COPY --from=deps /app/plugins/<name>/package.json plugins/<name>/`
 6. Add the plugin's TypeScript path alias to the root `tsconfig.json` `paths` section (e.g. `"@echos/plugin-<name>": ["./plugins/<name>/src/index.ts"]`)
-7. Register the plugin in the daemon entry point (`src/index.ts`: import + `pluginRegistry.register()`)
+
+Note: Step 7 (manual registration in `src/index.ts`) is no longer needed — plugins are auto-discovered from the `plugins/` directory.
 
 **CRITICAL — Tool `execute` signatures must always include explicit types (for new/modified tools):**
 The `execute` function in `AgentTool` must always have an explicitly typed first parameter to avoid `TS7006` implicit `any` errors in plugin builds where TypeScript path resolution may differ from the root workspace. This applies especially when creating new tools or updating plugins:
