@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { isValidCron } from '../cron.js';
 
 const commaSeparatedNumbers = z
   .string()
@@ -105,7 +106,10 @@ export const configSchema = z
     .string()
     .default('true')
     .transform((s) => s === 'true'),
-  backupCron: z.string().default('0 2 * * *'),
+  backupCron: z
+    .string()
+    .default('0 2 * * *')
+    .refine(isValidCron, { message: 'BACKUP_CRON must be a valid 5-field cron expression (e.g. "0 2 * * *")' }),
   backupDir: z.string().default(join(ECHOS_HOME, 'backups')),
   backupRetentionCount: z.coerce.number().int().positive().default(7),
 })

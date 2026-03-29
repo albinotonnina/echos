@@ -154,7 +154,14 @@ export function listBackups(backupDir: string): BackupInfo[] {
   const now = Date.now();
   const infos: BackupInfo[] = [];
 
-  for (const entry of readdirSync(backupDir)) {
+  let entries: string[];
+  try {
+    entries = readdirSync(backupDir);
+  } catch {
+    return [];
+  }
+
+  for (const entry of entries) {
     if (!entry.startsWith('echos-backup-') || !entry.endsWith('.tar.gz')) continue;
     const filePath = join(backupDir, entry);
     try {
