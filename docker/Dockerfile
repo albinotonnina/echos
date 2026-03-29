@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM node:20-alpine AS base
 # su-exec: lightweight setuid helper for dropping privileges in entrypoints
 # Upgrade corepack first — bundled version may have stale signing keys
@@ -17,17 +18,7 @@ COPY packages/telegram/package.json packages/telegram/
 COPY packages/web/package.json packages/web/
 COPY packages/cli/package.json packages/cli/
 COPY packages/scheduler/package.json packages/scheduler/
-COPY plugins/article/package.json plugins/article/
-COPY plugins/youtube/package.json plugins/youtube/
-COPY plugins/content-creation/package.json plugins/content-creation/
-COPY plugins/image/package.json plugins/image/
-COPY plugins/digest/package.json plugins/digest/
-COPY plugins/twitter/package.json plugins/twitter/
-COPY plugins/resurface/package.json plugins/resurface/
-COPY plugins/journal/package.json plugins/journal/
-COPY plugins/pdf/package.json plugins/pdf/
-COPY plugins/audio/package.json plugins/audio/
-COPY plugins/rss/package.json plugins/rss/
+COPY --parents plugins/*/package.json ./
 RUN pnpm install --frozen-lockfile --prod=false
 
 # Build
@@ -48,17 +39,7 @@ COPY --from=deps /app/packages/telegram/package.json packages/telegram/
 COPY --from=deps /app/packages/web/package.json packages/web/
 COPY --from=deps /app/packages/cli/package.json packages/cli/
 COPY --from=deps /app/packages/scheduler/package.json packages/scheduler/
-COPY --from=deps /app/plugins/article/package.json plugins/article/
-COPY --from=deps /app/plugins/youtube/package.json plugins/youtube/
-COPY --from=deps /app/plugins/content-creation/package.json plugins/content-creation/
-COPY --from=deps /app/plugins/image/package.json plugins/image/
-COPY --from=deps /app/plugins/digest/package.json plugins/digest/
-COPY --from=deps /app/plugins/twitter/package.json plugins/twitter/
-COPY --from=deps /app/plugins/resurface/package.json plugins/resurface/
-COPY --from=deps /app/plugins/journal/package.json plugins/journal/
-COPY --from=deps /app/plugins/pdf/package.json plugins/pdf/
-COPY --from=deps /app/plugins/audio/package.json plugins/audio/
-COPY --from=deps /app/plugins/rss/package.json plugins/rss/
+COPY --from=deps /app/plugins/ plugins/
 RUN pnpm install --prod --frozen-lockfile
 
 # Copy build artifacts (changes frequently, so last)
