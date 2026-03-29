@@ -58,7 +58,6 @@ export interface SqliteStorage {
   getDistinctTagCount(): number;
   getLinkCount(): number;
   getWeeklyCreationCounts(weeks: number): { week: string; count: number }[];
-  getTagFrequencies(limit: number): { tag: string; count: number }[];
   getCategoryFrequencies(limit: number): { category: string; count: number }[];
   // Lifecycle
   close(): void;
@@ -888,7 +887,7 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
         .prepare(
           `SELECT SUM(
             CASE
-              WHEN links = '' THEN 0
+              WHEN links IS NULL OR links = '' THEN 0
               ELSE LENGTH(links) - LENGTH(REPLACE(links, ',', '')) + 1
             END
            ) AS linkCount
@@ -909,10 +908,6 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
            ORDER BY week ASC`,
         )
         .all(cutoff) as { week: string; count: number }[];
-    },
-
-    getTagFrequencies(limit: number): { tag: string; count: number }[] {
-      return stmts.getTopTagsWithCounts.all(limit) as { tag: string; count: number }[];
     },
 
     getCategoryFrequencies(limit: number): { category: string; count: number }[] {

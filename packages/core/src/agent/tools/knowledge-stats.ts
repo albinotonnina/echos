@@ -1,6 +1,6 @@
 import { Type, type Static } from '@mariozechner/pi-ai';
 import type { AgentTool } from '@mariozechner/pi-agent-core';
-import { statSync, readdirSync } from 'node:fs';
+import { stat, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { SqliteStorage } from '../../storage/sqlite.js';
 
@@ -21,31 +21,33 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
-function getDirSize(dirPath: string): number {
+async function getDirSize(dirPath: string): Promise<number> {
   try {
     let total = 0;
-    const entries = readdirSync(dirPath, { withFileTypes: true });
-    for (const entry of entries) {
-      const full = join(dirPath, entry.name);
-      if (entry.isDirectory()) {
-        total += getDirSize(full);
-      } else if (entry.isFile()) {
-        try {
-          total += statSync(full).size;
-        } catch {
-          // skip unreadable files
+    const entries = await readdir(dirPath, { withFileTypes: true });
+    await Promise.all(
+      entries.map(async (entry) => {
+        const full = join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+          total += await getDirSize(full);
+        } else if (entry.isFile()) {
+          try {
+            total += (await stat(full)).size;
+          } catch {
+            // skip unreadable files
+          }
         }
-      }
-    }
+      }),
+    );
     return total;
   } catch {
     return 0;
   }
 }
 
-function getFileSize(filePath: string): number {
+async function getFileSize(filePath: string): Promise<number> {
   try {
-    return statSync(filePath).size;
+    return (await stat(filePath)).size;
   } catch {
     return 0;
   }
@@ -121,15 +123,17 @@ export function createKnowledgeStatsTool(deps: KnowledgeStatsToolDeps): AgentToo
       }
 
       // --- Top tags ---
-      const topTags = sqlite.getTagFrequencies(20);
+      const topTags = sqlite.getTopTagsWithCounts(20);
 
       // --- Top categories ---
       const topCategories = sqlite.getCategoryFrequencies(10);
 
       // --- Storage sizes ---
-      const knowledgeDirSize = getDirSize(deps.knowledgeDir);
-      const sqliteFileSize = getFileSize(join(deps.dbPath, 'echos.db'));
-      const vectorDirSize = getDirSize(join(deps.dbPath, 'vectors'));
+      const [knowledgeDirSize, sqliteFileSize, vectorDirSize] = await Promise.all([
+        getDirSize(deps.knowledgeDir),
+        getFileSize(join(deps.dbPath, 'echos.db')),
+        getDirSize(join(deps.dbPath, 'vectors')),
+      ]);
 
       // --- Build output ---
       const ALL_TYPES = ['note', 'article', 'youtube', 'tweet', 'journal', 'image', 'conversation'] as const;
