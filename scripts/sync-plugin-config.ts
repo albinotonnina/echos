@@ -69,22 +69,45 @@ function buildPaths(
   return paths;
 }
 
-function buildDeps(workspaces: PackageInfo[]): Record<string, string> {
-  const deps: Record<string, string> = {};
-  for (const ws of workspaces) {
-    deps[ws.name] = 'workspace:*';
-  }
-  // tsx is also a root dep — preserve it
-  deps['tsx'] = '^4.21.0';
-  return deps;
-}
-
 function readJson(filePath: string): unknown {
   return JSON.parse(readFileSync(filePath, 'utf-8'));
 }
 
 function formatJson(obj: unknown): string {
   return JSON.stringify(obj, null, 2) + '\n';
+}
+
+/**
+ * Merge workspace deps into existing deps while preserving non-workspace deps.
+ * Only adds/removes workspace:* entries; leaves everything else untouched.
+ */
+function mergeWorkspaceDeps(
+  existing: Record<string, string>,
+  workspaces: PackageInfo[]
+): { merged: Record<string, string>; added: string[]; removed: string[] } {
+  const merged = { ...existing };
+
+  const workspaceNames = new Set(workspaces.map((ws) => ws.name));
+
+  // Add missing workspace deps
+  const added: string[] = [];
+  for (const ws of workspaces) {
+    if (!(ws.name in merged)) {
+      merged[ws.name] = 'workspace:*';
+      added.push(ws.name);
+    }
+  }
+
+  // Remove stale workspace deps (entries with workspace:* that no longer exist)
+  const removed: string[] = [];
+  for (const [name, version] of Object.entries(existing)) {
+    if (version.startsWith('workspace:') && !workspaceNames.has(name)) {
+      delete merged[name];
+      removed.push(name);
+    }
+  }
+
+  return { merged, added, removed };
 }
 
 let changed = false;
@@ -125,19 +148,14 @@ const rootPkg = readJson(rootPkgPath) as {
   [key: string]: unknown;
 };
 
-const newDeps = buildDeps(workspaces);
 const oldDeps = rootPkg.dependencies ?? {};
+const { merged: mergedDeps, added, removed } = mergeWorkspaceDeps(oldDeps, workspaces);
 
-// Check if deps changed
 const oldDepsStr = JSON.stringify(oldDeps, Object.keys(oldDeps).sort());
-const newDepsStr = JSON.stringify(newDeps, Object.keys(newDeps).sort());
+const mergedDepsStr = JSON.stringify(mergedDeps, Object.keys(mergedDeps).sort());
 
-if (oldDepsStr !== newDepsStr) {
-  // Find what was added/removed
-  const added = Object.keys(newDeps).filter((k) => !(k in oldDeps));
-  const removed = Object.keys(oldDeps).filter((k) => !(k in newDeps));
-
-  rootPkg.dependencies = newDeps;
+if (oldDepsStr !== mergedDepsStr) {
+  rootPkg.dependencies = mergedDeps;
   writeFileSync(rootPkgPath, formatJson(rootPkg));
   changed = true;
 
