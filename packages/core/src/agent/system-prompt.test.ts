@@ -39,9 +39,9 @@ describe('SYSTEM_PROMPT', () => {
     expect(SYSTEM_PROMPT).toContain('**save_conversation**');
   });
 
-  it('conversation memory section instructs semantic search first when finding saved conversations', () => {
-    expect(SYSTEM_PROMPT).toContain('Always start with search_knowledge');
-    expect(SYSTEM_PROMPT).toContain('Do NOT assume type=conversation');
+  it('conversation memory section instructs using search_conversations for finding saved conversations', () => {
+    expect(SYSTEM_PROMPT).toContain('search_conversations');
+    expect(SYSTEM_PROMPT).toContain('search_knowledge');
     expect(SYSTEM_PROMPT).toContain('type=note');
   });
 

@@ -32,3 +32,7 @@ export { restoreVersionTool, type RestoreVersionToolDeps } from './restore-versi
 export { createKnowledgeStatsTool, type KnowledgeStatsToolDeps } from './knowledge-stats.js';
 export { createExploreGraphTool, type ExploreGraphToolDeps } from './explore-graph.js';
 export { createSuggestLinksTool, type SuggestLinksToolDeps } from './suggest-links.js';
+export {
+  searchConversationsTool,
+  type SearchConversationsToolDeps,
+} from './search-conversations.js';
