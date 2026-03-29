@@ -1,0 +1,75 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@echos/cli": [
+        "./packages/cli/src/index.ts"
+      ],
+      "@echos/cli/*": [
+        "./packages/cli/src/*"
+      ],
+      "@echos/core": [
+        "./packages/core/src/index.ts"
+      ],
+      "@echos/core/*": [
+        "./packages/core/src/*"
+      ],
+      "@echos/plugin-article": [
+        "./plugins/article/src/index.ts"
+      ],
+      "@echos/plugin-audio": [
+        "./plugins/audio/src/index.ts"
+      ],
+      "@echos/plugin-content-creation": [
+        "./plugins/content-creation/src/index.ts"
+      ],
+      "@echos/plugin-digest": [
+        "./plugins/digest/src/index.ts"
+      ],
+      "@echos/plugin-image": [
+        "./plugins/image/src/index.ts"
+      ],
+      "@echos/plugin-journal": [
+        "./plugins/journal/src/index.ts"
+      ],
+      "@echos/plugin-pdf": [
+        "./plugins/pdf/src/index.ts"
+      ],
+      "@echos/plugin-resurface": [
+        "./plugins/resurface/src/index.ts"
+      ],
+      "@echos/plugin-rss": [
+        "./plugins/rss/src/index.ts"
+      ],
+      "@echos/plugin-twitter": [
+        "./plugins/twitter/src/index.ts"
+      ],
+      "@echos/plugin-youtube": [
+        "./plugins/youtube/src/index.ts"
+      ],
+      "@echos/scheduler": [
+        "./packages/scheduler/src/index.ts"
+      ],
+      "@echos/scheduler/*": [
+        "./packages/scheduler/src/*"
+      ],
+      "@echos/shared": [
+        "./packages/shared/src/index.ts"
+      ],
+      "@echos/shared/*": [
+        "./packages/shared/src/*"
+      ],
+      "@echos/telegram": [
+        "./packages/telegram/src/index.ts"
+      ],
+      "@echos/telegram/*": [
+        "./packages/telegram/src/*"
+      ],
+      "@echos/web": [
+        "./packages/web/src/index.ts"
+      ],
+      "@echos/web/*": [
+        "./packages/web/src/*"
+      ]
+    }
+  }
+}

@@ -93,12 +93,11 @@ Plugins are **auto-discovered** at runtime by `src/plugin-loader.ts` — no manu
 **CRITICAL — Adding a new plugin checklist (ALWAYS do ALL of these):**
 1. Create `plugins/<name>/package.json` with the plugin package
 2. Add `plugins/<name>/package.json` to `pnpm-workspace.yaml` (if not glob-matched)
-3. Add `"@echos/plugin-<name>": "workspace:*"` to the **root `package.json` `dependencies`** — without this, `pnpm install --prod` in Docker will NOT link the plugin and you get `ERR_MODULE_NOT_FOUND` at runtime
+3. Run `pnpm sync-plugins` — this auto-generates `tsconfig.paths.json` (TypeScript path aliases) and ensures root `package.json` has the `"workspace:*"` dependency entry. Without the dep, `pnpm install --prod` in Docker will NOT link the plugin and you get `ERR_MODULE_NOT_FOUND` at runtime
 4. In the `deps` stage in `docker/Dockerfile`, add `COPY plugins/<name>/package.json plugins/<name>/`
 5. In the `production` stage in `docker/Dockerfile`, add `COPY --from=deps /app/plugins/<name>/package.json plugins/<name>/`
-6. Add the plugin's TypeScript path alias to the root `tsconfig.json` `paths` section (e.g. `"@echos/plugin-<name>": ["./plugins/<name>/src/index.ts"]`)
 
-Note: Step 7 (manual registration in `src/index.ts`) is no longer needed — plugins are auto-discovered from the `plugins/` directory.
+Note: TypeScript path aliases and root `package.json` deps are managed by `pnpm sync-plugins` (step 3). Plugin registration is automatic via `src/plugin-loader.ts` — no manual imports needed.
 
 **CRITICAL — Tool `execute` signatures must always include explicit types (for new/modified tools):**
 The `execute` function in `AgentTool` must always have an explicitly typed first parameter to avoid `TS7006` implicit `any` errors in plugin builds where TypeScript path resolution may differ from the root workspace. This applies especially when creating new tools or updating plugins:
