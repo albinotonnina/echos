@@ -35,7 +35,8 @@
     "generate-test-notes": "tsx --env-file=\"${ECHOS_HOME:-$HOME/echos}/.env\" scripts/generate-test-notes.ts",
     "clean": "pnpm -r clean && rm -rf node_modules",
     "deploy": "./scripts/deploy-fast.sh",
-    "release": "tsx scripts/release.ts"
+    "release": "tsx scripts/release.ts",
+    "sync-plugins": "tsx scripts/sync-plugin-config.ts"
   },
   "engines": {
     "node": ">=20.0.0",
