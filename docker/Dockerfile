@@ -1,11 +1,15 @@
-FROM node:20.18.0-alpine AS base
+FROM node:20-alpine AS base
 # su-exec: lightweight setuid helper for dropping privileges in entrypoints
+# Upgrade corepack first — bundled version may have stale signing keys
 RUN apk add --no-cache su-exec && \
-    corepack enable && corepack prepare pnpm@10.30.1 --activate
+    npm i -g corepack && corepack enable && corepack prepare pnpm@10.30.1 --activate
 WORKDIR /app
 
 # Install dependencies
 FROM base AS deps
+# Build tools for native modules (better-sqlite3) when prebuilds are
+# unavailable for the current Node point release.
+RUN apk add --no-cache python3 make g++
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/core/package.json packages/core/
