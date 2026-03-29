@@ -80,11 +80,72 @@ Append this to note abc-123: [text]
 
 **Tool:** `delete_note`
 
-Permanently remove a note from storage and all indexes.
+Move a note to the trash. By default, notes are **soft-deleted** — moved to trash and recoverable for 30 days. Use `permanent=true` to skip trash and remove immediately.
 
 ```
 Delete note abc-123.
 Remove that note I just saved.
+Permanently delete note abc-123.
+```
+
+Trashed notes are automatically purged after 30 days by a background job. Use `restore_note` or `list_trash` to manage them.
+
+---
+
+#### View version history
+
+**Tool:** `note_history`
+
+List past versions of a note with timestamps and a summary of what changed. History is created automatically each time a note is updated.
+
+```
+Show the history of note abc-123.
+What versions exist for that note?
+When was note abc-123 last changed?
+```
+
+Returns up to 10 revisions by default (max 50). Each entry shows the revision ID, timestamp, title at that point, and a diff summary (content, tags, category, or title changes).
+
+---
+
+#### Restore a previous version
+
+**Tool:** `restore_version`
+
+Revert a note to a past version. The current state is saved as a new revision first, so nothing is lost.
+
+```
+Restore note abc-123 to revision rev-456.
+Go back to the previous version of that note.
+```
+
+After restore, all indexes (SQLite, LanceDB) are updated with the recovered content.
+
+---
+
+#### List trash
+
+**Tool:** `list_trash`
+
+Show all notes currently in the trash, with deletion date and days until permanent purge.
+
+```
+What's in the trash?
+Show me deleted notes.
+Did I delete anything recently?
+```
+
+---
+
+#### Restore a note from trash
+
+**Tool:** `restore_note`
+
+Recover a soft-deleted note from the trash back to its original location.
+
+```
+Restore note abc-123 from trash.
+Undelete that note I just removed.
 ```
 
 ---
@@ -582,7 +643,12 @@ Send me a weekly digest every Sunday.
 | *"Search for..."* | `search_knowledge` |
 | *"List my recent notes"* | `list_notes` |
 | *"Update note abc-123"* | `update_note` |
-| *"Delete note abc-123"* | `delete_note` |
+| *"Delete note abc-123"* | `delete_note` (moves to trash) |
+| *"Permanently delete note abc-123"* | `delete_note` (permanent=true) |
+| *"What's in the trash?"* | `list_trash` |
+| *"Restore note abc-123 from trash"* | `restore_note` |
+| *"Show history of note abc-123"* | `note_history` |
+| *"Restore note to previous version"* | `restore_version` |
 | *"Remind me to..."* | `add_reminder` (kind=reminder) |
 | *"I need to / I should..."* | `add_reminder` (kind=todo, auto-detected) |
 | *"What are my todos / tasks?"* | `list_todos` |

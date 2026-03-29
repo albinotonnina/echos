@@ -75,6 +75,7 @@ Workers:
 - **Reminder check**: Queries SQLite for overdue reminders and sends notifications
 - **Content processing**: Processes article/YouTube URLs queued by the agent
 - **Update check**: Checks GitHub for new EchOS releases daily and notifies the user with install-method-specific update instructions. Disable with `DISABLE_UPDATE_CHECK=true`.
+- **Trash purge**: Permanently removes notes that have been in the trash for more than 30 days. Runs daily at 3 AM (`0 3 * * *`). Clears all three storage layers: markdown file (from `knowledge/.trash/`), SQLite record, and LanceDB vector.
 
 See [Scheduler](/scheduler) for configuration and usage details.
 
@@ -115,6 +116,69 @@ Export files are written to `data/exports/` (configurable via `exportsDir` in `A
 | **Telegram** | `ctx.replyWithDocument(new InputFile(buffer, fileName))` after agent completes; temp file deleted immediately |
 | **CLI** | Inline content → stdout; file exports → `--output` path or `./fileName` in CWD; path printed to stderr |
 | **Web** | `GET /api/export/:fileName` download endpoint; agent includes the URL in its text response |
+
+## Note Version History
+
+**Location:** `packages/core/src/storage/revisions.ts`
+
+Every call to `update_note` automatically snapshots the previous state in SQLite's `revisions` table before applying changes. No configuration is required — revisioning is always on.
+
+### Revision storage
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID | Unique revision identifier |
+| `note_id` | string | FK to `notes.id` |
+| `title` | string | Note title at snapshot time |
+| `content` | string | Full note body at snapshot time |
+| `tags` | string | Comma-separated tags at snapshot time |
+| `category` | string | Category at snapshot time |
+| `created_at` | ISO timestamp | When the snapshot was taken |
+
+### Auto-prune
+
+Each save checks the total revision count for the note. If it exceeds 50, the oldest revisions are deleted in the same transaction. The cap is enforced in `RevisionStorage.saveRevision()`.
+
+### Agent tools
+
+| Tool | Location | Description |
+|------|----------|-------------|
+| `note_history` | `packages/core/src/agent/tools/note-history.ts` | Lists past revisions with timestamps and diff summaries |
+| `restore_version` | `packages/core/src/agent/tools/restore-version.ts` | Restores a note to a past revision; saves current state first |
+
+`restore_version` updates markdown files, SQLite, and re-generates the LanceDB vector embedding after restoring.
+
+---
+
+## Soft Delete / Trash
+
+Notes are soft-deleted by default — moved to a recoverable trash state rather than permanently removed.
+
+### How it works
+
+1. `delete_note` (without `permanent=true`) calls `markdown.moveToTrash(filePath)`, which moves the `.md` file from `knowledge/{type}/{category}/` to `knowledge/.trash/`
+2. SQLite is updated: `status = 'deleted'`, `deleted_at = <now>`, and `file_path` is updated to the `.trash/` path
+3. LanceDB vectors are retained (cheap, removed on permanent purge)
+
+To permanently delete without going through trash, pass `permanent=true` — this calls `markdown.remove()`, `sqlite.purgeNote()`, and `vectorDb.remove()` immediately.
+
+### Recovery
+
+`restore_note` reverses the process: the `.md` file is moved back from `.trash/` to its original path, and `status` and `file_path` are restored in SQLite.
+
+The `.trash/` subdirectory is inside the knowledge directory, so it remains visible in Obsidian and other markdown editors.
+
+### Automatic purge
+
+The `trash_purge` background job (scheduler worker, runs daily at 3 AM) queries `listDeletedNotes()`, checks `deleted_at` age, and permanently removes any note older than 30 days from all three storage layers.
+
+**Location:** `packages/scheduler/src/workers/trash-purge.ts`
+
+### Filtering
+
+All `list_notes` and `search_knowledge` queries exclude `status = 'deleted'` notes automatically. Only `list_trash` surfaces deleted notes.
+
+---
 
 ## Automated Backups
 
@@ -199,7 +263,7 @@ Content processors live in `plugins/` as separate workspace packages. Each plugi
 - Receives a `PluginContext` with storage, embeddings, logger, and config
 - Is registered via `PluginRegistry` in the application entry point
 
-Core tools (create_note, search, get, list, update, delete, reminders, memory, linking, categorize_note, save_conversation, mark_content, export_notes, manage_tags) remain in `@echos/core`.
+Core tools (create_note, search, get, list, update, delete_note, restore_note, list_trash, note_history, restore_version, reminders, memory, linking, categorize_note, save_conversation, mark_content, export_notes, manage_tags) remain in `@echos/core`.
 Domain-specific processors (YouTube, article, image, etc.) are plugins.
 
 Plugins can optionally use the AI categorization service from `@echos/core` to automatically extract category, tags, gist, summary, and key points from content. The categorization pipeline is **vocabulary-aware**: before calling the LLM, it fetches the top 50 most-used tags from SQLite and injects them into the prompt, steering the model to reuse existing tags rather than coining synonyms. See [Categorization](/categorization) for details.
@@ -216,7 +280,7 @@ See [Building a Plugin](/plugins) for detailed plugin documentation.
 
 ## Storage Architecture
 
-**SQLite** (better-sqlite3): Structured metadata index, FTS5 full-text search, memory store, reminders, and tag management. Tags are stored as comma-separated strings in the `tags` column. The `getAllTagsWithCounts()` method uses a recursive CTE to split and aggregate tags across all notes. `renameTag()` and `mergeTags()` use the `',' || tags || ','` wrapping trick to avoid substring false matches when replacing tag values in-place. Both operations automatically keep the FTS5 index in sync via the existing `notes_au` AFTER UPDATE trigger. The memory table stores long-term personal facts with a confidence score (0–1) and kind (`fact`, `preference`, `person`, `project`, `expertise`). Notes also store a `content_hash` (SHA-256) used to detect changes and skip unnecessary re-embedding. The `status` column tracks content lifecycle (`saved`, `read`, `archived`) and `input_source` records how content was captured (`text`, `voice`, `url`, `file`, `image`). For images, additional columns store `image_path` (local file path), `image_url` (source URL), `image_metadata` (JSON with dimensions, format, EXIF), and `ocr_text` (for future OCR support).
+**SQLite** (better-sqlite3): Structured metadata index, FTS5 full-text search, memory store, reminders, and tag management. Tags are stored as comma-separated strings in the `tags` column. The `getAllTagsWithCounts()` method uses a recursive CTE to split and aggregate tags across all notes. `renameTag()` and `mergeTags()` use the `',' || tags || ','` wrapping trick to avoid substring false matches when replacing tag values in-place. Both operations automatically keep the FTS5 index in sync via the existing `notes_au` AFTER UPDATE trigger. The memory table stores long-term personal facts with a confidence score (0–1) and kind (`fact`, `preference`, `person`, `project`, `expertise`). Notes also store a `content_hash` (SHA-256) used to detect changes and skip unnecessary re-embedding. The `status` column tracks content lifecycle (`saved`, `read`, `archived`, `deleted`) and `input_source` records how content was captured (`text`, `voice`, `url`, `file`, `image`). When a note is soft-deleted, `status` is set to `deleted`, a `deleted_at` timestamp is recorded, and `file_path` is updated to point to the note's new location in `knowledge/.trash/`. The `revisions` table stores snapshots of previous note states: each row captures `note_id`, `title`, `content`, `tags`, `category`, and `created_at`. Revisions are written automatically by `update_note` before applying changes, capped at 50 per note (oldest pruned on save). For images, additional columns store `image_path` (local file path), `image_url` (source URL), `image_metadata` (JSON with dimensions, format, EXIF), and `ocr_text` (for future OCR support).
 
 **LanceDB** (embedded): Vector embeddings for semantic search. No server process needed.
 

@@ -49,6 +49,16 @@ Queries the SQLite database for pending reminders with a due date in the past. D
 
 *Note: The system internally schedules a quick check every minute to dispatch due reminders, distinct from customizable user schedules.*
 
+### Trash Purge (`trash_purge`)
+
+Permanently removes notes that have been soft-deleted for more than 30 days. This job runs automatically on a fixed schedule — it cannot be customised via `manage_schedule`.
+
+- **Schedule**: Daily at 3 AM (`0 3 * * *`)
+- **Behavior**: Fetches all `status=deleted` notes, checks `deleted_at`, and for each note older than 30 days: removes the `.md` file from `knowledge/.trash/`, purges the SQLite row, and removes the LanceDB vector
+- **Location**: `packages/scheduler/src/workers/trash-purge.ts`
+
+No configuration is required. Notes restored before the 30-day window are unaffected.
+
 ### Content Processing (`process_article`, `process_youtube`)
 
 Processes long-form article and YouTube URLs queued by the agent during conversations. This runs automatically when URLs are submitted; no manual schedule creation is needed.
@@ -78,10 +88,11 @@ src/index.ts
          ├── ScheduleManager (Syncs Database ↔ BullMQ)
          └── Worker
               └── Job Router (Plugin-aware routing)
-                   ├── digest     → DigestPlugin Processor
-                   ├── resurface  → ResurfacePlugin Processor
-                   ├── reminder   → Built-in Reminder Processor
-                   └── content    → Built-in Content Processor
+                   ├── digest       → DigestPlugin Processor
+                   ├── resurface    → ResurfacePlugin Processor
+                   ├── reminder     → Built-in Reminder Processor
+                   ├── content      → Built-in Content Processor
+                   └── trash_purge  → Built-in Trash Purge Processor
 ```
 
 The `ScheduleManager` listens for changes made through the tools and Web API, applying them instantly to the running BullMQ scheduler. 
