@@ -522,12 +522,13 @@ Schedule a weekly knowledge rediscovery every Sunday at 10am, 5 notes.
 The PDF plugin (`@echos/plugin-pdf`) provides the `save_pdf` tool for extracting and saving text from PDF documents.
 
 **Features:**
-- Download PDFs from any URL and extract text via `pdf-parse` (pure JS, no native deps)
-- Preserves page count, author, and source URL as metadata
-- Truncates oversized content gracefully (max 500 000 chars) with a `[content truncated]` notice
+- Download PDFs from public http(s) URLs and extract text via `pdf-parse` (pure JS, no native deps)
+- Preserves page count in the note header/body; stores author and source URL in frontmatter metadata (when available)
+- Enforces a 10 MiB PDF download size limit; larger binaries are rejected with a clear error
+- Truncates oversized content gracefully (max 500 000 chars), appending `[content truncated due to size limit]` and marking the "Extracted characters" field as `(truncated)`
 - Fails clearly on password-protected or corrupt PDFs
 - Optional AI categorization for automatic tagging
-- URL validation via `validateUrl()` (SSRF protection)
+- URL validation via `validateUrl()` (SSRF protection: only public http(s) URLs; private/localhost/internal hosts are blocked)
 
 **Tool: save_pdf**
 
@@ -553,7 +554,7 @@ The audio plugin (`@echos/plugin-audio`) provides the `save_audio` tool for tran
 **Requires `OPENAI_API_KEY`** — Whisper is an OpenAI API service. The plugin fails gracefully with a clear message if the key is absent.
 
 **Features:**
-- Downloads audio from any URL and transcribes via `whisper-1`
+- Downloads audio from public http(s) URLs and transcribes via `whisper-1`
 - Supports: `.mp3`, `.wav`, `.m4a`, `.ogg`, `.webm`, `.mp4`, `.flac`
 - Files > 25 MB are split into 24 MB byte-range chunks and transcribed sequentially — no ffmpeg required
 - Probes file size with a HEAD request, then falls back to a `Range: bytes=0-0` probe if `Content-Length` is absent
