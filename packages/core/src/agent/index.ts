@@ -34,6 +34,7 @@ import {
   createManageBackupsTool,
   noteHistoryTool,
   restoreVersionTool,
+  createExploreGraphTool,
 } from './tools/index.js';
 import type { BackupConfig } from '../backup/index.js';
 import type { SqliteStorage } from '../storage/sqlite.js';
@@ -194,6 +195,11 @@ export function createEchosAgent(deps: AgentDeps): Agent {
       : []),
     noteHistoryTool({ sqlite: deps.sqlite, revisions }),
     restoreVersionTool({ ...storageDeps, revisions }),
+    createExploreGraphTool({
+      sqlite: deps.sqlite,
+      search: deps.search,
+      generateEmbedding: deps.generateEmbedding,
+    }),
   ];
 
   const tools = [...coreTools, ...(deps.pluginTools ?? [])];

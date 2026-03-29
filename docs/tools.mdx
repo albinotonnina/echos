@@ -180,6 +180,28 @@ Connect the "Redis caching" note to the "API design" note.
 
 ---
 
+#### Explore the knowledge graph
+
+**Tool:** `explore_graph`
+
+Visualize and analyze the web of connections between your notes. Three modes:
+
+- **`around`** — describe all notes connected to a specific note or topic within N hops (default 2). Useful for discovering what you know about a subject and how ideas are related.
+- **`export`** — export the full graph in a machine-readable format: Mermaid diagram, DOT (Graphviz), or JSON (D3/vis.js node-link format).
+- **`stats`** — topology overview: total nodes/edges, connected cluster count, most-linked hub notes, and orphan notes (no connections yet).
+
+```
+Show me what's connected to note abc-123.
+What's in my knowledge graph around "machine learning" (depth 3)?
+Export my knowledge graph as Mermaid.
+Export the graph as JSON.
+How connected is my knowledge base? Show me the graph topology.
+Which notes have the most connections?
+Which notes aren't linked to anything?
+```
+
+---
+
 #### Categorize a note
 
 **Tool:** `categorize_note`
@@ -660,6 +682,9 @@ Send me a weekly digest every Sunday.
 | *"Export this as a zip"* | `export_notes` |
 | *"Categorize note abc"* | `categorize_note` |
 | *"Link these two notes"* | `link_notes` |
+| *"What's connected to note abc / around this topic?"* | `explore_graph` (action=around) |
+| *"Export my knowledge graph"* | `explore_graph` (action=export) |
+| *"Show graph topology / hub notes / orphans"* | `explore_graph` (action=stats) |
 | *"Mark article as read"* | `mark_content` |
 | *"What should I read next?"* | `reading_queue` |
 | *"Show my reading list / queue"* | `reading_queue` |

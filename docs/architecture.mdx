@@ -254,6 +254,46 @@ The week-fill loop mirrors SQLite's `strftime('%W')` semantics (week 0 = days be
 
 Requires `knowledgeDir` and `dbPath` on `AgentDeps` (both optional, defaulting to `./data/knowledge` and `./data/db`).
 
+## Knowledge Graph
+
+**Location:** `packages/core/src/graph/index.ts`
+
+The graph module builds an in-memory undirected graph from note links stored in SQLite. Links are stored bidirectionally by `link_notes` (both A→B and B→A are persisted), so the graph deduplicates them into a single undirected edge per pair.
+
+### Data Model
+
+```
+KnowledgeGraph
+├── nodes: GraphNode[]   — id, title, type, tags, category
+└── edges: GraphEdge[]   — source, target, label?
+```
+
+Tags and links are stored as comma-separated strings in SQLite (`upsertNote` uses `tags.join(',')`) and parsed with `parseCommaSeparated()` — no JSON parsing.
+
+### API
+
+| Function | Description |
+|----------|-------------|
+| `buildGraph(sqlite)` | Load all notes via `listNotes()`, build adjacency + deduplicated edge list |
+| `getSubgraph(graph, centerId, depth)` | BFS from a center node to N hops; returns a subgraph |
+| `exportMermaid(graph)` | `graph TD` with undirected `---` edges |
+| `exportDot(graph)` | `graph knowledge { }` (undirected) with `--` edges |
+| `exportJson(graph)` | `{ nodes, links }` — D3 node-link format; `links` key matches D3 convention |
+| `getTopology(graph)` | Cluster count (union-find), top-10 hubs by degree, orphan nodes |
+| `parseCommaSeparated(raw)` | Split on commas, trim, filter empty — shared utility |
+
+### `explore_graph` Agent Tool
+
+**Location:** `packages/core/src/agent/tools/explore-graph.ts`
+
+Accepts an `action` parameter:
+
+- **`around`** — searches for a note by `note_id` or by `topic` (hybrid search), then runs BFS to `depth` hops (1–5, default 2). Builds a `Map<id, GraphNode>` from the subgraph for O(1) lookups per hop level and groups results by hop distance.
+- **`export`** — renders the full graph in `mermaid` (default), `dot`, or `json` format. Returns the full output without truncation.
+- **`stats`** — calls `getTopology()` and formats clusters, hubs (degree > 1), and orphans as a markdown report.
+
+Each action returns a typed `details` object (`StatsDetails`, `ExportDetails`, or `AroundDetails`) rather than `any`.
+
 ## Plugin Architecture
 
 Content processors live in `plugins/` as separate workspace packages. Each plugin:
