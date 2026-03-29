@@ -294,6 +294,36 @@ Accepts an `action` parameter:
 
 Each action returns a typed `details` object (`StatsDetails`, `ExportDetails`, or `AroundDetails`) rather than `any`.
 
+## Auto-Linking
+
+**Location:** `packages/core/src/graph/auto-linker.ts`
+
+The auto-linker module suggests links between semantically similar notes to help the knowledge graph grow organically.
+
+### API
+
+| Function | Description |
+|----------|-------------|
+| `suggestLinks(noteId, sqlite, vectorStore, generateEmbedding, limit?, threshold?)` | Find semantically similar, not-yet-linked notes |
+
+`suggestLinks` generates a fresh embedding for the source note, queries the vector store for nearest neighbours, and filters out:
+- The note itself
+- Notes already linked (from the source note's `links` field)
+- Notes sharing the same `sourceUrl` (avoid self-links on split content)
+- Notes below the configurable similarity threshold (default `0.82`)
+
+Each result is a `LinkSuggestion`: `{ targetId, targetTitle, similarity, reason }` where `reason` is derived from shared tags, shared category, or falls back to "semantically similar content".
+
+### `suggest_links` Agent Tool
+
+**Location:** `packages/core/src/agent/tools/suggest-links.ts`
+
+Standalone tool for on-demand link suggestions. Parameters: `noteId` (required), `limit` (default 5, max 20). Returns suggestions with similarity percentages and reasons. Use `link_notes` to accept any suggestions.
+
+### Auto-suggestions in `categorize_note`
+
+After a note is categorized (both `lightweight` and `full` modes), the categorize tool automatically calls `suggestLinks` with `limit: 3` and appends the top suggestions to the response text. This is non-fatal — if the vector store query fails the categorization result is still returned. This lets the agent proactively mention related notes to the user after categorization.
+
 ## Plugin Architecture
 
 Content processors live in `plugins/` as separate workspace packages. Each plugin:
