@@ -10,7 +10,7 @@ import {
   type ModelPreset,
 } from '@echos/core';
 import { getVersion } from '@echos/shared';
-import { getSession } from './session.js';
+import { getSession, clearSession } from './session.js';
 
 export interface CommandDeps {
   agentDeps: AgentDeps;
@@ -47,7 +47,6 @@ export function registerCommands(bot: Bot, deps: CommandDeps): void {
   bot.command('reset', async (ctx: Context) => {
     const userId = ctx.from?.id;
     if (userId) {
-      const { clearSession } = await import('./session.js');
       clearSession(userId);
       await ctx.reply('Session cleared. Starting fresh.');
     }
