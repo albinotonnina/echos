@@ -23,6 +23,39 @@ const schema = Type.Object({
 
 type Params = Static<typeof schema>;
 
+const EXCERPT_LENGTH = 300;
+
+/**
+ * Extract an excerpt around the first query term match, or fall back to the start of the content.
+ */
+function extractExcerpt(content: string, queryTerms: string[]): string {
+  const flat = content.replace(/\n/g, ' ');
+  const lower = flat.toLowerCase();
+
+  // Find the earliest matching query term position
+  let bestPos = -1;
+  for (const term of queryTerms) {
+    const pos = lower.indexOf(term);
+    if (pos !== -1 && (bestPos === -1 || pos < bestPos)) {
+      bestPos = pos;
+    }
+  }
+
+  if (bestPos === -1 || bestPos <= EXCERPT_LENGTH / 2) {
+    // No match or match is near the start — use the beginning
+    const slice = flat.slice(0, EXCERPT_LENGTH);
+    return flat.length > EXCERPT_LENGTH ? `${slice}...` : slice;
+  }
+
+  // Center the excerpt around the match
+  const start = Math.max(0, bestPos - Math.floor(EXCERPT_LENGTH / 4));
+  const end = Math.min(flat.length, start + EXCERPT_LENGTH);
+  const slice = flat.slice(start, end);
+  const prefix = start > 0 ? '...' : '';
+  const suffix = end < flat.length ? '...' : '';
+  return `${prefix}${slice}${suffix}`;
+}
+
 export function searchConversationsTool(
   deps: SearchConversationsToolDeps,
 ): AgentTool<typeof schema> {
@@ -34,11 +67,17 @@ export function searchConversationsTool(
     parameters: schema,
     execute: async (_toolCallId: string, params: Params) => {
       const limit = params.limit ?? 5;
+      const hasDateFilter = !!(params.dateFrom || params.dateTo);
+
+      // Normalize date filters to date-only strings for inclusive comparison
+      const fromDate = params.dateFrom ? params.dateFrom.slice(0, 10) : undefined;
+      const toDate = params.dateTo ? params.dateTo.slice(0, 10) : undefined;
 
       const opts: SearchOptions = {
         query: params.query,
         type: 'conversation',
-        limit,
+        // Fetch more candidates when date filtering to avoid under-returning
+        limit: hasDateFilter ? limit * 4 : limit,
       };
       if (params.dateFrom) opts.dateFrom = params.dateFrom;
       if (params.dateTo) opts.dateTo = params.dateTo;
@@ -47,14 +86,15 @@ export function searchConversationsTool(
       const vector = await deps.generateEmbedding(params.query);
       let results = await deps.search.hybrid({ ...opts, vector });
 
-      // Apply date filtering on results (since hybrid search may not filter by date)
-      if (params.dateFrom || params.dateTo) {
+      // Apply date filtering using date-only comparison (inclusive range)
+      if (hasDateFilter) {
         results = results.filter((r) => {
-          const created = r.note.metadata.created;
-          if (params.dateFrom && created < params.dateFrom) return false;
-          if (params.dateTo && created > params.dateTo) return false;
+          const createdDate = r.note.metadata.created.slice(0, 10);
+          if (fromDate && createdDate < fromDate) return false;
+          if (toDate && createdDate > toDate) return false;
           return true;
         });
+        results = results.slice(0, limit);
       }
 
       if (results.length === 0) {
@@ -69,13 +109,19 @@ export function searchConversationsTool(
         };
       }
 
+      // Build query terms for excerpt extraction
+      const queryTerms = params.query
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((t) => t.length > 2);
+
       const formatted = results
         .map((r, i) => {
           const meta = r.note.metadata;
           const date = meta.created.slice(0, 10);
-          const excerpt = r.note.content.slice(0, 300).replace(/\n/g, ' ');
+          const excerpt = extractExcerpt(r.note.content, queryTerms);
           const tags = meta.tags.length > 0 ? ` | Tags: [${meta.tags.join(', ')}]` : '';
-          return `${i + 1}. **${meta.title}** (${date}, id: ${meta.id})${tags}\n   ${excerpt}${r.note.content.length > 300 ? '...' : ''}`;
+          return `${i + 1}. **${meta.title}** (${date}, id: ${meta.id})${tags}\n   ${excerpt}`;
         })
         .join('\n\n');
 
