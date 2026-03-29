@@ -1,21 +1,11 @@
 import type { FastifyInstance } from 'fastify';
-import type { Agent, AgentMessage } from '@mariozechner/pi-agent-core';
+import type { AgentMessage } from '@mariozechner/pi-agent-core';
 import type { AgentDeps } from '@echos/core';
-import { createEchosAgent, isAgentMessageOverflow, createContextMessage, createUserMessage, resolveModel, MODEL_PRESETS, type ModelPreset } from '@echos/core';
+import { isAgentMessageOverflow, createContextMessage, createUserMessage } from '@echos/core';
 import { validateContentSize } from '@echos/shared';
 import type { Logger } from 'pino';
-
-const sessions = new Map<number, Agent>();
-
-function getOrCreateAgent(userId: number, deps: AgentDeps): Agent {
-  let agent = sessions.get(userId);
-  if (!agent) {
-    agent = createEchosAgent(deps);
-    agent.sessionId = `web-${userId}`;
-    sessions.set(userId, agent);
-  }
-  return agent;
-}
+import { createSessionManager } from './sessions.js';
+import { registerChatSubRoutes } from './chat-routes.js';
 
 export function registerChatRoutes(
   app: FastifyInstance,
@@ -23,13 +13,9 @@ export function registerChatRoutes(
   allowedUserIds: number[],
   logger: Logger,
 ): void {
-  const allowedSet = new Set(allowedUserIds);
+  const sessionManager = createSessionManager(agentDeps, allowedUserIds, logger);
 
-  function isAllowed(userId: number): boolean {
-    return allowedSet.has(userId);
-  }
-
-  // Send a message and get a streamed response
+  // Main streaming chat endpoint
   app.post<{
     Body: { message: string; userId: number };
   }>('/api/chat', async (request, reply) => {
@@ -38,7 +24,7 @@ export function registerChatRoutes(
     if (!message || !userId) {
       return reply.status(400).send({ error: 'Missing message or userId' });
     }
-    if (!isAllowed(userId)) {
+    if (!sessionManager.isAllowed(userId)) {
       logger.warn({ userId }, 'Unauthorized userId in web chat request');
       return reply.status(403).send({ error: 'Forbidden' });
     }
@@ -48,7 +34,7 @@ export function registerChatRoutes(
       return reply.status(413).send({ error: 'Message exceeds maximum allowed size' });
     }
 
-    const agent = getOrCreateAgent(userId, agentDeps);
+    const agent = sessionManager.getOrCreateAgent(userId);
 
     // Collect response
     let responseText = '';
@@ -130,108 +116,8 @@ export function registerChatRoutes(
     });
   });
 
-  // Switch model preset for the session
-  app.post<{
-    Body: { preset: ModelPreset; userId: number };
-  }>('/api/chat/model', async (request, reply) => {
-    const { preset, userId } = request.body;
-    if (!preset || !userId) {
-      return reply.status(400).send({ error: 'Missing preset or userId' });
-    }
-    if (!isAllowed(userId)) {
-      logger.warn({ userId }, 'Unauthorized userId in web model request');
-      return reply.status(403).send({ error: 'Forbidden' });
-    }
-    if (!['fast', 'balanced', 'deep'].includes(preset)) {
-      return reply.status(400).send({ error: 'preset must be fast | balanced | deep' });
-    }
-    const agent = sessions.get(userId);
-    if (!agent) {
-      return reply.status(404).send({ error: 'No active session' });
-    }
-    const presets = agentDeps.modelPresets ?? {};
-    const modelSpec =
-      preset === 'fast'
-        ? (agentDeps.modelId ?? MODEL_PRESETS.fast)
-        : preset === 'balanced'
-          ? (presets.balanced ?? MODEL_PRESETS.balanced)
-          : (presets.deep ?? MODEL_PRESETS.deep);
-    agent.setModel(resolveModel(modelSpec));
-    return reply.send({ ok: true, model: agent.state.model.id });
-  });
-
-  // Steer the running agent mid-turn (interrupt after current tool, skip remaining)
-  app.post<{
-    Body: { message: string; userId: number };
-  }>('/api/chat/steer', async (request, reply) => {
-    const { message, userId } = request.body;
-    if (!message || !userId) {
-      return reply.status(400).send({ error: 'Missing message or userId' });
-    }
-    if (!isAllowed(userId)) {
-      logger.warn({ userId }, 'Unauthorized userId in web steer request');
-      return reply.status(403).send({ error: 'Forbidden' });
-    }
-    try {
-      validateContentSize(message, { label: 'message' });
-    } catch {
-      return reply.status(413).send({ error: 'Message exceeds maximum allowed size' });
-    }
-    const agent = sessions.get(userId);
-    if (!agent) {
-      return reply.status(404).send({ error: 'No active session' });
-    }
-    if (!agent.state.isStreaming) {
-      return reply.status(409).send({ error: 'Agent is not currently running' });
-    }
-    agent.steer(createUserMessage(message));
-    return reply.send({ ok: true });
-  });
-
-  // Queue a follow-up message to run after the current agent turn completes
-  app.post<{
-    Body: { message: string; userId: number };
-  }>('/api/chat/followup', async (request, reply) => {
-    const { message, userId } = request.body;
-    if (!message || !userId) {
-      return reply.status(400).send({ error: 'Missing message or userId' });
-    }
-    if (!isAllowed(userId)) {
-      logger.warn({ userId }, 'Unauthorized userId in web followup request');
-      return reply.status(403).send({ error: 'Forbidden' });
-    }
-    try {
-      validateContentSize(message, { label: 'message' });
-    } catch {
-      return reply.status(413).send({ error: 'Message exceeds maximum allowed size' });
-    }
-    const agent = sessions.get(userId);
-    if (!agent) {
-      return reply.status(404).send({ error: 'No active session' });
-    }
-    agent.followUp(createUserMessage(message));
-    return reply.send({ ok: true });
-  });
-
-  // Reset session
-  app.post<{
-    Body: { userId: number };
-  }>('/api/chat/reset', async (request, reply) => {
-    const { userId } = request.body;
-    if (!userId) {
-      return reply.status(400).send({ error: 'Missing userId' });
-    }
-    if (!isAllowed(userId)) {
-      logger.warn({ userId }, 'Unauthorized userId in web reset request');
-      return reply.status(403).send({ error: 'Forbidden' });
-    }
-    const agent = sessions.get(userId);
-    if (agent) {
-      agent.reset();
-      sessions.delete(userId);
-    }
-    return reply.send({ ok: true });
-  });
+  // Register secondary chat routes (model, steer, followup, reset)
+  registerChatSubRoutes(app, sessionManager, agentDeps, logger);
 
   logger.info('Chat API routes registered');
 }
