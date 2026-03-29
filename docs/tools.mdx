@@ -347,6 +347,33 @@ Returns:
 
 ---
 
+#### Knowledge stats
+
+**Tool:** `knowledge_stats`
+
+Shows a comprehensive overview of your entire knowledge base — not just reading queue items, but every note type.
+
+```
+How many notes do I have?
+Show me my knowledge base stats.
+What are my most-used tags?
+How has my collection been growing lately?
+How much storage is my knowledge base using?
+```
+
+Returns:
+- **Total notes** with distinct tag and link counts
+- **By type:** breakdown for note, article, youtube, tweet, journal, image, conversation
+- **By status:** saved / read / archived / no-status counts
+- **Weekly growth:** last 8 weeks with sparkline (oldest → newest) and note-per-week counts
+- **Activity streaks:** current and longest consecutive-week streaks
+- **Top 20 tags** and **top 10 categories** by frequency
+- **Storage:** knowledge files, SQLite database, and vector database sizes
+
+> **Tip:** Use `reading_stats` for reading-queue progress; use `knowledge_stats` for a full picture of your collection.
+
+---
+
 ### Voice & personality
 
 #### Set agent voice
@@ -572,6 +599,9 @@ Send me a weekly digest every Sunday.
 | *"Show my reading list / queue"* | `reading_queue` |
 | *"Show unread articles / videos"* | `reading_queue` |
 | *"What's my read rate / reading stats?"* | `reading_stats` |
+| *"How many notes do I have / knowledge stats?"* | `knowledge_stats` |
+| *"What are my top tags / most used categories?"* | `knowledge_stats` |
+| *"How much storage is my knowledge base using?"* | `knowledge_stats` |
 | *"Be more concise"* | `set_agent_voice` |
 | *"Surprise me / on this day / random note"* | `get_resurfaced` |
 | *"Save this article: URL"* | `save_article` |
