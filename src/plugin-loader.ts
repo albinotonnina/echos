@@ -18,7 +18,8 @@ export async function loadPlugins(logger: Logger): Promise<EchosPlugin[]> {
   try {
     entries = readdirSync(pluginsDir, { withFileTypes: true })
       .filter((d) => d.isDirectory() && PLUGIN_NAME_RE.test(d.name))
-      .map((d) => d.name);
+      .map((d) => d.name)
+      .sort();
   } catch (err) {
     logger.warn({ err }, 'Could not read plugins directory');
     return plugins;

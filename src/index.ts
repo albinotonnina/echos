@@ -7,6 +7,7 @@ import { loadConfig, createLogger, type InterfaceAdapter } from '@echos/shared';
 import { PluginRegistry, type AgentDeps } from '@echos/core';
 import { createTelegramAdapter, type TelegramAdapter } from '@echos/telegram';
 import { createWebAdapter } from '@echos/web';
+import { createManageScheduleTool } from '@echos/scheduler';
 import { checkRedisConnection } from './redis-check.js';
 import { initStorage } from './storage-init.js';
 import { loadPlugins } from './plugin-loader.js';
@@ -25,7 +26,6 @@ async function main(): Promise<void> {
   const pluginRegistry = new PluginRegistry(logger);
   for (const plugin of await loadPlugins(logger)) pluginRegistry.register(plugin);
 
-  let agentDeps: AgentDeps;
   let notificationService: import('@echos/shared').NotificationService;
   await pluginRegistry.setupAll({
     sqlite: storage.sqlite, markdown: storage.markdown, vectorDb: storage.vectorDb,
@@ -41,6 +41,8 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  const manageScheduleTool = createManageScheduleTool({ sqlite: storage.sqlite });
+  const agentDeps: AgentDeps = buildAgentDeps(config, storage, pluginRegistry, manageScheduleTool, logger);
   const interfaces: InterfaceAdapter[] = [];
   let telegramAdapter: TelegramAdapter | undefined;
   if (config.enableTelegram) {
@@ -53,8 +55,8 @@ async function main(): Promise<void> {
     broadcast: async (text: string) => { logger.info({ text }, 'Broadcast (no channel)'); },
   };
 
-  const scheduler = await setupScheduler(config, storage, pluginRegistry, notificationService, logger);
-  agentDeps = buildAgentDeps(config, storage, pluginRegistry, scheduler, logger);
+  const scheduler = await setupScheduler(
+    config, storage, pluginRegistry, notificationService, manageScheduleTool, logger);
 
   if (config.enableWeb) {
     interfaces.push(createWebAdapter({

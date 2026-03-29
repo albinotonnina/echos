@@ -7,7 +7,7 @@ import type { Logger } from 'pino';
 import type { Config } from '@echos/shared';
 import type { AgentDeps, PluginRegistry } from '@echos/core';
 import type { StorageResult } from './storage-init.js';
-import type { SchedulerResult } from './scheduler-setup.js';
+import type { createManageScheduleTool } from '@echos/scheduler';
 
 export function buildPluginConfig(config: Config): Record<string, unknown> {
   return {
@@ -28,7 +28,7 @@ export function buildAgentDeps(
   config: Config,
   storage: StorageResult,
   pluginRegistry: PluginRegistry,
-  scheduler: SchedulerResult,
+  manageScheduleTool: ReturnType<typeof createManageScheduleTool>,
   logger: Logger,
 ): AgentDeps {
   return {
@@ -49,7 +49,7 @@ export function buildAgentDeps(
     logLlmPayloads: config.logLlmPayloads,
     cacheRetention: config.cacheRetention,
     logger,
-    pluginTools: [...pluginRegistry.getTools(), scheduler.manageScheduleTool],
+    pluginTools: [...pluginRegistry.getTools(), manageScheduleTool],
     exportsDir: join(config.dbPath, '..', 'exports'),
     backupConfig: {
       knowledgeDir: config.knowledgeDir,

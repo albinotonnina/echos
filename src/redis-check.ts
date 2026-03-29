@@ -39,8 +39,11 @@ export async function checkRedisConnection(redisUrl: string, log: Logger): Promi
         }
       }
 
-      socket.once('connect', sendPing);
-      socket.once('secureConnect', sendPing);
+      if (isTls) {
+        socket.once('secureConnect', sendPing);
+      } else {
+        socket.once('connect', sendPing);
+      }
 
       socket.setTimeout(3000);
 

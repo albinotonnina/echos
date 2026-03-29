@@ -27,7 +27,6 @@ export interface SchedulerResult {
   queueService: QueueService;
   worker: ReturnType<typeof createWorker>;
   scheduleManager: ScheduleManager;
-  manageScheduleTool: ReturnType<typeof createManageScheduleTool>;
   syncSchedule: (id: string) => Promise<void>;
   deleteSchedule: (id: string) => Promise<boolean>;
 }
@@ -37,6 +36,7 @@ export async function setupScheduler(
   storage: Pick<StorageResult, 'sqlite' | 'markdown' | 'vectorDb' | 'generateEmbedding'>,
   pluginRegistry: PluginRegistry,
   notificationService: NotificationService,
+  manageScheduleTool: ReturnType<typeof createManageScheduleTool>,
   logger: Logger,
 ): Promise<SchedulerResult> {
   const exportsDir = join(config.dbPath, '..', 'exports');
@@ -47,7 +47,6 @@ export async function setupScheduler(
     backupDir: config.backupDir,
   };
 
-  const manageScheduleTool = createManageScheduleTool({ sqlite: storage.sqlite });
   const queueService = createQueue({ redisUrl: config.redisUrl, logger });
 
   const contentProcessor = createContentProcessor({
@@ -118,7 +117,6 @@ export async function setupScheduler(
     queueService,
     worker,
     scheduleManager,
-    manageScheduleTool,
     syncSchedule: (id: string) => scheduleManager.syncSchedule(id),
     deleteSchedule: (id: string) => scheduleManager.deleteSchedule(id),
   };
