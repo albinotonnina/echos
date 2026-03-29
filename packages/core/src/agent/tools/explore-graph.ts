@@ -10,6 +10,7 @@ import {
   exportDot,
   exportJson,
   type KnowledgeGraph,
+  type GraphNode,
 } from '../../graph/index.js';
 
 export interface ExploreGraphToolDeps {
@@ -49,6 +50,33 @@ const schema = Type.Object({
 
 type Params = Static<typeof schema>;
 
+// ── details types ──────────────────────────────────────────────────────────────
+
+interface StatsDetails {
+  totalNodes: number;
+  totalEdges: number;
+  clusterCount: number;
+  orphanCount: number;
+  topHubs: Array<{ id: string; title: string; degree: number }>;
+}
+
+interface ExportDetails {
+  nodeCount: number;
+  edgeCount: number;
+  format: string;
+}
+
+interface AroundDetails {
+  found: boolean;
+  centerId?: string;
+  centerTitle?: string;
+  depth?: number;
+  connectedCount?: number;
+  edgeCount?: number;
+}
+
+// ── tool ──────────────────────────────────────────────────────────────────────
+
 export function createExploreGraphTool(deps: ExploreGraphToolDeps): AgentTool<typeof schema> {
   return {
     name: 'explore_graph',
@@ -75,8 +103,7 @@ export function createExploreGraphTool(deps: ExploreGraphToolDeps): AgentTool<ty
 
 // ── action handlers ───────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function handleStats(graph: KnowledgeGraph): Promise<AgentToolResult<any>> {
+function handleStats(graph: KnowledgeGraph): Promise<AgentToolResult<StatsDetails>> {
   const topo = getTopology(graph);
 
   const lines: string[] = [
@@ -105,23 +132,24 @@ function handleStats(graph: KnowledgeGraph): Promise<AgentToolResult<any>> {
     lines.push(`### Orphan Notes\n${topo.orphanNodes.length} notes have no links. Use \`list_notes\` to find them.`);
   }
 
+  const details: StatsDetails = {
+    totalNodes: topo.totalNodes,
+    totalEdges: topo.totalEdges,
+    clusterCount: topo.clusterCount,
+    orphanCount: topo.orphanNodes.length,
+    topHubs: topo.hubNodes.map(({ node, degree }) => ({ id: node.id, title: node.title, degree })),
+  };
+
   return Promise.resolve({
     content: [{ type: 'text' as const, text: lines.join('\n') }],
-    details: {
-      totalNodes: topo.totalNodes,
-      totalEdges: topo.totalEdges,
-      clusterCount: topo.clusterCount,
-      orphanCount: topo.orphanNodes.length,
-      topHubs: topo.hubNodes.map(({ node, degree }) => ({ id: node.id, title: node.title, degree })),
-    },
+    details,
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function handleExport(
   graph: KnowledgeGraph,
   format: 'mermaid' | 'dot' | 'json',
-): Promise<AgentToolResult<any>> {
+): Promise<AgentToolResult<ExportDetails>> {
   let output: string;
   let formatName: string;
 
@@ -138,29 +166,23 @@ function handleExport(
 
   const nodeCount = graph.nodes.length;
   const edgeCount = graph.edges.length;
+  const lang = format === 'mermaid' ? 'mermaid' : format === 'dot' ? 'dot' : 'json';
 
-  // For large graphs, truncate output and warn
-  const MAX_CHARS = 8000;
-  let truncated = false;
-  if (output.length > MAX_CHARS) {
-    output = output.slice(0, MAX_CHARS) + '\n... (truncated — use export_notes tool to save full graph)';
-    truncated = true;
-  }
+  const summary = `${formatName} export: ${nodeCount} nodes, ${edgeCount} edges\n\n\`\`\`${lang}\n${output}\n\`\`\``;
 
-  const summary = `${formatName} export: ${nodeCount} nodes, ${edgeCount} edges${truncated ? ' (truncated)' : ''}\n\n\`\`\`${format === 'mermaid' ? 'mermaid' : format === 'dot' ? 'dot' : 'json'}\n${output}\n\`\`\``;
+  const details: ExportDetails = { nodeCount, edgeCount, format };
 
   return Promise.resolve({
     content: [{ type: 'text' as const, text: summary }],
-    details: { nodeCount, edgeCount, format, truncated },
+    details,
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleAround(
   graph: KnowledgeGraph,
   params: Params,
   deps: ExploreGraphToolDeps,
-): Promise<AgentToolResult<any>> {
+): Promise<AgentToolResult<AroundDetails>> {
   const depth = params.depth ?? 2;
   let centerId: string | undefined = params.note_id;
 
@@ -199,6 +221,9 @@ async function handleAround(
 
   const subgraph = getSubgraph(graph, centerId, depth);
 
+  // Build a Map for O(1) node lookup while rendering hop lists
+  const subgraphNodeMap = new Map<string, GraphNode>(subgraph.nodes.map((n) => [n.id, n]));
+
   // Build adjacency for hop labeling
   const adj = buildAdjacency(graph);
 
@@ -217,7 +242,7 @@ async function handleAround(
     if (atHop.length === 0) continue;
     lines.push(`### Hop ${hop}`);
     for (const id of atHop) {
-      const n = subgraph.nodes.find((x) => x.id === id);
+      const n = subgraphNodeMap.get(id);
       if (!n) continue;
       const tagStr = n.tags.length > 0 ? ` [${n.tags.slice(0, 3).join(', ')}]` : '';
       const catStr = n.category ? ` • ${n.category}` : '';
@@ -226,15 +251,18 @@ async function handleAround(
     lines.push('');
   }
 
+  const details: AroundDetails = {
+    found: true,
+    centerId,
+    centerTitle: centerNode.title,
+    depth,
+    connectedCount: subgraph.nodes.length - 1,
+    edgeCount: subgraph.edges.length,
+  };
+
   return {
     content: [{ type: 'text' as const, text: lines.join('\n') }],
-    details: {
-      centerId,
-      centerTitle: centerNode.title,
-      depth,
-      connectedCount: subgraph.nodes.length - 1,
-      edgeCount: subgraph.edges.length,
-    },
+    details,
   };
 }
 

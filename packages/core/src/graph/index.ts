@@ -1,4 +1,4 @@
-import type { SqliteStorage, NoteRow } from '../storage/sqlite.js';
+import type { SqliteStorage } from '../storage/sqlite.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -32,7 +32,9 @@ export interface TopologyStats {
 // ── Builder ───────────────────────────────────────────────────────────────────
 
 export function buildGraph(sqlite: SqliteStorage): KnowledgeGraph {
-  const rows = sqlite.listNotes({ limit: 100_000 });
+  // No limit: load all notes. Only id/title/type/tags/links/category are used
+  // (content is part of NoteRow but we ignore it here).
+  const rows = sqlite.listNotes();
 
   const nodeMap = new Map<string, GraphNode>();
   for (const row of rows) {
@@ -40,19 +42,20 @@ export function buildGraph(sqlite: SqliteStorage): KnowledgeGraph {
       id: row.id,
       title: row.title,
       type: row.type,
-      tags: parseTags(row.tags),
+      tags: parseCommaSeparated(row.tags),
       category: row.category,
     });
   }
 
+  // linkNotesTool stores links bidirectionally (A→B and B→A both saved).
+  // Deduplicate by canonical sorted key so each undirected pair appears once.
   const edgeSet = new Set<string>();
   const edges: GraphEdge[] = [];
 
   for (const row of rows) {
-    const links = parseLinks(row.links);
+    const links = parseCommaSeparated(row.links);
     for (const targetId of links) {
       if (!nodeMap.has(targetId)) continue;
-      // Deduplicate: store both directions as a canonical sorted key
       const key = [row.id, targetId].sort().join('→');
       if (!edgeSet.has(key)) {
         edgeSet.add(key);
@@ -71,7 +74,7 @@ export function getSubgraph(
   centerNodeId: string,
   depth: number,
 ): KnowledgeGraph {
-  // Build adjacency list
+  // Build undirected adjacency list
   const adj = new Map<string, Set<string>>();
   for (const edge of graph.edges) {
     if (!adj.has(edge.source)) adj.set(edge.source, new Set());
@@ -111,6 +114,8 @@ export function getSubgraph(
 
 // ── Exporters ─────────────────────────────────────────────────────────────────
 
+// Links are undirected (bidirectionally stored), so all exporters use undirected syntax.
+
 export function exportMermaid(graph: KnowledgeGraph): string {
   const lines: string[] = ['graph TD'];
 
@@ -120,14 +125,14 @@ export function exportMermaid(graph: KnowledgeGraph): string {
   }
 
   for (const edge of graph.edges) {
-    lines.push(`  ${sanitizeMermaidId(edge.source)} --> ${sanitizeMermaidId(edge.target)}`);
+    lines.push(`  ${sanitizeMermaidId(edge.source)} --- ${sanitizeMermaidId(edge.target)}`);
   }
 
   return lines.join('\n');
 }
 
 export function exportDot(graph: KnowledgeGraph): string {
-  const lines: string[] = ['digraph knowledge {', '  rankdir=LR;'];
+  const lines: string[] = ['graph knowledge {', '  rankdir=LR;'];
 
   for (const node of graph.nodes) {
     const label = escapeDotLabel(node.title);
@@ -135,7 +140,7 @@ export function exportDot(graph: KnowledgeGraph): string {
   }
 
   for (const edge of graph.edges) {
-    lines.push(`  "${edge.source}" -> "${edge.target}";`);
+    lines.push(`  "${edge.source}" -- "${edge.target}";`);
   }
 
   lines.push('}');
@@ -143,11 +148,11 @@ export function exportDot(graph: KnowledgeGraph): string {
 }
 
 export function exportJson(graph: KnowledgeGraph): string {
-  // node-link format compatible with D3 and vis.js
+  // node-link format: `links` key matches the D3 convention; `nodes` as-is
   return JSON.stringify(
     {
       nodes: graph.nodes.map((n) => ({ id: n.id, label: n.title, type: n.type, tags: n.tags, category: n.category })),
-      edges: graph.edges.map((e) => ({ source: e.source, target: e.target, ...(e.label ? { label: e.label } : {}) })),
+      links: graph.edges.map((e) => ({ source: e.source, target: e.target, ...(e.label ? { label: e.label } : {}) })),
     },
     null,
     2,
@@ -163,8 +168,6 @@ export function getTopology(graph: KnowledgeGraph): TopologyStats {
     degree.set(edge.source, (degree.get(edge.source) ?? 0) + 1);
     degree.set(edge.target, (degree.get(edge.target) ?? 0) + 1);
   }
-
-  const nodeIndex = new Map(graph.nodes.map((n) => [n.id, n]));
 
   const orphanNodes = graph.nodes.filter((n) => (degree.get(n.id) ?? 0) === 0);
 
@@ -187,24 +190,10 @@ export function getTopology(graph: KnowledgeGraph): TopologyStats {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function parseTags(raw: string): string[] {
+// Tags and links are stored as comma-separated strings in SQLite (see upsertNote).
+export function parseCommaSeparated(raw: string): string[] {
   if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return raw.split(',').map((t) => t.trim()).filter(Boolean);
-  }
-}
-
-function parseLinks(raw: string): string[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return raw.split(',').map((t) => t.trim()).filter(Boolean);
-  }
+  return raw.split(',').map((t) => t.trim()).filter(Boolean);
 }
 
 function sanitizeMermaidId(id: string): string {
@@ -217,7 +206,8 @@ function escapeMermaidLabel(label: string): string {
 }
 
 function escapeDotLabel(label: string): string {
-  return label.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  // Escape backslashes first, then quotes, then newlines
+  return label.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
 
 function countClusters(nodes: GraphNode[], edges: GraphEdge[]): number {
