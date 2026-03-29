@@ -1,13 +1,58 @@
 ---
 title: "Knowledge Import"
-description: "Import Obsidian vaults, Notion exports, and plain markdown files."
+description: "Import Obsidian vaults, Notion exports, plain markdown files, PDFs, and audio."
 ---
 
 # Knowledge Import Guide
 
 EchOS stores every note as a plain `.md` file with YAML frontmatter, making the knowledge base
-natively readable in any markdown editor and trivially importable from Obsidian vaults or
-Notion exports.
+natively readable in any markdown editor and trivially importable from Obsidian vaults,
+Notion exports, PDFs, and audio files.
+
+---
+
+## Capturing content from URLs
+
+The fastest way to import content is to ask the agent directly. EchOS includes plugins for several content types:
+
+| Content type | Plugin | Example prompt |
+|---|---|---|
+| Web article | `@echos/plugin-article` | *"Save this article: [URL]"* |
+| YouTube video | `@echos/plugin-youtube` | *"Save this YouTube video: [URL]"* |
+| Tweet / thread | `@echos/plugin-twitter` | *"Save this tweet: [URL]"* |
+| PDF document | `@echos/plugin-pdf` | *"Save this PDF: [URL]"* |
+| Podcast / audio | `@echos/plugin-audio` | *"Transcribe and save this podcast: [URL]"* |
+
+Each plugin downloads the content, extracts the relevant text (or transcript), and saves it as a searchable markdown note. AI categorization is applied automatically when `ANTHROPIC_API_KEY` is configured.
+
+### PDF import
+
+```
+Save this paper as a note: https://example.com/paper.pdf
+```
+
+The agent calls `save_pdf`, which:
+1. Downloads the PDF
+2. Extracts text via `pdf-parse`
+3. Creates a note with `type: article` and `inputSource: file`
+
+Password-protected or image-only PDFs fail gracefully with a descriptive message.
+
+### Audio and podcast import
+
+```
+Transcribe and save this podcast episode: https://example.com/episode.mp3
+```
+
+The agent calls `save_audio`, which:
+1. Probes the file size (HEAD, then `Range: bytes=0-0` if needed)
+2. Downloads — splitting into 24 MB chunks if the file exceeds 25 MB
+3. Transcribes each chunk via OpenAI Whisper (`whisper-1`)
+4. Saves a note with `type: note` and `inputSource: voice`
+
+**Supported formats:** `.mp3`, `.wav`, `.m4a`, `.ogg`, `.webm`, `.mp4`, `.flac`
+
+**Requirement:** `OPENAI_API_KEY` must be configured. See [Setup](/setup-fixes) for details.
 
 ---
 
@@ -266,7 +311,7 @@ All fields EchOS reads from `.md` files:
 | `links` | **Yes** | `string[]` | Related note titles or IDs; may be empty `[]` |
 | `category` | **Yes** | `string` | Free text, e.g. `programming`, `health` |
 | `status` | No | `string` | `saved` \| `read` \| `archived` |
-| `inputSource` | No | `string` | `text` \| `voice` \| `url` \| `file` |
+| `inputSource` | No | `string` | `text` \| `voice` \| `url` \| `file` \| `image` — audio/podcast notes use `voice`; PDF notes use `file`; image notes use `image` |
 | `source_url` | No | `string` | Original URL for articles/YouTube notes |
 | `gist` | No | `string` | Short summary / AI-generated abstract |
 | `author` | No | `string` | Author name for articles |

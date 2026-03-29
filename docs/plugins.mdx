@@ -377,6 +377,8 @@ See [Categorization](/categorization) for detailed documentation.
 | Image | `@echos/plugin-image` | Image storage with metadata extraction (Sharp) |
 | Resurface | `@echos/plugin-resurface` | Knowledge resurfacing via spaced repetition and on-this-day discovery |
 | Journal | `@echos/plugin-journal` | Dedicated journaling, AI reflection, and daily prompts |
+| PDF | `@echos/plugin-pdf` | PDF text extraction via pdf-parse |
+| Audio | `@echos/plugin-audio` | Podcast/audio transcription via OpenAI Whisper |
 
 ### Twitter Plugin
 
@@ -514,6 +516,85 @@ Schedule a weekly knowledge rediscovery every Sunday at 10am, 5 notes.
 |-----|------|---------|-------------|
 | `mode` | `'forgotten' \| 'on_this_day' \| 'random' \| 'mix'` | `'mix'` | Resurfacing strategy |
 | `limit` | number | `3` | Number of notes to broadcast (max 10) |
+
+### PDF Plugin
+
+The PDF plugin (`@echos/plugin-pdf`) provides the `save_pdf` tool for extracting and saving text from PDF documents.
+
+**Features:**
+- Download PDFs from public http(s) URLs and extract text via `pdf-parse` (pure JS, no native deps)
+- Preserves page count in the note header/body; stores author and source URL in frontmatter metadata (when available)
+- Enforces a 10 MiB PDF download size limit; larger binaries are rejected with a clear error
+- Truncates oversized content gracefully (max 500 000 chars), appending `[content truncated due to size limit]` and marking the "Extracted characters" field as `(truncated)`
+- Fails clearly on password-protected or corrupt PDFs
+- Optional AI categorization for automatic tagging
+- URL validation via `validateUrl()` (SSRF protection: only public http(s) URLs; private/localhost/internal hosts are blocked)
+
+**Tool: save_pdf**
+
+```typescript
+{
+  url: string;              // PDF URL (required)
+  title?: string;           // Override title (defaults to PDF metadata or filename)
+  tags?: string[];          // Tags to apply
+  categorize?: boolean;     // Use AI to categorize (default: true)
+}
+```
+
+**Metadata in saved note:**
+- `**Source:**` — source URL
+- `**Pages:**` — page count
+- `**Extracted characters:**` — character count (with truncation notice if applicable)
+- `**Author:**` — if present in PDF metadata
+
+### Audio / Podcast Plugin
+
+The audio plugin (`@echos/plugin-audio`) provides the `save_audio` tool for transcribing podcast episodes and audio files via OpenAI Whisper and saving the transcript as a searchable knowledge note.
+
+**Requires `OPENAI_API_KEY`** — Whisper is an OpenAI API service. The plugin fails gracefully with a clear message if the key is absent.
+
+**Features:**
+- Downloads audio from public http(s) URLs and transcribes via `whisper-1`
+- Supports: `.mp3`, `.wav`, `.m4a`, `.ogg`, `.webm`, `.mp4`, `.flac`
+- Files > 25 MB are split into 24 MB byte-range chunks and transcribed sequentially — no ffmpeg required
+- Probes file size with a HEAD request, then falls back to a `Range: bytes=0-0` probe if `Content-Length` is absent
+- Streams downloads with a hard 25 MB cap to prevent unbounded memory usage
+- Saves notes with `inputSource: 'voice'` and `type: 'note'`
+- Optional AI categorization via Anthropic
+- Respects `WHISPER_LANGUAGE` config for language hints
+
+**Tool: save_audio**
+
+```typescript
+{
+  url: string;              // Audio file URL (required)
+  title?: string;           // Override title (defaults to filename from URL)
+  tags?: string[];          // Tags to apply
+  categorize?: boolean;     // Use AI to categorize (default: true)
+}
+```
+
+**Metadata in saved note:**
+- `**Source:**` — source URL
+- `**Format:**` — file extension (e.g. `MP3`)
+- `**File size:**` — human-readable size (KB/MB)
+- `**Duration estimate:**` — estimated from file size and format bitrate
+- `**Transcript length:**` — character count
+
+**Chunking for large files:**
+
+Files exceeding the Whisper 25 MB limit are automatically chunked:
+
+1. A HEAD request probes `Content-Length`
+2. If absent, a `Range: bytes=0-0` request reads the `Content-Range` total size
+3. If the total exceeds 25 MB, the file is fetched in 24 MB byte-range slices
+4. Each slice is transcribed separately; results are joined with `\n\n`
+5. If the server does not honour `Range` headers (returns 200 instead of 206), an informative error is returned
+
+**Example prompts:**
+- *"Save this podcast episode: [URL]"*
+- *"Transcribe and save this interview recording"*
+- *"Save the audio from this conference talk: [URL]"*
 
 ### Journal Plugin
 
