@@ -17,7 +17,7 @@
     "@mariozechner/pi-agent-core": "^0.63.1",
     "@mariozechner/pi-ai": "^0.63.1",
     "@sinclair/typebox": "^0.34.49",
-    "pdf-parse": "^1.1.1",
+    "pdf-parse": "^2.4.5",
     "pino": "^10.3.1",
     "uuid": "^13.0.0"
   },
