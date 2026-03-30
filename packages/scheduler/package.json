@@ -16,7 +16,7 @@
     "@echos/shared": "workspace:*",
     "@echos/plugin-article": "workspace:*",
     "@echos/plugin-youtube": "workspace:*",
-    "@mariozechner/pi-agent-core": "^0.63.1",
+    "@mariozechner/pi-agent-core": "^0.64.0",
     "bullmq": "^5.71.1",
     "ioredis": "^5.10.1",
     "pino": "^10.3.1",
