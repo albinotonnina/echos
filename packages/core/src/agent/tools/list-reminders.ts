@@ -42,7 +42,8 @@ export function listRemindersTool(deps: ListRemindersToolDeps): AgentTool<typeof
             const lines = reminders.map((r) => {
                 const status = r.completed ? '✅' : '⬜';
                 const due = r.dueDate ? ` | due: ${r.dueDate}` : '';
-                return `${status} [${r.id}] ${r.title} (${r.priority}${due})`;
+                const recur = r.recurrence ? ` | repeats: ${r.recurrence}` : '';
+                return `${status} [${r.id}] ${r.title} (${r.priority}${due}${recur})`;
             });
 
             return {

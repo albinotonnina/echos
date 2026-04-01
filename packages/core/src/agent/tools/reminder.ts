@@ -20,6 +20,11 @@ const addSchema = Type.Object({
       description: 'Use "todo" for action items to do (no due date required). Use "reminder" for time-based reminders with a due date. Default: "reminder".',
     }),
   ),
+  recurrence: Type.Optional(
+    StringEnum(['daily', 'weekly', 'monthly'], {
+      description: 'Recurrence pattern. Only set this if the user EXPLICITLY asks for a repeating/recurring reminder (e.g. "every day", "weekly", "each month"). Default is one-time (no recurrence).',
+    }),
+  ),
 });
 
 type AddParams = Static<typeof addSchema>;
@@ -53,14 +58,24 @@ export function addReminderTool(deps: ReminderToolDeps): AgentTool<typeof addSch
         }
         entry.dueDate = parsed.toISOString();
       }
+      if (params.recurrence !== undefined) {
+        if (kind !== 'reminder') {
+          throw new Error('Recurrence can only be set on reminders (kind="reminder"), not todos.');
+        }
+        if (!params.due_date) {
+          throw new Error('Recurrence requires a due_date. Provide a due date for the first occurrence.');
+        }
+        entry.recurrence = params.recurrence as NonNullable<ReminderEntry['recurrence']>;
+      }
 
       deps.sqlite.upsertReminder(entry);
 
+      const recurrenceLabel = params.recurrence ? `, repeats: ${params.recurrence}` : '';
       return {
         content: [
           {
             type: 'text' as const,
-            text: `Added ${kind}: "${params.title}" (id: ${id}, priority: ${entry.priority}${params.due_date ? `, due: ${params.due_date}` : ''})`,
+            text: `Added ${kind}: "${params.title}" (id: ${id}, priority: ${entry.priority}${params.due_date ? `, due: ${params.due_date}` : ''}${recurrenceLabel})`,
           },
         ],
         details: { id },

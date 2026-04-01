@@ -19,6 +19,7 @@ export type {
   SearchResult,
   SearchOptions,
   MemoryEntry,
+  RecurrencePattern,
   ReminderEntry,
   ScheduleEntry,
   ProcessedContent,

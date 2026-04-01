@@ -1,6 +1,6 @@
 import type { Job } from 'bullmq';
 import type { Logger } from 'pino';
-import type { NotificationService, ReminderEntry } from '@echos/shared';
+import type { NotificationService, ReminderEntry, RecurrencePattern } from '@echos/shared';
 import type { SqliteStorage } from '@echos/core';
 import type { JobData } from '../queue.js';
 
@@ -15,8 +15,48 @@ const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
 function formatReminder(r: ReminderEntry): string {
   const priorityIcon = r.priority === 'high' ? '!' : r.priority === 'medium' ? '-' : '.';
   const due = r.dueDate ? ` (due: ${r.dueDate})` : '';
+  const recur = r.recurrence ? ` [${r.recurrence}]` : '';
   const desc = r.description ? `\n  ${r.description}` : '';
-  return `[${priorityIcon}] **${r.title}**${due}${desc}`;
+  return `[${priorityIcon}] **${r.title}**${due}${recur}${desc}`;
+}
+
+/**
+ * Compute the next occurrence for a recurring reminder based on its current due date.
+ * Advances by the recurrence interval from the original due date, skipping past `now`
+ * so that missed occurrences don't pile up.
+ */
+function advanceByMonth(date: Date): void {
+  const targetMonth = date.getUTCMonth() + 1;
+  const dayOfMonth = date.getUTCDate();
+  // Move to day 1 of the target month to avoid overflow, then clamp
+  date.setUTCDate(1);
+  date.setUTCMonth(targetMonth);
+  // Clamp to last day of the target month if original day exceeds it
+  const lastDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
+  date.setUTCDate(Math.min(dayOfMonth, lastDay));
+}
+
+function computeNextDueDate(currentDue: string, pattern: RecurrencePattern, now: number): string {
+  const next = new Date(currentDue);
+
+  // Advance at least once, then keep advancing until we're in the future
+  do {
+    switch (pattern) {
+      case 'daily':
+        next.setUTCDate(next.getUTCDate() + 1);
+        break;
+      case 'weekly':
+        next.setUTCDate(next.getUTCDate() + 7);
+        break;
+      case 'monthly':
+        advanceByMonth(next);
+        break;
+      default:
+        throw new Error(`Unsupported recurrence pattern: ${String(pattern)}`);
+    }
+  } while (next.getTime() <= now);
+
+  return next.toISOString();
 }
 
 export function createReminderCheckProcessor(deps: ReminderWorkerDeps) {
@@ -50,12 +90,19 @@ export function createReminderCheckProcessor(deps: ReminderWorkerDeps) {
 
     await notificationService.broadcast(message);
 
-    // Mark all notified reminders as completed so they won't appear in future checks
     const nowIso = new Date(now).toISOString();
     for (const r of due) {
-      sqlite.upsertReminder({ ...r, completed: true, updated: nowIso });
+      if (r.recurrence && r.dueDate) {
+        // Recurring reminder: advance to the next occurrence instead of completing
+        const nextDue = computeNextDueDate(r.dueDate, r.recurrence, now);
+        sqlite.upsertReminder({ ...r, dueDate: nextDue, updated: nowIso });
+        logger.info({ reminderId: r.id, nextDue, recurrence: r.recurrence }, 'Recurring reminder rescheduled');
+      } else {
+        // One-time reminder: mark as completed
+        sqlite.upsertReminder({ ...r, completed: true, updated: nowIso });
+      }
     }
 
-    logger.info({ count: due.length }, 'Due reminder notifications sent and marked as completed');
+    logger.info({ count: due.length }, 'Due reminder notifications processed');
   };
 }

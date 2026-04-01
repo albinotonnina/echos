@@ -60,6 +60,7 @@ const SCHEMA = `
     priority TEXT NOT NULL DEFAULT 'medium',
     completed INTEGER NOT NULL DEFAULT 0,
     kind TEXT NOT NULL DEFAULT 'reminder',
+    recurrence TEXT DEFAULT NULL,
     created TEXT NOT NULL,
     updated TEXT NOT NULL
   );
@@ -218,6 +219,13 @@ function runMigrations(db: Database.Database): void {
     // Column already exists
   }
 
+  // Migration: add recurrence column to reminders
+  try {
+    db.exec(`ALTER TABLE reminders ADD COLUMN recurrence TEXT DEFAULT NULL`);
+  } catch {
+    // Column already exists
+  }
+
   // Migration: add last_surfaced column for knowledge resurfacing
   try {
     db.exec(`ALTER TABLE notes ADD COLUMN last_surfaced TEXT DEFAULT NULL`);
@@ -306,11 +314,11 @@ function prepareStatements(db: Database.Database): PreparedStatements {
       `SELECT ${NOTE_COLUMNS} FROM notes WHERE status = 'deleted' ORDER BY deleted_at DESC`,
     ),
     upsertReminder: db.prepare(`
-      INSERT INTO reminders (id, title, description, due_date, priority, completed, kind, created, updated)
-      VALUES (@id, @title, @description, @dueDate, @priority, @completed, @kind, @created, @updated)
+      INSERT INTO reminders (id, title, description, due_date, priority, completed, kind, recurrence, created, updated)
+      VALUES (@id, @title, @description, @dueDate, @priority, @completed, @kind, @recurrence, @created, @updated)
       ON CONFLICT(id) DO UPDATE SET
         title=@title, description=@description, due_date=@dueDate, priority=@priority,
-        completed=@completed, kind=@kind, updated=@updated
+        completed=@completed, kind=@kind, recurrence=@recurrence, updated=@updated
     `),
     getReminder: db.prepare('SELECT * FROM reminders WHERE id = ?'),
     listReminders: db.prepare(

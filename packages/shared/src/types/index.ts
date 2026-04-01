@@ -61,6 +61,8 @@ export interface MemoryEntry {
   updated: string;
 }
 
+export type RecurrencePattern = 'daily' | 'weekly' | 'monthly';
+
 export interface ReminderEntry {
   id: string;
   title: string;
@@ -69,6 +71,8 @@ export interface ReminderEntry {
   priority: 'low' | 'medium' | 'high';
   completed: boolean;
   kind: 'reminder' | 'todo';
+  /** Recurrence pattern. Omit or undefined = one-time reminder (default). */
+  recurrence?: RecurrencePattern;
   created: string;
   updated: string;
 }
