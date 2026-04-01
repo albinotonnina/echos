@@ -12,6 +12,14 @@ import {
 const EDIT_DEBOUNCE_MS = 1000;
 const MAX_MESSAGE_LENGTH = 4096;
 
+// --- Last response store (for /save command) ---
+const lastResponses = new Map<number, string>();
+
+export function getLastResponse(userId: number): string | undefined {
+  return lastResponses.get(userId);
+}
+// --- End last response store ---
+
 // Exact tool name → emoji mapping
 const TOOL_EMOJI_MAP: Record<string, string> = {
   create_note: '✏️',
@@ -172,6 +180,11 @@ const ANTHROPIC_ERROR_MESSAGES: Record<string, string> = {
 };
 
 function friendlyAnthropicError(raw: string): string {
+  // Detect JSON parse errors from truncated streaming responses
+  if (raw.includes('Expected') && raw.includes('JSON at position')) {
+    return 'The response was too large to process. Please try asking for a shorter summary, or use /save to get the last response as a file.';
+  }
+
   try {
     const parsed = JSON.parse(raw) as { error?: { type?: string; message?: string } };
     const type = parsed.error?.type ?? '';
@@ -361,7 +374,47 @@ export async function streamAgentResponse(
   const agentError = agent.state.error;
 
   if (textBuffer) {
-    await updateMessage();
+    // Store last response for /save command
+    const chatUserId = ctx.from?.id;
+    if (chatUserId) lastResponses.set(chatUserId, textBuffer);
+
+    // Send long responses as multiple messages + file attachment
+    if (textBuffer.length > MAX_MESSAGE_LENGTH) {
+      // Use 3800 to leave headroom for HTML tag expansion
+      const chunks = chunkText(textBuffer, 3800);
+      // First chunk: edit the existing status message
+      if (chunks[0]) {
+        const html = markdownToHtml(chunks[0]);
+        const safeHtml = html.length > MAX_MESSAGE_LENGTH ? html.slice(0, MAX_MESSAGE_LENGTH - 3) + '...' : html;
+        try {
+          await ctx.api.editMessageText(ctx.chat!.id, messageId!, safeHtml, { parse_mode: 'HTML' });
+        } catch {
+          try { await ctx.api.editMessageText(ctx.chat!.id, messageId!, chunks[0].slice(0, MAX_MESSAGE_LENGTH)); } catch { /* ignore */ }
+        }
+      }
+      // Remaining chunks: send as new messages
+      for (let i = 1; i < chunks.length; i++) {
+        const html = markdownToHtml(chunks[i]!);
+        const safeHtml = html.length > MAX_MESSAGE_LENGTH ? html.slice(0, MAX_MESSAGE_LENGTH - 3) + '...' : html;
+        try {
+          await ctx.reply(safeHtml, { parse_mode: 'HTML' });
+        } catch {
+          try { await ctx.reply(chunks[i]!.slice(0, MAX_MESSAGE_LENGTH)); } catch { /* ignore */ }
+        }
+      }
+      // Also send the full response as a .md file for easy access
+      try {
+        const buf = Buffer.from(textBuffer, 'utf8');
+        const date = new Date().toISOString().slice(0, 10);
+        await ctx.replyWithDocument(new InputFile(buf, `response-${date}.md`), {
+          caption: 'Full response attached as file',
+        });
+      } catch {
+        // Non-fatal: chunked messages already delivered
+      }
+    } else {
+      await updateMessage();
+    }
   } else if (agentError && isAgentMessageOverflow(lastAssistantMessage, agent.state.model.contextWindow)) {
     await updateMessage('⚠️ Conversation history is too long. Use /reset to start a new session.');
   } else if (agentError) {

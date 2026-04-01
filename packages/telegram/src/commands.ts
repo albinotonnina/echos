@@ -1,3 +1,4 @@
+import { InputFile } from 'grammy';
 import type { Bot, Context } from 'grammy';
 import type { Logger } from 'pino';
 import type { AgentDeps } from '@echos/core';
@@ -11,6 +12,7 @@ import {
 } from '@echos/core';
 import { getVersion } from '@echos/shared';
 import { getSession, clearSession } from './session.js';
+import { getLastResponse } from './streaming.js';
 
 export interface CommandDeps {
   agentDeps: AgentDeps;
@@ -144,4 +146,27 @@ export function registerCommands(bot: Bot, deps: CommandDeps): void {
     agent.followUp(createUserMessage(text));
     await ctx.reply('📋 Queued — will run after the current task finishes.');
   });
+
+  // /save command — export last AI response as a .md file (no LLM call)
+  bot.command('save', async (ctx: Context) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    const lastResponse = getLastResponse(userId);
+    if (!lastResponse) {
+      await ctx.reply("No response to save. Send a message first and I'll remember the response.");
+      return;
+    }
+
+    try {
+      const buf = Buffer.from(lastResponse, 'utf8');
+      const date = new Date().toISOString().slice(0, 10);
+      await ctx.replyWithDocument(new InputFile(buf, `response-${date}.md`), {
+        caption: `Last response (${lastResponse.length.toLocaleString()} chars)`,
+      });
+    } catch {
+      await ctx.reply('Failed to create file. Try again.');
+    }
+  });
+
 }
