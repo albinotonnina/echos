@@ -35,13 +35,13 @@ export function createSaveArticleTool(context: PluginContext): AgentTool<typeof 
     description:
       'Save a web article from a URL. Extracts content using Readability. Always set autoCategorize=true for AI categorization (category, tags, gist). Say "saved to your reading list" — not "added to your knowledge base".',
     parameters: schema,
-    execute: async (_toolCallId: string, params: Params, _signal, onUpdate) => {
+    execute: async (_toolCallId: string, params: Params, signal, onUpdate) => {
       onUpdate?.({
         content: [{ type: 'text', text: `Fetching article from ${params.url}...` }],
         details: { phase: 'fetching' },
       });
 
-      const processed = await processArticle(params.url, context.logger);
+      const processed = await processArticle(params.url, context.logger, signal ?? undefined);
       validateContentSize(processed.content, { label: 'article content' });
 
       const now = new Date().toISOString();

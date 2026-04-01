@@ -99,7 +99,7 @@ export function extractVideoId(url: string): string {
 /**
  * Fetch transcript using youtube-transcript-api-js (pure JS, no Python dependency)
  */
-async function fetchYoutubeTranscript(videoId: string, logger: Logger, proxyConfig?: ProxyConfig): Promise<string> {
+async function fetchYoutubeTranscript(videoId: string, logger: Logger, proxyConfig?: ProxyConfig, signal?: AbortSignal): Promise<string> {
   logger.debug({ videoId, hasProxy: !!proxyConfig }, 'Fetching YouTube transcript');
 
   const transcriptProxyConfig = createTranscriptProxyConfig(proxyConfig);
@@ -108,9 +108,13 @@ async function fetchYoutubeTranscript(videoId: string, logger: Logger, proxyConf
     : new YouTubeTranscriptApi();
 
   const timeoutPromise = new Promise<never>((_resolve, reject) => {
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       reject(new ProcessingError('Transcript fetch timeout', true));
     }, TRANSCRIPT_TIMEOUT_MS);
+    signal?.addEventListener('abort', () => {
+      clearTimeout(timeoutId);
+      reject(signal.reason instanceof Error ? signal.reason : new ProcessingError('Agent turn cancelled'));
+    }, { once: true });
   });
 
   try {
@@ -313,7 +317,8 @@ async function transcribeWithWhisper(
 async function getVideoMetadata(
   videoId: string,
   logger: Logger,
-  proxyConfig?: ProxyConfig
+  proxyConfig?: ProxyConfig,
+  signal?: AbortSignal,
 ): Promise<{ title: string; channel?: string; duration?: number; publishedDate?: string }> {
   // Primary: YouTube oEmbed API — simple HTTP call, very reliable
   try {
@@ -322,7 +327,7 @@ async function getVideoMetadata(
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       },
-      signal: AbortSignal.timeout(10000),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10000)]) : AbortSignal.timeout(10000),
     });
 
     if (response.ok) {
@@ -383,6 +388,7 @@ export async function processYoutube(
   openaiApiKey?: string,
   proxyConfig?: ProxyConfig,
   whisperLanguage?: string,
+  signal?: AbortSignal,
 ): Promise<ProcessedContent> {
   logger.debug({ url, hasProxy: !!proxyConfig }, 'Processing YouTube video');
 
@@ -391,14 +397,14 @@ export async function processYoutube(
 
   logger.debug({ videoId }, 'Video ID extracted');
 
-  const metadata = await getVideoMetadata(videoId, logger, proxyConfig);
+  const metadata = await getVideoMetadata(videoId, logger, proxyConfig, signal);
 
   let transcript: string;
   let transcriptSource: 'youtube' | 'whisper';
   let audioFilePath: string | null = null;
 
   try {
-    transcript = await fetchYoutubeTranscript(videoId, logger, proxyConfig);
+    transcript = await fetchYoutubeTranscript(videoId, logger, proxyConfig, signal);
     transcriptSource = 'youtube';
 
     logger.info({ videoId, source: 'youtube' }, 'Transcript obtained from YouTube');

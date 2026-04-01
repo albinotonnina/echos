@@ -8,12 +8,12 @@ import type { ProcessedContent } from '@echos/shared';
 const MAX_CONTENT_SIZE = 5 * 1024 * 1024; // 5MB
 const FETCH_TIMEOUT = 30000; // 30s
 
-export async function processArticle(url: string, logger: Logger): Promise<ProcessedContent> {
+export async function processArticle(url: string, logger: Logger, signal?: AbortSignal): Promise<ProcessedContent> {
   const validatedUrl = validateUrl(url);
   logger.info({ url: validatedUrl }, 'Processing article');
 
   const response = await fetch(validatedUrl, {
-    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(FETCH_TIMEOUT)]) : AbortSignal.timeout(FETCH_TIMEOUT),
     headers: {
       'User-Agent': 'EchOS/1.0 (Knowledge Assistant)',
       Accept: 'text/html',
