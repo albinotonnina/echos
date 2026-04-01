@@ -162,8 +162,8 @@ export function registerCommands(bot: Bot, deps: CommandDeps): void {
 
     try {
       const buf = Buffer.from(lastResponse, 'utf8');
-      const date = new Date().toISOString().slice(0, 10);
-      await ctx.replyWithDocument(new InputFile(buf, `response-${date}.md`), {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      await ctx.replyWithDocument(new InputFile(buf, `response-${timestamp}.md`), {
         caption: `Last response (${lastResponse.length.toLocaleString()} chars)`,
       });
     } catch {

@@ -410,11 +410,11 @@ export async function streamAgentResponse(
 
     // If the response was truncated, attach the full text as a .md file
     const html = markdownToHtml(textBuffer);
-    if (html.length > MAX_MESSAGE_LENGTH || textBuffer.length > MAX_MESSAGE_LENGTH) {
+    if (html.length > MAX_MESSAGE_LENGTH) {
       try {
         const buf = Buffer.from(textBuffer, 'utf8');
-        const date = new Date().toISOString().slice(0, 10);
-        await ctx.replyWithDocument(new InputFile(buf, `response-${date}.md`), {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        await ctx.replyWithDocument(new InputFile(buf, `response-${timestamp}.md`), {
           caption: '📎 Full response attached (message was truncated)',
         });
       } catch {

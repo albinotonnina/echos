@@ -101,7 +101,7 @@ Supported formats: `markdown`, `text`, `json`, `zip`. All exports are sent as do
 
 Telegram limits messages to 4096 characters. When an AI response exceeds this limit, EchOS truncates the displayed message with `...` and automatically attaches the full response as a `.md` file so nothing is lost.
 
-You can also use `/save` at any time to re-export the last AI response as a `.md` file. The stored response is scoped per chat — a response in a private chat is not accessible via `/save` in a group chat. Stored responses expire after 30 minutes and are cleared on `/reset`.
+You can also use `/save` at any time to re-export the last AI response as a `.md` file. The stored response is scoped per chat and user — a response in a private chat is not accessible via `/save` in a group chat, and in group chats each user can only `/save` their own last AI response. Stored responses expire after 30 minutes and are cleared on `/reset`.
 
 ### Inline Keyboards
 
