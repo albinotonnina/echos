@@ -22,17 +22,51 @@ interface FxArticleBlock {
   data: unknown;
 }
 
+interface FxEntityRange {
+  key: number;
+  length: number;
+  offset: number;
+}
+
+interface FxEntityMapEntry {
+  value?: {
+    type?: string;
+    data?: {
+      mediaItems?: Array<{ mediaId?: string }>;
+      caption?: string;
+    };
+  };
+}
+
+interface FxVideoVariant {
+  content_type?: string;
+  bit_rate?: number;
+  url?: string;
+}
+
+interface FxMediaEntityInfo {
+  __typename?: string;
+  original_img_url?: string;
+  preview_image?: { original_img_url?: string };
+  variants?: FxVideoVariant[];
+}
+
+interface FxMediaEntity {
+  media_id?: string;
+  media_info?: FxMediaEntityInfo;
+}
+
 interface FxArticle {
   title: string;
   preview_text: string;
   content: {
     blocks: FxArticleBlock[];
-    entityMap: unknown;
+    entityMap: Record<string, FxEntityMapEntry>;
   };
   cover_media?: unknown;
   created_at: string;
   id: string;
-  media_entities?: unknown[];
+  media_entities?: FxMediaEntity[];
   modified_at: string;
 }
 
@@ -192,11 +226,74 @@ function formatQuoteTweet(quote: FxTweet): string {
   return section;
 }
 
+/** Render an atomic block as inline markdown via entityMap → media_entities chain. */
+function renderAtomicBlock(
+  block: FxArticleBlock,
+  entityMap: Record<string, FxEntityMapEntry>,
+  mediaById: Map<string, FxMediaEntity>,
+): string {
+  const ranges = block.entityRanges as FxEntityRange[];
+  if (!ranges?.[0]) return '';
+
+  const entityKey = String(ranges[0].key);
+  const entity = entityMap[entityKey];
+
+  if (entity?.value?.type === 'DIVIDER') {
+    return '---';
+  }
+
+  const mediaId = entity?.value?.data?.mediaItems?.[0]?.mediaId;
+  if (!mediaId) return '';
+
+  const mediaEntity = mediaById.get(mediaId);
+  if (!mediaEntity || !mediaEntity.media_info) return '';
+
+  const info = mediaEntity.media_info;
+  const captionText = entity?.value?.data?.caption;
+  const caption = captionText ? `\n*${captionText}*` : '';
+
+  if (info.__typename === 'ApiImage') {
+    const url = info.original_img_url;
+    return url ? `![image](${url})${caption}` : '';
+  }
+
+  if (info.__typename === 'ApiVideo') {
+    const variants = info.variants ?? [];
+    let bestMp4: FxVideoVariant | undefined;
+    for (const v of variants) {
+      if (v.content_type === 'video/mp4') {
+        if (!bestMp4 || (v.bit_rate ?? 0) > (bestMp4.bit_rate ?? 0)) {
+          bestMp4 = v;
+        }
+      }
+    }
+    const url = bestMp4?.url ?? info.preview_image?.original_img_url;
+    return url ? `[Video](${url})${caption}` : '';
+  }
+
+  return '';
+}
+
 /** Format draft.js blocks into markdown. */
-function formatArticleBlocks(blocks: FxArticleBlock[]): string {
+function formatArticleBlocks(
+  blocks: FxArticleBlock[],
+  entityMap?: Record<string, FxEntityMapEntry>,
+  mediaEntities?: FxMediaEntity[],
+): string {
+  const resolvedEntityMap = entityMap ?? {};
+  const mediaById = new Map<string, FxMediaEntity>();
+  for (const me of mediaEntities ?? []) {
+    if (me.media_id) mediaById.set(me.media_id, me);
+  }
   const markdownBlocks: string[] = [];
 
   for (const block of blocks) {
+    if (block.type === 'atomic') {
+      const media = renderAtomicBlock(block, resolvedEntityMap, mediaById);
+      if (media) markdownBlocks.push(media);
+      continue;
+    }
+
     if (!block.text && block.type === 'unstyled') {
       markdownBlocks.push('');
       continue;
@@ -256,7 +353,7 @@ function formatSingleTweet(tweet: FxTweet, sourceUrl: string): string {
     if (tweet.article.title) {
       markdown += `# ${tweet.article.title}\n\n`;
     }
-    markdown += `${formatArticleBlocks(tweet.article.content.blocks)}\n\n`;
+    markdown += `${formatArticleBlocks(tweet.article.content.blocks, tweet.article.content.entityMap, tweet.article.media_entities ?? [])}\n\n`;
   } else if (tweet.text) {
     const tweetLines = tweet.text.split('\n').map((line) => `> ${line}`).join('\n');
     markdown += `${tweetLines}\n\n`;
@@ -294,7 +391,7 @@ function formatThread(tweets: FxTweet[], sourceUrl: string): string {
 
     if (!text && t.article) {
       if (t.article.title) text += `# ${t.article.title}\n\n`;
-      text += formatArticleBlocks(t.article.content.blocks);
+      text += formatArticleBlocks(t.article.content.blocks, t.article.content.entityMap, t.article.media_entities ?? []);
     }
 
     return text;
