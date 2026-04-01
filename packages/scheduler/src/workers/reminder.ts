@@ -25,6 +25,17 @@ function formatReminder(r: ReminderEntry): string {
  * Advances by the recurrence interval from the original due date, skipping past `now`
  * so that missed occurrences don't pile up.
  */
+function advanceByMonth(date: Date): void {
+  const targetMonth = date.getUTCMonth() + 1;
+  const dayOfMonth = date.getUTCDate();
+  // Move to day 1 of the target month to avoid overflow, then clamp
+  date.setUTCDate(1);
+  date.setUTCMonth(targetMonth);
+  // Clamp to last day of the target month if original day exceeds it
+  const lastDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
+  date.setUTCDate(Math.min(dayOfMonth, lastDay));
+}
+
 function computeNextDueDate(currentDue: string, pattern: RecurrencePattern, now: number): string {
   const next = new Date(currentDue);
 
@@ -38,8 +49,10 @@ function computeNextDueDate(currentDue: string, pattern: RecurrencePattern, now:
         next.setUTCDate(next.getUTCDate() + 7);
         break;
       case 'monthly':
-        next.setUTCMonth(next.getUTCMonth() + 1);
+        advanceByMonth(next);
         break;
+      default:
+        throw new Error(`Unsupported recurrence pattern: ${String(pattern)}`);
     }
   } while (next.getTime() <= now);
 

@@ -1,5 +1,5 @@
 import type { Logger } from 'pino';
-import type { ReminderEntry } from '@echos/shared';
+import type { ReminderEntry, RecurrencePattern } from '@echos/shared';
 import type { PreparedStatements } from './sqlite-schema.js';
 
 export interface ReminderOps {
@@ -8,6 +8,8 @@ export interface ReminderOps {
   listReminders(completed?: boolean): ReminderEntry[];
   listTodos(completed?: boolean): ReminderEntry[];
 }
+
+const VALID_RECURRENCE = new Set<string>(['daily', 'weekly', 'monthly']);
 
 function rowToReminder(row: Record<string, unknown>): ReminderEntry {
   const entry: ReminderEntry = {
@@ -24,7 +26,9 @@ function rowToReminder(row: Record<string, unknown>): ReminderEntry {
   const due = row['due_date'] as string | null;
   if (due) entry.dueDate = due;
   const recurrence = row['recurrence'] as string | null;
-  if (recurrence !== null) entry.recurrence = recurrence as NonNullable<ReminderEntry['recurrence']>;
+  if (recurrence !== null && VALID_RECURRENCE.has(recurrence)) {
+    entry.recurrence = recurrence as RecurrencePattern;
+  }
   return entry;
 }
 

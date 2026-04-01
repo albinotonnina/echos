@@ -59,6 +59,12 @@ export function addReminderTool(deps: ReminderToolDeps): AgentTool<typeof addSch
         entry.dueDate = parsed.toISOString();
       }
       if (params.recurrence !== undefined) {
+        if (kind !== 'reminder') {
+          throw new Error('Recurrence can only be set on reminders (kind="reminder"), not todos.');
+        }
+        if (!params.due_date) {
+          throw new Error('Recurrence requires a due_date. Provide a due date for the first occurrence.');
+        }
         entry.recurrence = params.recurrence as NonNullable<ReminderEntry['recurrence']>;
       }
 
