@@ -208,6 +208,142 @@ describe('processTweet', () => {
     expect(result.embedText).toContain('This is the first paragraph of the long article.');
   });
 
+  it('renders article atomic blocks with inline images', async () => {
+    const articleTweet = {
+      ...baseTweet,
+      text: '',
+      article: {
+        title: 'Article With Media',
+        preview_text: 'Preview',
+        created_at: '2024-05-15T00:00:00Z',
+        modified_at: '2024-05-15T00:00:00Z',
+        id: 'art1',
+        content: {
+          blocks: [
+            { key: '1', text: 'Intro paragraph', type: 'unstyled', entityRanges: [], inlineStyleRanges: [], data: {} },
+            { key: '2', text: ' ', type: 'atomic', entityRanges: [{ key: 0, length: 1, offset: 0 }], inlineStyleRanges: [], data: {} },
+            { key: '3', text: 'After the image', type: 'unstyled', entityRanges: [], inlineStyleRanges: [], data: {} },
+          ],
+          entityMap: {
+            '0': { value: { type: 'IMAGE', data: { mediaItems: [{ mediaId: 'media_123' }], caption: 'A cool photo' } } },
+          },
+        },
+        media_entities: [
+          { media_id: 'media_123', media_info: { __typename: 'ApiImage', original_img_url: 'https://pbs.twimg.com/article/photo1.jpg' } },
+        ],
+      },
+    };
+
+    mockFetch.mockResolvedValueOnce(makeFxTweetResponse(articleTweet));
+    const result = await processTweet('https://x.com/testuser/status/123456789', mockLogger);
+
+    expect(result.content).toContain('![image](https://pbs.twimg.com/article/photo1.jpg)');
+    expect(result.content).toContain('*A cool photo*');
+    expect(result.content).toContain('Intro paragraph');
+    expect(result.content).toContain('After the image');
+  });
+
+  it('renders article atomic blocks with inline videos', async () => {
+    const articleTweet = {
+      ...baseTweet,
+      text: '',
+      article: {
+        title: 'Video Article',
+        preview_text: 'Preview',
+        created_at: '2024-05-15T00:00:00Z',
+        modified_at: '2024-05-15T00:00:00Z',
+        id: 'art2',
+        content: {
+          blocks: [
+            { key: '1', text: ' ', type: 'atomic', entityRanges: [{ key: 0, length: 1, offset: 0 }], inlineStyleRanges: [], data: {} },
+          ],
+          entityMap: {
+            '0': { value: { type: 'VIDEO', data: { mediaItems: [{ mediaId: 'vid_456' }], caption: '' } } },
+          },
+        },
+        media_entities: [
+          {
+            media_id: 'vid_456',
+            media_info: {
+              __typename: 'ApiVideo',
+              preview_image: { original_img_url: 'https://pbs.twimg.com/thumb.jpg' },
+              variants: [
+                { content_type: 'application/x-mpegURL', url: 'https://video.twimg.com/playlist.m3u8' },
+                { content_type: 'video/mp4', bit_rate: 832000, url: 'https://video.twimg.com/low.mp4' },
+                { content_type: 'video/mp4', bit_rate: 2176000, url: 'https://video.twimg.com/high.mp4' },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    mockFetch.mockResolvedValueOnce(makeFxTweetResponse(articleTweet));
+    const result = await processTweet('https://x.com/testuser/status/123456789', mockLogger);
+
+    expect(result.content).toContain('[Video](https://video.twimg.com/high.mp4)');
+    expect(result.content).not.toContain('low.mp4');
+  });
+
+  it('renders DIVIDER atomic blocks as horizontal rules', async () => {
+    const articleTweet = {
+      ...baseTweet,
+      text: '',
+      article: {
+        title: 'Divider Article',
+        preview_text: 'Preview',
+        created_at: '2024-05-15T00:00:00Z',
+        modified_at: '2024-05-15T00:00:00Z',
+        id: 'art3',
+        content: {
+          blocks: [
+            { key: '1', text: 'Before divider', type: 'unstyled', entityRanges: [], inlineStyleRanges: [], data: {} },
+            { key: '2', text: ' ', type: 'atomic', entityRanges: [{ key: 0, length: 1, offset: 0 }], inlineStyleRanges: [], data: {} },
+            { key: '3', text: 'After divider', type: 'unstyled', entityRanges: [], inlineStyleRanges: [], data: {} },
+          ],
+          entityMap: {
+            '0': { value: { type: 'DIVIDER' } },
+          },
+        },
+        media_entities: [],
+      },
+    };
+
+    mockFetch.mockResolvedValueOnce(makeFxTweetResponse(articleTweet));
+    const result = await processTweet('https://x.com/testuser/status/123456789', mockLogger);
+
+    expect(result.content).toContain('Before divider');
+    expect(result.content).toContain('---');
+    expect(result.content).toContain('After divider');
+  });
+
+  it('handles articles with no media entities gracefully', async () => {
+    const articleTweet = {
+      ...baseTweet,
+      text: '',
+      article: {
+        title: 'No Media Article',
+        preview_text: 'Preview',
+        created_at: '2024-05-15T00:00:00Z',
+        modified_at: '2024-05-15T00:00:00Z',
+        id: 'art4',
+        content: {
+          blocks: [
+            { key: '1', text: 'Just text', type: 'unstyled', entityRanges: [], inlineStyleRanges: [], data: {} },
+          ],
+          entityMap: {},
+        },
+      },
+    };
+
+    mockFetch.mockResolvedValueOnce(makeFxTweetResponse(articleTweet));
+    const result = await processTweet('https://x.com/testuser/status/123456789', mockLogger);
+
+    expect(result.content).toContain('Just text');
+    expect(result.content).not.toContain('![image]');
+    expect(result.content).not.toContain('[Video]');
+  });
+
   it('unrolls a thread (same author reply chain)', async () => {
     const threadTweet2 = {
       ...baseTweet,
