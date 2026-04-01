@@ -22,8 +22,7 @@
 
 <div align="center">
 
-<img src="assets/telegram-demo.png" alt="EchOS Telegram conversation" width="400">
-<img src="assets/telegram-demo-2.png" alt="EchOS Telegram conversation" width="400">
+<img src="assets/telegram-demo.png" alt="EchOS Telegram conversation" width="100%">
 
 *Save articles, search your knowledge, get reminders — all through natural conversation.*
 
