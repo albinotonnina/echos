@@ -71,6 +71,10 @@ export const configSchema = z
     .string()
     .default('false')
     .transform((s) => s === 'true'),
+  telegramReactions: z
+    .string()
+    .default('true')
+    .transform((s) => s === 'true'),
   // Web
   webPort: z.coerce.number().int().positive().default(3000),
   webApiKey: z.string().optional(),
@@ -162,6 +166,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     embeddingDimensions: env['EMBEDDING_DIMENSIONS'],
     enableTelegram: env['ENABLE_TELEGRAM'],
     enableWeb: env['ENABLE_WEB'],
+    telegramReactions: env['TELEGRAM_REACTIONS'],
     webPort: env['WEB_PORT'],
     webApiKey: env['WEB_API_KEY'],
     webshareProxyUsername: env['WEBSHARE_PROXY_USERNAME'],
