@@ -167,13 +167,13 @@ function toIsoString(value: unknown, fallback: string): string {
  */
 function toStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
-    return value.map((v) => (typeof v === 'string' ? v : String(v))).filter(Boolean);
+    return value.map((v) => (typeof v === 'string' ? v : String(v))).filter((v) => v !== '');
   }
   if (typeof value === 'string' && value.trim()) {
     return value
       .split(',')
       .map((v) => v.trim())
-      .filter(Boolean);
+      .filter((v) => v !== '');
   }
   return [];
 }
