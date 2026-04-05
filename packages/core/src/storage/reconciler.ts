@@ -167,7 +167,9 @@ function toIsoString(value: unknown, fallback: string): string {
  */
 function toStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
-    return value.map((v) => (typeof v === 'string' ? v : String(v))).filter((v) => v !== '');
+    return value
+      .map((v) => (typeof v === 'string' ? v : String(v)).trim())
+      .filter((v) => v !== '');
   }
   if (typeof value === 'string' && value.trim()) {
     return value
