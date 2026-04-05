@@ -1,5 +1,4 @@
 import ytdl from '@distube/ytdl-core';
-import OpenAI from 'openai';
 import { createWriteStream } from 'fs';
 import { unlink, mkdir } from 'fs/promises';
 import { tmpdir } from 'os';
@@ -11,6 +10,8 @@ import { YouTubeTranscriptApi, WebshareProxyConfig } from 'youtube-transcript-ap
 import type { ProxyConfig as TranscriptProxyConfig } from 'youtube-transcript-api-js';
 import { validateUrl, sanitizeHtml, ProcessingError, ExternalServiceError } from '@echos/shared';
 import type { ProcessedContent } from '@echos/shared';
+import type { SpeechToTextClient, TranscribeOptions } from '@echos/core';
+import { transcribeWithRetry } from '@echos/core';
 
 export type ProxyConfig = { username: string; password: string } | undefined;
 
@@ -99,7 +100,12 @@ export function extractVideoId(url: string): string {
 /**
  * Fetch transcript using youtube-transcript-api-js (pure JS, no Python dependency)
  */
-async function fetchYoutubeTranscript(videoId: string, logger: Logger, proxyConfig?: ProxyConfig, signal?: AbortSignal): Promise<string> {
+async function fetchYoutubeTranscript(
+  videoId: string,
+  logger: Logger,
+  proxyConfig?: ProxyConfig,
+  signal?: AbortSignal,
+): Promise<string> {
   logger.debug({ videoId, hasProxy: !!proxyConfig }, 'Fetching YouTube transcript');
 
   const transcriptProxyConfig = createTranscriptProxyConfig(proxyConfig);
@@ -111,17 +117,22 @@ async function fetchYoutubeTranscript(videoId: string, logger: Logger, proxyConf
     const timeoutId = setTimeout(() => {
       reject(new ProcessingError('Transcript fetch timeout', true));
     }, TRANSCRIPT_TIMEOUT_MS);
-    signal?.addEventListener('abort', () => {
-      clearTimeout(timeoutId);
-      reject(signal.reason instanceof Error ? signal.reason : new ProcessingError('Agent turn cancelled'));
-    }, { once: true });
+    signal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timeoutId);
+        reject(
+          signal.reason instanceof Error
+            ? signal.reason
+            : new ProcessingError('Agent turn cancelled'),
+        );
+      },
+      { once: true },
+    );
   });
 
   try {
-    const transcriptList = await Promise.race([
-      api.list(videoId),
-      timeoutPromise,
-    ]);
+    const transcriptList = await Promise.race([api.list(videoId), timeoutPromise]);
 
     // Try to find transcript in order: manual en, generated en, any available
     let fetchedTranscript;
@@ -149,15 +160,12 @@ async function fetchYoutubeTranscript(videoId: string, logger: Logger, proxyConf
     }
 
     if (text.length > MAX_TRANSCRIPT_LENGTH) {
-      throw new ProcessingError(
-        `Transcript too long: ${text.length} characters`,
-        false
-      );
+      throw new ProcessingError(`Transcript too long: ${text.length} characters`, false);
     }
 
     logger.info(
       { videoId, transcriptLength: text.length, segments: fetchedTranscript.snippets.length },
-      'YouTube transcript fetched successfully'
+      'YouTube transcript fetched successfully',
     );
     return text;
   } catch (error) {
@@ -169,16 +177,23 @@ async function fetchYoutubeTranscript(videoId: string, logger: Logger, proxyConf
     const errorName = error instanceof Error ? error.constructor.name : typeof error;
     logger.warn(
       { videoId, errorName, error: errorMessage, hasProxy: !!proxyConfig },
-      'YouTube transcript unavailable'
+      'YouTube transcript unavailable',
     );
-    throw new ProcessingError(`YouTube transcript unavailable [${errorName}]: ${errorMessage}`, true);
+    throw new ProcessingError(
+      `YouTube transcript unavailable [${errorName}]: ${errorMessage}`,
+      true,
+    );
   }
 }
 
 /**
  * Download audio from YouTube video
  */
-async function downloadAudio(videoId: string, logger: Logger, proxyConfig?: ProxyConfig): Promise<string> {
+async function downloadAudio(
+  videoId: string,
+  logger: Logger,
+  proxyConfig?: ProxyConfig,
+): Promise<string> {
   const url = `https://www.youtube.com/watch?v=${videoId}`;
   const tempFilePath = join(tmpdir(), `youtube_${videoId}_${Date.now()}.mp3`);
 
@@ -216,8 +231,8 @@ async function downloadAudio(videoId: string, logger: Logger, proxyConfig?: Prox
           reject(
             new ProcessingError(
               `Audio file too large: ${(downloadedBytes / 1024 / 1024).toFixed(2)}MB`,
-              false
-            )
+              false,
+            ),
           );
         }
       });
@@ -238,7 +253,7 @@ async function downloadAudio(videoId: string, logger: Logger, proxyConfig?: Prox
         clearTimeout(timeout);
         logger.debug(
           { videoId, tempFilePath, sizeBytes: downloadedBytes },
-          'Audio download complete'
+          'Audio download complete',
         );
         resolve(tempFilePath);
       });
@@ -256,57 +271,59 @@ async function downloadAudio(videoId: string, logger: Logger, proxyConfig?: Prox
 }
 
 /**
- * Transcribe audio using OpenAI Whisper
+ * Transcribe audio using the configured STT provider
  */
 async function transcribeWithWhisper(
   audioFilePath: string,
   videoId: string,
-  openaiApiKey: string,
+  sttClient: SpeechToTextClient,
   logger: Logger,
   language?: string,
 ): Promise<string> {
   logger.debug({ videoId, audioFilePath }, 'Transcribing with Whisper');
 
-  const openai = new OpenAI({ apiKey: openaiApiKey });
-
   try {
-    const { createReadStream } = await import('fs');
-    const audioStream = createReadStream(audioFilePath) as unknown as File;
+    const { readFile } = await import('fs/promises');
+    const audioBuffer = await readFile(audioFilePath);
 
-    const transcription = await openai.audio.transcriptions.create({
-      file: audioStream,
-      model: 'whisper-1',
-      response_format: 'text',
+    const mimeType = audioFilePath.endsWith('.mp3')
+      ? 'audio/mpeg'
+      : audioFilePath.endsWith('.wav')
+        ? 'audio/wav'
+        : audioFilePath.endsWith('.ogg')
+          ? 'audio/ogg'
+          : 'audio/mpeg';
+
+    const result = await transcribeWithRetry(sttClient, {
+      audioBuffer,
+      mimeType,
       ...(language ? { language } : {}),
     });
 
-    if (!transcription || typeof transcription !== 'string') {
+    if (!result.text) {
       throw new ProcessingError('Empty transcription returned from Whisper', false);
     }
 
-    if (transcription.length > MAX_TRANSCRIPT_LENGTH) {
-      throw new ProcessingError(
-        `Transcription too long: ${transcription.length} characters`,
-        false
-      );
+    if (result.text.length > MAX_TRANSCRIPT_LENGTH) {
+      throw new ProcessingError(`Transcription too long: ${result.text.length} characters`, false);
     }
 
     logger.info(
-      { videoId, transcriptionLength: transcription.length },
-      'Whisper transcription complete'
+      { videoId, transcriptionLength: result.text.length, provider: result.provider },
+      'Whisper transcription complete',
     );
 
-    return transcription;
+    return result.text;
   } catch (error) {
     if (error instanceof ProcessingError) {
       throw error;
     }
 
     if (error instanceof Error) {
-      throw new ExternalServiceError('OpenAI Whisper', error.message);
+      throw new ExternalServiceError('STT', error.message);
     }
 
-    throw new ExternalServiceError('OpenAI Whisper', 'Unknown transcription error');
+    throw new ExternalServiceError('STT', 'Unknown transcription error');
   }
 }
 
@@ -325,13 +342,16 @@ async function getVideoMetadata(
     const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
     const response = await fetch(oembedUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       },
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10000)]) : AbortSignal.timeout(10000),
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(10000)])
+        : AbortSignal.timeout(10000),
     });
 
     if (response.ok) {
-      const data = await response.json() as { title?: string; author_name?: string };
+      const data = (await response.json()) as { title?: string; author_name?: string };
       const title = data.title || 'Untitled';
       const channel = data.author_name || undefined;
       logger.info({ videoId, title, channel }, 'Metadata fetched via oEmbed');
@@ -351,15 +371,18 @@ async function getVideoMetadata(
   try {
     const url = `https://www.youtube.com/watch?v=${videoId}`;
     const agent = createProxyAgent(proxyConfig);
-    const info = await withYtdlCache(async () => ytdl.getInfo(url, {
-      requestOptions: {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept-Language': 'en-US,en;q=0.9',
+    const info = await withYtdlCache(async () =>
+      ytdl.getInfo(url, {
+        requestOptions: {
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+          },
+          ...(agent ? { agent } : {}),
         },
-        ...(agent ? { agent } : {}),
-      },
-    }));
+      }),
+    );
 
     const title = info.videoDetails.title || 'Untitled';
     const channel = info.videoDetails.author.name;
@@ -374,7 +397,10 @@ async function getVideoMetadata(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.warn({ videoId, error: errorMessage }, 'ytdl-core metadata also failed, using dummy title');
+    logger.warn(
+      { videoId, error: errorMessage },
+      'ytdl-core metadata also failed, using dummy title',
+    );
     return { title: `YouTube Video ${videoId}` };
   }
 }
@@ -385,7 +411,7 @@ async function getVideoMetadata(
 export async function processYoutube(
   url: string,
   logger: Logger,
-  openaiApiKey?: string,
+  sttClient?: SpeechToTextClient,
   proxyConfig?: ProxyConfig,
   whisperLanguage?: string,
   signal?: AbortSignal,
@@ -413,19 +439,25 @@ export async function processYoutube(
       transcriptError instanceof Error ? transcriptError.message : 'Unknown error';
     logger.warn(
       { videoId, error: errorMessage },
-      'YouTube transcript unavailable, falling back to Whisper'
+      'YouTube transcript unavailable, falling back to Whisper',
     );
 
-    if (!openaiApiKey) {
+    if (!sttClient) {
       throw new ProcessingError(
-        'YouTube transcript unavailable and OpenAI API key not configured. Please set OPENAI_API_KEY in .env to enable Whisper transcription fallback.',
-        false
+        'YouTube transcript unavailable and STT provider not configured. Please set STT_API_KEY (or STT_PROVIDER=local) to enable Whisper transcription fallback.',
+        false,
       );
     }
 
     try {
       audioFilePath = await downloadAudio(videoId, logger, proxyConfig);
-      transcript = await transcribeWithWhisper(audioFilePath, videoId, openaiApiKey, logger, whisperLanguage);
+      transcript = await transcribeWithWhisper(
+        audioFilePath,
+        videoId,
+        sttClient,
+        logger,
+        whisperLanguage,
+      );
       transcriptSource = 'whisper';
 
       logger.info({ videoId, source: 'whisper' }, 'Transcript obtained from Whisper');
@@ -434,22 +466,26 @@ export async function processYoutube(
         try {
           await unlink(audioFilePath);
         } catch (unlinkError) {
-          logger.warn({ audioFilePath, error: unlinkError }, 'Failed to delete temporary audio file');
+          logger.warn(
+            { audioFilePath, error: unlinkError },
+            'Failed to delete temporary audio file',
+          );
         }
       }
 
-      const whisperErrorMsg = whisperError instanceof Error ? whisperError.message : 'Unknown error';
+      const whisperErrorMsg =
+        whisperError instanceof Error ? whisperError.message : 'Unknown error';
 
       if (whisperErrorMsg.includes('403')) {
         throw new ProcessingError(
           'YouTube transcript unavailable and video download blocked by YouTube. Please try a video with captions/subtitles enabled.',
-          false
+          false,
         );
       }
 
       throw new ProcessingError(
         `Unable to get transcript: YouTube transcript unavailable and Whisper download failed. This video may have restricted access.`,
-        false
+        false,
       );
     }
 
@@ -474,7 +510,7 @@ export async function processYoutube(
       channel: sanitizedChannel,
       transcriptSource,
     },
-    'YouTube video processed successfully'
+    'YouTube video processed successfully',
   );
 
   return {

@@ -4,7 +4,12 @@
  */
 import { join } from 'node:path';
 import { loadConfig, createLogger, type InterfaceAdapter } from '@echos/shared';
-import { PluginRegistry, type AgentDeps } from '@echos/core';
+import {
+  PluginRegistry,
+  type AgentDeps,
+  createSttClient,
+  type SpeechToTextClient,
+} from '@echos/core';
 import { createTelegramAdapter, type TelegramAdapter } from '@echos/telegram';
 import { createWebAdapter } from '@echos/web';
 import { createManageScheduleTool } from '@echos/scheduler';
@@ -23,26 +28,47 @@ async function main(): Promise<void> {
 
   const storage = await initStorage(config, logger);
 
+  const sttClient: SpeechToTextClient | undefined = createSttClient(config);
+  if (sttClient) {
+    logger.info({ provider: config.sttProvider, model: config.sttModel }, 'STT client created');
+  } else {
+    logger.warn('STT not configured — voice messages and audio transcription will be unavailable');
+  }
+
   const pluginRegistry = new PluginRegistry(logger);
   for (const plugin of await loadPlugins(logger)) pluginRegistry.register(plugin);
 
   let notificationService: import('@echos/shared').NotificationService;
   await pluginRegistry.setupAll({
-    sqlite: storage.sqlite, markdown: storage.markdown, vectorDb: storage.vectorDb,
-    generateEmbedding: storage.generateEmbedding, logger,
-    getAgentDeps: () => agentDeps, getNotificationService: () => notificationService,
-    config: buildPluginConfig(config),
+    sqlite: storage.sqlite,
+    markdown: storage.markdown,
+    vectorDb: storage.vectorDb,
+    generateEmbedding: storage.generateEmbedding,
+    logger,
+    getAgentDeps: () => agentDeps,
+    getNotificationService: () => notificationService,
+    sttClient,
+    config: buildPluginConfig(config, sttClient),
   });
 
   const redisResult = await checkRedisConnection(config.redisUrl, logger);
   if (!redisResult.ok) {
-    logger.fatal({ redisError: redisResult.error },
-      'Redis is not reachable — install and start Redis, then restart EchOS (pnpm redis:start)');
+    logger.fatal(
+      { redisError: redisResult.error },
+      'Redis is not reachable — install and start Redis, then restart EchOS (pnpm redis:start)',
+    );
     process.exit(1);
   }
 
   const manageScheduleTool = createManageScheduleTool({ sqlite: storage.sqlite });
-  const agentDeps: AgentDeps = buildAgentDeps(config, storage, pluginRegistry, manageScheduleTool, logger);
+  const agentDeps: AgentDeps = buildAgentDeps(
+    config,
+    storage,
+    pluginRegistry,
+    manageScheduleTool,
+    sttClient,
+    logger,
+  );
   const interfaces: InterfaceAdapter[] = [];
   let telegramAdapter: TelegramAdapter | undefined;
   if (config.enableTelegram) {
@@ -51,30 +77,55 @@ async function main(): Promise<void> {
   }
 
   notificationService = telegramAdapter?.notificationService ?? {
-    sendMessage: async (userId: number, text: string) => { logger.info({ userId, text }, 'Notification (no channel)'); },
-    broadcast: async (text: string) => { logger.info({ text }, 'Broadcast (no channel)'); },
+    sendMessage: async (userId: number, text: string) => {
+      logger.info({ userId, text }, 'Notification (no channel)');
+    },
+    broadcast: async (text: string) => {
+      logger.info({ text }, 'Broadcast (no channel)');
+    },
   };
 
   const scheduler = await setupScheduler(
-    config, storage, pluginRegistry, notificationService, manageScheduleTool, logger);
+    config,
+    storage,
+    pluginRegistry,
+    notificationService,
+    manageScheduleTool,
+    sttClient,
+    logger,
+  );
 
   if (config.enableWeb) {
-    interfaces.push(createWebAdapter({
-      config, agentDeps, logger, exportsDir: join(config.dbPath, '..', 'exports'),
-      syncSchedule: scheduler.syncSchedule, deleteSchedule: scheduler.deleteSchedule,
-    }));
+    interfaces.push(
+      createWebAdapter({
+        config,
+        agentDeps,
+        logger,
+        exportsDir: join(config.dbPath, '..', 'exports'),
+        syncSchedule: scheduler.syncSchedule,
+        deleteSchedule: scheduler.deleteSchedule,
+      }),
+    );
   }
 
   for (const iface of interfaces) await iface.start();
   logger.info({ interfaceCount: interfaces.length }, 'EchOS started');
 
   const shutdown = createShutdownHandler({
-    worker: scheduler.worker, queueService: scheduler.queueService,
-    fileWatcher: storage.fileWatcher, interfaces, pluginRegistry,
-    sqlite: storage.sqlite, vectorDb: storage.vectorDb, logger,
+    worker: scheduler.worker,
+    queueService: scheduler.queueService,
+    fileWatcher: storage.fileWatcher,
+    interfaces,
+    pluginRegistry,
+    sqlite: storage.sqlite,
+    vectorDb: storage.vectorDb,
+    logger,
   });
   process.on('SIGINT', () => void shutdown());
   process.on('SIGTERM', () => void shutdown());
 }
 
-main().catch((err) => { logger.fatal({ err }, 'Fatal error'); process.exit(1); });
+main().catch((err) => {
+  logger.fatal({ err }, 'Fatal error');
+  process.exit(1);
+});

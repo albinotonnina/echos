@@ -5,6 +5,7 @@ import type { MarkdownStorage } from '../storage/markdown.js';
 import type { VectorStorage } from '../storage/vectordb.js';
 import type { AgentDeps } from '../agent/index.js';
 import type { NotificationService } from '@echos/shared';
+import type { SpeechToTextClient } from '../stt/index.js';
 
 /**
  * Dependencies provided by core to plugins.
@@ -18,6 +19,7 @@ export interface PluginContext {
   logger: Logger;
   getAgentDeps: () => AgentDeps;
   getNotificationService: () => NotificationService;
+  sttClient?: SpeechToTextClient;
   config: Record<string, unknown> & {
     openaiApiKey?: string;
     anthropicApiKey?: string;

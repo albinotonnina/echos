@@ -50,7 +50,13 @@ export {
   type FullProcessingResult,
   type ProcessingMode,
 } from './agent/categorization.js';
-export { PluginRegistry, type EchosPlugin, type PluginContext, type ScheduledJob, type PluginSetupResult } from './plugins/index.js';
+export {
+  PluginRegistry,
+  type EchosPlugin,
+  type PluginContext,
+  type ScheduledJob,
+  type PluginSetupResult,
+} from './plugins/index.js';
 export { analyzeStyle, type StyleProfile } from './style/analyzer.js';
 export { computeSessionUsage, type SessionUsage } from './agent/usage-tracker.js';
 export { type ExportFileResult } from './export/index.js';
@@ -64,3 +70,10 @@ export {
   type BackupResult,
   type BackupInfo,
 } from './backup/index.js';
+export {
+  type SpeechToTextClient,
+  type TranscribeOptions,
+  type TranscribeResult,
+  transcribeWithRetry,
+  createSttClient,
+} from './stt/index.js';
