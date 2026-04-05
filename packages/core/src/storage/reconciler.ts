@@ -148,20 +148,71 @@ export async function reconcileStorage(opts: ReconcileOptions): Promise<Reconcil
   return stats;
 }
 
-function buildMetadata(data: Record<string, unknown>): NoteMetadata {
+/**
+ * Coerce an unknown YAML value to an ISO-8601 string.
+ * gray-matter / js-yaml parses unquoted timestamps (e.g. `2026-04-02T15:22:09.803Z`)
+ * into native Date objects. SQLite cannot bind Date objects, so we must convert them.
+ * Falls back to `now` when the value is absent or unparseable.
+ */
+function toIsoString(value: unknown, fallback: string): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  return fallback;
+}
+
+/**
+ * Coerce an unknown YAML value to a string array.
+ * YAML sequences (e.g. `tags:\n  - AI`) are parsed as JS arrays, which is correct.
+ * If somehow a plain string arrives, split on commas as a best-effort.
+ */
+function toStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => (typeof v === 'string' ? v : String(v)).trim())
+      .filter((v) => v !== '');
+  }
+  if (typeof value === 'string' && value.trim()) {
+    return value
+      .split(',')
+      .map((v) => v.trim())
+      .filter((v) => v !== '');
+  }
+  return [];
+}
+
+/**
+ * Coerce an unknown YAML value to a string, returning undefined when absent.
+ * Date objects are converted to their ISO representation.
+ * YAML block scalars (>-, |) are already resolved to plain strings by gray-matter.
+ */
+function toStringOrUndefined(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }
+  return undefined;
+}
+
+export function buildMetadata(data: Record<string, unknown>): NoteMetadata {
+  const now = new Date().toISOString();
   const meta: NoteMetadata = {
     id: data['id'] as string,
     type: data['type'] as NoteMetadata['type'],
-    title: data['title'] as string,
-    created: data['created'] as string,
-    updated: data['updated'] as string,
-    tags: (data['tags'] as string[]) || [],
-    links: (data['links'] as string[]) || [],
-    category: (data['category'] as string) || '',
+    title: typeof data['title'] === 'string' ? data['title'] : String(data['title'] ?? ''),
+    created: toIsoString(data['created'], now),
+    updated: toIsoString(data['updated'], now),
+    tags: toStringArray(data['tags']),
+    links: toStringArray(data['links']),
+    category: typeof data['category'] === 'string' ? data['category'] : '',
   };
-  if (data['source_url']) meta.sourceUrl = data['source_url'] as string;
-  if (data['author']) meta.author = data['author'] as string;
-  if (data['gist']) meta.gist = data['gist'] as string;
+  const sourceUrl = toStringOrUndefined(data['source_url']);
+  if (sourceUrl) meta.sourceUrl = sourceUrl;
+  const author = toStringOrUndefined(data['author']);
+  if (author) meta.author = author;
+  const gist = toStringOrUndefined(data['gist']);
+  if (gist) meta.gist = gist;
   if (data['status']) meta.status = data['status'] as ContentStatus;
   if (data['inputSource']) meta.inputSource = data['inputSource'] as InputSource;
   return meta;

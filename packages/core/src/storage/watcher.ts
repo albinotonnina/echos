@@ -6,8 +6,7 @@ import type { Logger } from 'pino';
 import type { SqliteStorage } from './sqlite.js';
 import type { VectorStorage } from './vectordb.js';
 import type { MarkdownStorage } from './markdown.js';
-import { computeContentHash } from './reconciler.js';
-import type { NoteMetadata } from '@echos/shared';
+import { computeContentHash, buildMetadata } from './reconciler.js';
 
 export interface WatcherOptions {
   baseDir: string;
@@ -144,19 +143,3 @@ export function createFileWatcher(opts: WatcherOptions): FileWatcher {
   };
 }
 
-function buildMetadata(data: Record<string, unknown>): NoteMetadata {
-  const meta: NoteMetadata = {
-    id: data['id'] as string,
-    type: data['type'] as NoteMetadata['type'],
-    title: data['title'] as string,
-    created: data['created'] as string,
-    updated: data['updated'] as string,
-    tags: (data['tags'] as string[]) || [],
-    links: (data['links'] as string[]) || [],
-    category: (data['category'] as string) || '',
-  };
-  if (data['source_url']) meta.sourceUrl = data['source_url'] as string;
-  if (data['author']) meta.author = data['author'] as string;
-  if (data['gist']) meta.gist = data['gist'] as string;
-  return meta;
-}
