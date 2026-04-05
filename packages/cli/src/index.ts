@@ -26,6 +26,7 @@ import {
   createVectorStorage,
   createSearchService,
   PluginRegistry,
+  selectToolsForMessage,
 } from '@echos/core';
 import articlePlugin from '@echos/plugin-article';
 import youtubePlugin from '@echos/plugin-youtube';
@@ -152,7 +153,11 @@ async function runCli(): Promise<void> {
     if (event.type === 'agent_end') {
       process.stdout.write(isTTY ? '\n' + '─'.repeat(40) + '\n' : '\n');
     }
-    if (event.type === 'tool_execution_end' && !event.isError && event.toolName === 'export_notes') {
+    if (
+      event.type === 'tool_execution_end' &&
+      !event.isError &&
+      event.toolName === 'export_notes'
+    ) {
       try {
         const resultContent = (
           event.result as { content?: Array<{ type: string; text?: string }> } | undefined
@@ -205,11 +210,19 @@ async function runCli(): Promise<void> {
   const send = async (text: string): Promise<void> => {
     cancelled = false;
     inFlight = true;
+    const allTools = agent.state.tools;
+    if (allTools.length > 0) {
+      const selected = selectToolsForMessage(allTools, text);
+      if (selected.length > 0 && selected.length < allTools.length) {
+        agent.state.tools = selected;
+      }
+    }
     try {
       await agent.prompt([makeContextMessage(), createUserMessage(text)]);
       await processPendingExports();
     } finally {
       inFlight = false;
+      agent.state.tools = allTools;
     }
   };
 
@@ -283,20 +296,16 @@ async function runCli(): Promise<void> {
     }
   };
 
-
-
   const asciiArt = [
     '      ___          ______      _          ____    _____ ',
     '     /   \\        |  ____|    | |        / __ \\  / ____|',
     '    / /_\\ \\       | |__   ___ | |__     | |  | || (___  ',
-    '    \\  _  /       |  __| / __|| \'_ \\    | |  | | \\___ \\ ',
+    "    \\  _  /       |  __| / __|| '_ \\    | |  | | \\___ \\ ",
     '     \\/ \\/        | |___| (__ | | | |   | |__| | ____) |',
     '      ___         |______\\___||_| |_|    \\____/ |_____/ ',
     '                                                        ',
-    ' [ SYSTEM READY ] ----------------------- [ MEMORY: ON ]'
+    ' [ SYSTEM READY ] ----------------------- [ MEMORY: ON ]',
   ].join('\n');
-
-
 
   let version = 'unknown';
   try {

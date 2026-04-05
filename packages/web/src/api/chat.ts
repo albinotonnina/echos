@@ -1,7 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import type { AgentMessage } from '@mariozechner/pi-agent-core';
 import type { AgentDeps } from '@echos/core';
-import { isAgentMessageOverflow, createContextMessage, createUserMessage } from '@echos/core';
+import {
+  isAgentMessageOverflow,
+  createContextMessage,
+  createUserMessage,
+  selectToolsForMessage,
+} from '@echos/core';
 import { validateContentSize } from '@echos/shared';
 import type { Logger } from 'pino';
 import { createSessionManager } from './sessions.js';
@@ -67,8 +72,9 @@ export function registerChatRoutes(
         });
         if (!event.isError && event.toolName === 'create_content') {
           try {
-            const resultContent = (event.result as { content?: Array<{ type: string; text?: string }> } | undefined)
-              ?.content;
+            const resultContent = (
+              event.result as { content?: Array<{ type: string; text?: string }> } | undefined
+            )?.content;
             const textContent = resultContent?.find((c) => c.type === 'text');
             if (textContent?.text) {
               pendingToolContent = textContent.text;
@@ -82,19 +88,35 @@ export function registerChatRoutes(
 
     const now = new Date();
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // Dynamic tool selection
+    const allTools = agent.state.tools;
+    if (allTools.length > 0) {
+      const selected = selectToolsForMessage(allTools, message);
+      if (selected.length > 0 && selected.length < allTools.length) {
+        agent.state.tools = selected;
+      }
+    }
+
     try {
       await agent.prompt([
-        createContextMessage(`Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: tz })} ${tz})`),
+        createContextMessage(
+          `Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: tz })} ${tz})`,
+        ),
         createUserMessage(message),
       ]);
     } finally {
       unsubscribe();
+      agent.state.tools = allTools;
     }
 
     // Check for agent errors (pi-agent-core swallows errors internally)
     const agentError = agent.state.error;
     if (!responseText && agentError) {
-      const isOverflow = isAgentMessageOverflow(lastAssistantMessage, agent.state.model.contextWindow);
+      const isOverflow = isAgentMessageOverflow(
+        lastAssistantMessage,
+        agent.state.model.contextWindow,
+      );
       return reply.status(isOverflow ? 413 : 500).send({
         response: '',
         error: isOverflow
@@ -107,8 +129,8 @@ export function registerChatRoutes(
     // If a tool ran but no post-tool text arrived (toolExecuted still true), the agent's
     // responseText contains only pre-tool thinking — prefer the tool's own output instead.
     const finalResponse = toolExecuted
-      ? (pendingToolContent || responseText.trim())
-      : (responseText.trim() || pendingToolContent);
+      ? pendingToolContent || responseText.trim()
+      : responseText.trim() || pendingToolContent;
 
     return reply.send({
       response: finalResponse,

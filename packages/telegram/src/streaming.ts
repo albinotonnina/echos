@@ -2,7 +2,13 @@ import { readFile, unlink } from 'node:fs/promises';
 import type { Context } from 'grammy';
 import { InputFile, InlineKeyboard } from 'grammy';
 import type { Agent, AgentEvent, AgentMessage } from '@mariozechner/pi-agent-core';
-import { isAgentMessageOverflow, createContextMessage, createUserMessage, type ExportFileResult } from '@echos/core';
+import {
+  isAgentMessageOverflow,
+  createContextMessage,
+  createUserMessage,
+  type ExportFileResult,
+  selectToolsForMessage,
+} from '@echos/core';
 import {
   buildReadingQueueKeyboard,
   buildListNotesKeyboard,
@@ -95,10 +101,7 @@ export function markdownToHtml(text: string): string {
   // 1. Protect fenced code blocks
   const codeBlocks: string[] = [];
   let out = text.replace(/```[^\n]*\n([\s\S]*?)```/g, (_, content: string) => {
-    const safe = content
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    const safe = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     codeBlocks.push(`<pre>${safe.trim()}</pre>`);
     return `${BLOCK}${codeBlocks.length - 1}${SEP}`;
   });
@@ -106,10 +109,7 @@ export function markdownToHtml(text: string): string {
   // 2. Protect inline code
   const inlineCodes: string[] = [];
   out = out.replace(/`([^`\n]+)`/g, (_, content: string) => {
-    const safe = content
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    const safe = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     inlineCodes.push(`<code>${safe}</code>`);
     return `${INLINE}${inlineCodes.length - 1}${SEP}`;
   });
@@ -164,10 +164,10 @@ function extractTextFromMessage(message: AgentMessage): string {
 
 const ANTHROPIC_ERROR_MESSAGES: Record<string, string> = {
   overloaded_error: 'Anthropic is overloaded at the moment — please try again in a bit.',
-  rate_limit_error: 'You\'ve hit the rate limit — please wait a moment before trying again.',
+  rate_limit_error: "You've hit the rate limit — please wait a moment before trying again.",
   api_error: 'Anthropic returned an unexpected error — please try again.',
-  authentication_error: 'There\'s an issue with the Anthropic API key.',
-  permission_error: 'The Anthropic API key doesn\'t have permission for this request.',
+  authentication_error: "There's an issue with the Anthropic API key.",
+  permission_error: "The Anthropic API key doesn't have permission for this request.",
   invalid_request_error: 'The request was invalid — please try rephrasing.',
 };
 
@@ -187,7 +187,7 @@ export async function streamAgentResponse(
   ctx: Context,
 ): Promise<void> {
   let messageId: number | undefined;
-  let textBuffer = '';        // AI response text only — never contains tool indicators
+  let textBuffer = ''; // AI response text only — never contains tool indicators
   let statusLine = '💭' + ZWS; // shown only while textBuffer is still empty
   let lastEditTime = 0;
   let editTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -283,10 +283,15 @@ export async function streamAgentResponse(
       if (!textBuffer && messageId) void updateMessage();
     }
 
-    if (event.type === 'tool_execution_end' && !event.isError && event.toolName === 'export_notes') {
+    if (
+      event.type === 'tool_execution_end' &&
+      !event.isError &&
+      event.toolName === 'export_notes'
+    ) {
       try {
-        const resultContent = (event.result as { content?: Array<{ type: string; text?: string }> } | undefined)
-          ?.content;
+        const resultContent = (
+          event.result as { content?: Array<{ type: string; text?: string }> } | undefined
+        )?.content;
         const textContent = resultContent?.find((c) => c.type === 'text');
         if (textContent?.text) {
           const parsed = JSON.parse(textContent.text) as ExportFileResult;
@@ -299,10 +304,15 @@ export async function streamAgentResponse(
       }
     }
 
-    if (event.type === 'tool_execution_end' && !event.isError && event.toolName === 'create_content') {
+    if (
+      event.type === 'tool_execution_end' &&
+      !event.isError &&
+      event.toolName === 'create_content'
+    ) {
       try {
-        const resultContent = (event.result as { content?: Array<{ type: string; text?: string }> } | undefined)
-          ?.content;
+        const resultContent = (
+          event.result as { content?: Array<{ type: string; text?: string }> } | undefined
+        )?.content;
         const textContent = resultContent?.find((c) => c.type === 'text');
         if (textContent?.text) {
           pendingContent.push(textContent.text);
@@ -315,16 +325,23 @@ export async function streamAgentResponse(
     // Capture actionable tool results for inline keyboards
     if (event.type === 'tool_execution_end' && !event.isError) {
       try {
-        const details = (event.result as { details?: Record<string, unknown> } | undefined)?.details;
+        const details = (event.result as { details?: Record<string, unknown> } | undefined)
+          ?.details;
         const items = details?.['items'] as Array<Record<string, unknown>> | undefined;
         if (items && items.length > 0) {
           let kb: InlineKeyboard | undefined;
           if (event.toolName === 'reading_queue') {
-            kb = buildReadingQueueKeyboard(items as Array<{ id: string; title: string; type: string; sourceUrl?: string }>);
+            kb = buildReadingQueueKeyboard(
+              items as Array<{ id: string; title: string; type: string; sourceUrl?: string }>,
+            );
           } else if (event.toolName === 'list_notes') {
-            kb = buildListNotesKeyboard(items as Array<{ id: string; title: string; type: string; status: string | null }>);
+            kb = buildListNotesKeyboard(
+              items as Array<{ id: string; title: string; type: string; status: string | null }>,
+            );
           } else if (event.toolName === 'list_reminders') {
-            kb = buildRemindersKeyboard(items as Array<{ id: string; title: string; completed: boolean }>);
+            kb = buildRemindersKeyboard(
+              items as Array<{ id: string; title: string; completed: boolean }>,
+            );
           }
           if (kb) pendingKeyboard = kb;
         }
@@ -347,22 +364,39 @@ export async function streamAgentResponse(
 
   const now = new Date();
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Dynamic tool selection: pick only tools relevant to the user message
+  const allTools = agent.state.tools;
+  if (allTools.length > 0) {
+    const selected = selectToolsForMessage(allTools, prompt);
+    if (selected.length > 0 && selected.length < allTools.length) {
+      agent.state.tools = selected;
+    }
+  }
+
   try {
     await agent.prompt([
-      createContextMessage(`Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: tz })} ${tz})`),
+      createContextMessage(
+        `Current date/time: ${now.toISOString()} (${now.toLocaleString('en-US', { timeZone: tz })} ${tz})`,
+      ),
       createUserMessage(prompt),
     ]);
   } finally {
     clearInterval(typingInterval);
     unsubscribe();
     if (editTimeout) clearTimeout(editTimeout);
+    // Restore full tool set after the prompt completes
+    agent.state.tools = allTools;
   }
 
   const agentError = agent.state.error;
 
   if (textBuffer) {
     await updateMessage();
-  } else if (agentError && isAgentMessageOverflow(lastAssistantMessage, agent.state.model.contextWindow)) {
+  } else if (
+    agentError &&
+    isAgentMessageOverflow(lastAssistantMessage, agent.state.model.contextWindow)
+  ) {
     await updateMessage('⚠️ Conversation history is too long. Use /reset to start a new session.');
   } else if (agentError) {
     await updateMessage(`⚠️ ${friendlyAnthropicError(agentError)}`);
@@ -423,10 +457,10 @@ export async function streamAgentResponse(
   // React to the original user message to signal completion
   const userMessageId = ctx.message?.message_id;
   if (userMessageId) {
-    await ctx.api.setMessageReaction(
-      ctx.chat!.id,
-      userMessageId,
-      [{ type: 'emoji', emoji: agentError ? '😱' : '👌' }],
-    ).catch(() => undefined);
+    await ctx.api
+      .setMessageReaction(ctx.chat!.id, userMessageId, [
+        { type: 'emoji', emoji: agentError ? '😱' : '👌' },
+      ])
+      .catch(() => undefined);
   }
 }
