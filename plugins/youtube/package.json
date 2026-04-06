@@ -18,7 +18,7 @@
     "@mariozechner/pi-agent-core": "^0.64.0",
     "@mariozechner/pi-ai": "^0.64.0",
     "@sinclair/typebox": "^0.34.49",
-    "https-proxy-agent": "^8.0.0",
+    "https-proxy-agent": "^9.0.0",
     "openai": "^6.33.0",
     "pino": "^10.3.1",
     "uuid": "^13.0.0",
