@@ -1,0 +1,76 @@
+# EchOS Docker Compose — Coolify compatible
+# Coolify will auto-detect this file when connecting to the GitHub repository
+
+services:
+  echos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: echos
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    volumes:
+      - echos-data:/data
+    environment:
+      # Required - set these in Coolify's Environment Variables UI
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ALLOWED_USER_IDS=${ALLOWED_USER_IDS}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.groq.com/openai/v1}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-openai/gpt-oss-120b}
+      - STT_API_KEY=${STT_API_KEY}
+      - STT_BASE_URL=${STT_BASE_URL:-https://api.groq.com/openai/v1}
+      - STT_MODEL=${STT_MODEL:-whisper-large-v3-turbo}
+      # Optional
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MAX_CONTEXT_TOKENS=${MAX_CONTEXT_TOKENS:-6000}
+      - CACHE_RETENTION=${CACHE_RETENTION:-none}
+      - ENABLE_TELEGRAM=${ENABLE_TELEGRAM:-true}
+      - ENABLE_WEB=${ENABLE_WEB:-true}
+      - TELEGRAM_REACTIONS=${TELEGRAM_REACTIONS:-true}
+      - WEB_PORT=${WEB_PORT:-3000}
+      - WEB_API_KEY=${WEB_API_KEY}
+      - BACKUP_ENABLED=${BACKUP_ENABLED:-true}
+      - BACKUP_CRON=${BACKUP_CRON:-0 2 * * *}
+      - BACKUP_RETENTION_COUNT=${BACKUP_RETENTION_COUNT:-7}
+      - LOG_LLM_PAYLOADS=${LOG_LLM_PAYLOADS:-false}
+      # Internal
+      - NODE_ENV=production
+      - ECHOS_HOME=/data
+      - REDIS_URL=redis://echos-redis:6379
+    depends_on:
+      echos-redis:
+        condition: service_healthy
+    networks:
+      - echos-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  echos-redis:
+    image: redis:7-alpine
+    container_name: echos-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - echos-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  echos-data:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  echos-network:
+    driver: bridge
