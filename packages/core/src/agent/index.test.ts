@@ -75,7 +75,7 @@ function makeMinimalDeps(overrides: Partial<AgentDeps> = {}): AgentDeps {
 function invokeStreamFn(agent: ReturnType<typeof createEchosAgent>): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fn = (agent as any).streamFn as ((m: unknown, c: unknown, o: unknown) => void) | undefined;
-  fn?.({}, [], {});
+  fn?.({}, { tools: [], systemPrompt: '' }, {});
 }
 
 describe('createEchosAgent — tool registration', () => {
