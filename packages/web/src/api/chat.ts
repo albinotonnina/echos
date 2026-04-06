@@ -5,6 +5,7 @@ import {
   isAgentMessageOverflow,
   createContextMessage,
   createUserMessage,
+  selectToolsForMessage,
 } from '@echos/core';
 import { validateContentSize } from '@echos/shared';
 import type { Logger } from 'pino';
@@ -88,8 +89,15 @@ export function registerChatRoutes(
     const now = new Date();
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    // Send all tools — fits within Groq 8K TPM limit (~2734 + 5000 = 7734)
-    // Works correctly for ANY language without keyword matching.
+    // Tool selection: 13 essential tools always available + keyword bonus for English
+    const allTools = agent.state.tools;
+    if (allTools.length > 0) {
+      const selected = selectToolsForMessage(allTools, message);
+      if (selected.length > 0 && selected.length < allTools.length) {
+        agent.state.tools = selected;
+      }
+    }
+
     try {
       await agent.prompt([
         createContextMessage(
@@ -99,6 +107,7 @@ export function registerChatRoutes(
       ]);
     } finally {
       unsubscribe();
+      agent.state.tools = allTools;
     }
 
     // Check for agent errors (pi-agent-core swallows errors internally)

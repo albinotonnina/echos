@@ -183,22 +183,66 @@ const ALWAYS_AVAILABLE = [
 /**
  * Select relevant tools based on user message content.
  *
- * Currently returns ALL tools since the math works out for Groq free tier:
- * ~2734 prompt + 5000 max_completion = 7734 < 8000 TPM limit.
+ * Real tools average ~644 chars each. With 48 tools, total is ~30,900 chars (~7,725 tokens)
+ * plus system prompt (~900) plus max_completion (5,000) = ~13,625 TPM → exceeds 8K limit.
  *
- * This means the agent works correctly for ANY language without
- * English-only keyword matching.
+ * Budget: 8,000 TPM - 5,000 max_completion - ~900 system = ~2,100 tokens for tools
+ * At ~160 tokens/tool average → max **13 tools** fit.
  *
- * The keyword-based selection logic is preserved below for future use
- * with providers that have stricter token limits.
+ * Strategy:
+ * 1. ALWAYS_AVAILABLE: 13 most essential tools (works for ANY language)
+ * 2. English keyword matching: adds extra tools on top if message is in English
+ * 3. Cap at 15 total to stay safe
  */
 export function selectToolsForMessage(
   allTools: AgentTool[],
-  _messageText: string,
-  _maxTools = 50,
+  messageText: string,
+  maxTools = 15,
 ): AgentTool[] {
-  // Return all tools — fits within Groq 8K TPM limit
-  return allTools;
-}
+  const messageLower = messageText.toLowerCase();
+  const matchedToolNames = new Set<string>();
 
-// --- Keyword-based selection logic (preserved for future use) ---
+  // Essential tools available for ANY language (13 tools = ~2,080 tokens)
+  // Covers: notes, search, reminders, todos, memory, tags, reading
+  const ALWAYS_AVAILABLE = [
+    'create_note',       // Create notes
+    'search_knowledge',  // Search knowledge base
+    'get_note',          // Get note by ID
+    'list_notes',        // List notes
+    'add_reminder',      // Add reminders/todos
+    'list_reminders',    // View reminders
+    'complete_reminder', // Mark done
+    'list_todos',        // View todos
+    'remember_about_me', // Save facts to memory
+    'recall_knowledge',  // Search memory
+    'manage_tags',       // Tag management
+    'categorize_note',   // Auto-categorize
+    'mark_content',      // Mark as read/saved
+  ];
+
+  for (const name of ALWAYS_AVAILABLE) {
+    matchedToolNames.add(name);
+  }
+
+  // English keyword matching adds extra tools (capped at maxTools)
+  for (const category of TOOL_CATEGORIES) {
+    for (const keyword of category.keywords) {
+      if (keyword.test(messageLower)) {
+        for (const name of category.toolNames) {
+          matchedToolNames.add(name);
+        }
+        break;
+      }
+    }
+  }
+
+  // Filter tools from the full list
+  const selected = allTools.filter((tool) => matchedToolNames.has(tool.name));
+
+  // Cap at maxTools
+  if (selected.length > maxTools) {
+    return selected.slice(0, maxTools);
+  }
+
+  return selected;
+}

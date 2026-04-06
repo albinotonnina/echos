@@ -7,6 +7,7 @@ import {
   createContextMessage,
   createUserMessage,
   type ExportFileResult,
+  selectToolsForMessage,
 } from '@echos/core';
 import {
   buildReadingQueueKeyboard,
@@ -364,10 +365,17 @@ export async function streamAgentResponse(
   const now = new Date();
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  // For Groq free tier (8K TPM), we send ALL tools since the math works out:
-  // ~2734 prompt + 5000 max_completion = 7734 < 8000
-  // This also means the agent works correctly for ANY language.
-  // Tool selection is only needed for providers with very strict token limits.
+  // Tool selection: 13 essential tools always available + keyword bonus for English
+  // Real tools avg ~644 chars each, 48 tools = ~13,625 TPM (over 8K limit)
+  // With 13 essential tools: ~2,980 + 5,000 = ~7,980 TPM ✅
+  const allTools = agent.state.tools;
+  if (allTools.length > 0) {
+    const selected = selectToolsForMessage(allTools, prompt);
+    if (selected.length > 0 && selected.length < allTools.length) {
+      agent.state.tools = selected;
+      console.log(`[TOOL-SELECT] message="${prompt.slice(0, 50)}" tools=${selected.length}/${allTools.length} [${selected.map((t: { name: string }) => t.name).join(', ')}]`);
+    }
+  }
 
   try {
     await agent.prompt([
@@ -380,6 +388,7 @@ export async function streamAgentResponse(
     clearInterval(typingInterval);
     unsubscribe();
     if (editTimeout) clearTimeout(editTimeout);
+    agent.state.tools = allTools;
   }
 
   const agentError = agent.state.error;
