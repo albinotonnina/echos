@@ -172,20 +172,35 @@ export const TOOL_CATEGORIES: ToolCategory[] = [
 ];
 
 // Tools that are always available regardless of message content
-const ALWAYS_AVAILABLE = ['create_note', 'add_reminder', 'list_todos', 'list_reminders'];
+const ALWAYS_AVAILABLE = [
+  'create_note', 'add_reminder', 'list_todos', 'list_reminders',
+  'search_knowledge', 'list_notes', 'get_note', 'recall_knowledge',
+  'manage_tags', 'categorize_note', 'mark_content',
+  'reading_queue', 'knowledge_stats', 'reading_stats',
+  'save_conversation', 'search_conversations', 'link_notes',
+];
 
 /**
  * Select relevant tools based on user message content.
  * Returns a subset of the full tool list that matches the detected intent.
+ *
+ * Note: Keyword matching is English-only. For non-English messages, the
+ * ALWAYS_AVAILABLE set is used as a broad fallback.
  */
 export function selectToolsForMessage(
   allTools: AgentTool[],
   messageText: string,
-  maxTools = 5,
+  maxTools = 15,
 ): AgentTool[] {
   const messageLower = messageText.toLowerCase();
   const matchedToolNames = new Set<string>();
 
+  // Always include core tools (works for any language)
+  for (const name of ALWAYS_AVAILABLE) {
+    matchedToolNames.add(name);
+  }
+
+  // Also try English keyword matching for more specific tool selection
   for (const category of TOOL_CATEGORIES) {
     for (const keyword of category.keywords) {
       if (keyword.test(messageLower)) {
@@ -195,18 +210,6 @@ export function selectToolsForMessage(
         break;
       }
     }
-  }
-
-  // If no specific category matched, include search/knowledge tools as fallback
-  if (matchedToolNames.size === 0) {
-    matchedToolNames.add('search_knowledge');
-    matchedToolNames.add('list_notes');
-    matchedToolNames.add('get_note');
-  }
-
-  // Always include core tools
-  for (const name of ALWAYS_AVAILABLE) {
-    matchedToolNames.add(name);
   }
 
   // Filter tools from the full list
