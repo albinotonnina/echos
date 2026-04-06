@@ -226,14 +226,15 @@ export function selectToolsForMessage(
     'reading_queue',
     'reading_stats',
     'knowledge_stats',
-    // Organization (3)
+    // Organization (1)
     'manage_tags',
-    'categorize_note',
-    'mark_content',
-    // URL Content Saving (3)
+    // Content Saving (6)
     'save_article',
     'save_youtube',
     'save_tweet',
+    'save_audio',
+    'save_image',
+    'save_pdf',
   ];
 
   for (const name of ALWAYS_AVAILABLE) {
