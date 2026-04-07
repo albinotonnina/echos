@@ -48,6 +48,8 @@ export interface SearchOptions {
   offset?: number;
   dateFrom?: string;
   dateTo?: string;
+  temporalDecay?: boolean;
+  decayHalfLifeDays?: number;
 }
 
 export interface MemoryEntry {
