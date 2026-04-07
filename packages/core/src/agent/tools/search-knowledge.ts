@@ -39,6 +39,13 @@ const schema = Type.Object({
       maximum: 3650,
     }),
   ),
+  rerank: Type.Optional(
+    Type.Boolean({
+      description:
+        'Enable AI reranking for highest-quality results (slower, uses an extra API call, and sends truncated note titles/content to Anthropic for scoring). Default: false.',
+      default: false,
+    }),
+  ),
 });
 
 type Params = Static<typeof schema>;
@@ -58,6 +65,7 @@ export function searchKnowledgeTool(deps: SearchKnowledgeToolDeps): AgentTool<ty
       if (params.type) opts.type = params.type as ContentType;
       if (params.temporalDecay === false) opts.temporalDecay = false;
       if (params.decayHalfLifeDays != null) opts.decayHalfLifeDays = params.decayHalfLifeDays;
+      if (params.rerank === true) opts.rerank = true;
 
       let results;
 

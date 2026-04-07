@@ -13,7 +13,7 @@ export {
   type VectorSearchResult,
   type VectorStorageOptions,
 } from './vectordb.js';
-export { createSearchService, type SearchService } from './search.js';
+export { createSearchService, type SearchService, type SearchServiceConfig } from './search.js';
 export {
   reconcileStorage,
   computeContentHash,
