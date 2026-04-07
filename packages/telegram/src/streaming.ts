@@ -405,7 +405,9 @@ export async function streamAgentResponse(
     const selected = selectToolsForMessage(allTools, prompt);
     if (selected.length > 0 && selected.length < allTools.length) {
       agent.state.tools = selected;
-      console.log(`[TOOL-SELECT] message="${prompt.slice(0, 50)}" tools=${selected.length}/${allTools.length} [${selected.map((t: { name: string }) => t.name).join(', ')}]`);
+      console.log(
+        `[TOOL-SELECT] message="${prompt.slice(0, 50)}" tools=${selected.length}/${allTools.length} [${selected.map((t: { name: string }) => t.name).join(', ')}]`,
+      );
     }
   }
 
@@ -423,7 +425,7 @@ export async function streamAgentResponse(
     agent.state.tools = allTools;
   }
 
-  const agentError = agent.state.errorMessage;
+  const agentError = agent.state.error;
 
   if (textBuffer) {
     await updateMessage();

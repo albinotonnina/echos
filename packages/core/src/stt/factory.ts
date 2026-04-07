@@ -39,6 +39,12 @@ export async function createSttClient(config: Config): Promise<SpeechToTextClien
     return createClientWithProvider(cached, apiKey, config);
   }
 
+  // Probe providers with opaque keys (Together AI, SiliconFlow, etc.)
+  const probed = await probeSttProviders(apiKey);
+  if (probed) {
+    return createClientWithProvider(probed.provider, apiKey, config);
+  }
+
   return undefined;
 }
 

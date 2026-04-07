@@ -37,7 +37,7 @@ export async function setupScheduler(
   pluginRegistry: PluginRegistry,
   notificationService: NotificationService,
   manageScheduleTool: ReturnType<typeof createManageScheduleTool>,
-  sttClient: SpeechToTextClient,
+  sttClient: SpeechToTextClient | undefined,
   logger: Logger,
 ): Promise<SchedulerResult> {
   const exportsDir = join(config.dbPath, '..', 'exports');

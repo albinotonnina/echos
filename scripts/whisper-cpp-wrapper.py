@@ -45,7 +45,8 @@ def main():
     # Load model
     model_name = args.model.replace(".bin", "").replace("ggml-", "")
     model_dir = os.environ.get(
-        "WHISPER_MODEL_DIR", "/Users/ais/.local/share/whispercpp"
+        "WHISPER_MODEL_DIR",
+        os.path.join(os.path.expanduser("~"), ".local", "share", "whispercpp"),
     )
     try:
         w = Whisper.from_pretrained(model_name, basedir=model_dir)

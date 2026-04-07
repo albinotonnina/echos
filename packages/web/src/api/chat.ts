@@ -143,7 +143,7 @@ export function registerChatRoutes(
     }
 
     // Check for agent errors (pi-agent-core swallows errors internally)
-    const agentError = agent.state.errorMessage;
+    const agentError = agent.state.error;
     if (!responseText && agentError) {
       const isOverflow = isAgentMessageOverflow(
         lastAssistantMessage,

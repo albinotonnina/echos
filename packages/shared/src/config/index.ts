@@ -65,7 +65,7 @@ export const configSchema = z
       .default('auto'),
     sttApiKey: z.string().optional(),
     sttBaseUrl: z.string().url().optional(),
-    sttModel: z.string().default('whisper-1'),
+    sttModel: z.string().optional(),
     sttLocalCommand: z.string().optional(),
     sttLocalModel: z.string().default('base.en'),
     sttLocalModelDir: z.string().optional(),

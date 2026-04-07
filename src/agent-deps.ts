@@ -9,10 +9,7 @@ import type { AgentDeps, PluginRegistry, SpeechToTextClient } from '@echos/core'
 import type { StorageResult } from './storage-init.js';
 import type { createManageScheduleTool } from '@echos/scheduler';
 
-export function buildPluginConfig(
-  config: Config,
-  sttClient: SpeechToTextClient,
-): Record<string, unknown> {
+export function buildPluginConfig(config: Config): Record<string, unknown> {
   return {
     ...(config.openaiApiKey ? { openaiApiKey: config.openaiApiKey } : {}),
     ...(config.whisperLanguage ? { whisperLanguage: config.whisperLanguage } : {}),

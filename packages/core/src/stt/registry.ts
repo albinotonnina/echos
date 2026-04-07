@@ -1,3 +1,7 @@
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { createHash } from 'node:crypto';
+
 /**
  * STT Provider Registry
  *
@@ -211,19 +215,20 @@ export function getProbeableProviders(): SttProviderInfo[] {
  * Returns true if the key is valid (200 response).
  */
 export async function probeProvider(apiKey: string, provider: SttProviderInfo): Promise<boolean> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
 
+  try {
     const res = await fetch(`${provider.defaultBaseUrl}/models`, {
       headers: { Authorization: `Bearer ${apiKey}` },
       signal: controller.signal,
     });
 
-    clearTimeout(timeout);
     return res.ok;
   } catch {
     return false;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -245,7 +250,6 @@ function getCachePath(): string {
 
 function getCache(): Record<string, ProviderCacheEntry> {
   try {
-    const { readFileSync } = require('node:fs');
     return JSON.parse(readFileSync(getCachePath(), 'utf-8'));
   } catch {
     return {};
@@ -254,8 +258,6 @@ function getCache(): Record<string, ProviderCacheEntry> {
 
 function saveCache(cache: Record<string, ProviderCacheEntry>): void {
   try {
-    const { writeFileSync, mkdirSync } = require('node:fs');
-    const { dirname } = require('node:path');
     mkdirSync(dirname(getCachePath()), { recursive: true });
     writeFileSync(getCachePath(), JSON.stringify(cache, null, 2));
   } catch {
@@ -264,7 +266,6 @@ function saveCache(cache: Record<string, ProviderCacheEntry>): void {
 }
 
 function hashApiKey(apiKey: string): string {
-  const { createHash } = require('node:crypto');
   return createHash('sha256').update(apiKey).digest('hex');
 }
 

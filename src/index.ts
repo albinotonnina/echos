@@ -48,7 +48,7 @@ async function main(): Promise<void> {
     getAgentDeps: () => agentDeps,
     getNotificationService: () => notificationService,
     sttClient,
-    config: buildPluginConfig(config, sttClient),
+    config: buildPluginConfig(config),
   });
 
   const redisResult = await checkRedisConnection(config.redisUrl, logger);

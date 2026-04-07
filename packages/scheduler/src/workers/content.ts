@@ -18,7 +18,7 @@ export interface ContentWorkerDeps {
   vectorDb: VectorStorage;
   generateEmbedding: (text: string) => Promise<number[]>;
   logger: Logger;
-  sttClient: SpeechToTextClient;
+  sttClient?: SpeechToTextClient;
   whisperLanguage?: string;
   notifyUser?: (chatId: number, message: string) => Promise<void>;
 }

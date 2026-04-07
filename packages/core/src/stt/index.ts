@@ -1,3 +1,5 @@
+import { RateLimitError } from '@echos/shared';
+
 export interface TranscribeOptions {
   audioBuffer: Buffer;
   mimeType: string;
@@ -23,7 +25,7 @@ export async function transcribeWithRetry(
     try {
       return await client.transcribe(options);
     } catch (err) {
-      const isRateLimit = err instanceof Error && err.name === 'RateLimitError';
+      const isRateLimit = err instanceof RateLimitError;
       if (isRateLimit && i < maxRetries) {
         const delay = Math.pow(2, i) * 1000;
         await new Promise((r) => setTimeout(r, delay));
