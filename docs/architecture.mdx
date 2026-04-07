@@ -414,11 +414,13 @@ Both paths use the same content hash check, so the OpenAI embeddings API is only
 
 ## Search
 
-Hybrid search combines three strategies via Reciprocal Rank Fusion (RRF):
+Hybrid search combines multiple strategies in a pipeline (`packages/core/src/storage/search.ts`):
 
 1. **Keyword** (FTS5): BM25-ranked full-text search across title, content, tags
 2. **Semantic** (LanceDB): Cosine similarity on OpenAI embeddings
 3. **Hybrid**: RRF fusion of keyword + semantic results
+4. **Temporal decay** (optional, default on): exponential decay factor `2^(-age/halfLife)` applied to RRF scores so recent notes rank higher. Configurable half-life (default 90 days). Set `temporalDecay: false` for archival searches.
+5. **Cross-encoder reranking** (optional, default off): after all scoring stages, the top-N candidates are sent to Claude Haiku with a relevance-scoring prompt. Scores are parsed and results re-sorted. Adds one API call per search but yields the highest-quality ranking. Enable with `rerank: true` in `SearchOptions` or the `search_knowledge` tool. Requires `ANTHROPIC_API_KEY`. Implemented in `packages/core/src/storage/reranker.ts`.
 
 ## Memory System
 
