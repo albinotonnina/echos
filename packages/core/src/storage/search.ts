@@ -11,6 +11,17 @@ export interface SearchService {
 }
 
 const RRF_K = 60; // Reciprocal rank fusion constant
+const TEMPORAL_DECAY_DEFAULT_HALF_LIFE = 90; // days
+
+/**
+ * Exponential temporal decay factor.
+ * Returns 1.0 for a note created now, decaying toward 0 as the note ages.
+ * At `halfLifeDays` the factor is 0.5; at 2x half-life it's 0.25, etc.
+ */
+export function computeTemporalDecay(createdAt: string, halfLifeDays: number): number {
+  const ageDays = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24);
+  return Math.pow(2, -ageDays / halfLifeDays);
+}
 
 function noteRowToNote(row: NoteRow): Note {
   const metadata: NoteMetadata = {
@@ -120,17 +131,26 @@ export function createSearchService(
       // Fuse rankings
       const fused = reciprocalRankFusion(ftsRanked, vectorRanked);
 
-      // Resolve notes (exclude soft-deleted)
+      // Resolve notes (exclude soft-deleted), apply temporal decay
+      const applyDecay = opts.temporalDecay !== false;
+      const halfLife = opts.decayHalfLifeDays ?? TEMPORAL_DECAY_DEFAULT_HALF_LIFE;
+
       const results: SearchResult[] = [];
       for (const { id, score } of fused.slice(0, limit)) {
         const noteRow = sqlite.getNote(id);
         if (!noteRow) continue;
         if (noteRow.status === 'deleted') continue;
-        results.push(noteRowToSearchResult(noteRow, score, mdStorage, logger));
+        const finalScore = applyDecay
+          ? score * computeTemporalDecay(noteRow.created, halfLife)
+          : score;
+        results.push(noteRowToSearchResult(noteRow, finalScore, mdStorage, logger));
       }
 
+      // Re-sort after decay modulation (scores may have changed relative order)
+      results.sort((a, b) => b.score - a.score);
+
       logger.debug(
-        { query: opts.query, ftsCount: ftsRows.length, vectorCount: vectorResults.length, resultCount: results.length },
+        { query: opts.query, ftsCount: ftsRows.length, vectorCount: vectorResults.length, resultCount: results.length, temporalDecay: applyDecay },
         'Hybrid search',
       );
       return results;

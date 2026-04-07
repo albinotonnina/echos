@@ -24,6 +24,13 @@ const schema = Type.Object({
   limit: Type.Optional(
     Type.Number({ description: 'Max results to return', default: 10, minimum: 1, maximum: 50 }),
   ),
+  temporalDecay: Type.Optional(
+    Type.Boolean({
+      description:
+        'Apply temporal decay to boost recent notes over older ones. Default: true. Set to false for archival searches ("find my oldest notes about X").',
+      default: true,
+    }),
+  ),
 });
 
 type Params = Static<typeof schema>;
@@ -41,6 +48,7 @@ export function searchKnowledgeTool(deps: SearchKnowledgeToolDeps): AgentTool<ty
 
       const opts: SearchOptions = { query: params.query, limit };
       if (params.type) opts.type = params.type as ContentType;
+      if (params.temporalDecay === false) opts.temporalDecay = false;
 
       let results;
 
