@@ -120,7 +120,7 @@ export function registerCommands(bot: Bot, deps: CommandDeps): void {
           ? (presets.balanced ?? MODEL_PRESETS.balanced)
           : (presets.deep ?? MODEL_PRESETS.deep);
 
-    agent.setModel(resolveModel(modelSpec));
+    agent.state.model = resolveModel(modelSpec);
     await ctx.reply(`✅ Switched to ${preset}: ${agent.state.model.id}`);
   });
 

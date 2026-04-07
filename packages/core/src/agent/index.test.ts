@@ -29,7 +29,7 @@ vi.mock('@mariozechner/pi-agent-core', () => {
   class MockAgent {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     streamFn: ((...args: any[]) => any) | undefined = undefined;
-    setSystemPrompt = vi.fn();
+    state = { systemPrompt: '' };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(opts: any) {
       capturedAgentOpts = opts;
