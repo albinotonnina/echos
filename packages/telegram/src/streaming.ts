@@ -358,7 +358,7 @@ export async function streamAgentResponse(
     if (editTimeout) clearTimeout(editTimeout);
   }
 
-  const agentError = agent.state.error;
+  const agentError = agent.state.errorMessage;
 
   if (textBuffer) {
     await updateMessage();

@@ -99,7 +99,7 @@ export function createAgentTools(ctx: CreateAgentToolsContext): AgentTool<any>[]
       onVoiceChange: (instruction) => {
         if (agentRef.current) {
           const newPrompt = buildSystemPrompt(memories, hasMore, instruction || null);
-          agentRef.current.setSystemPrompt(newPrompt);
+          agentRef.current.state.systemPrompt = newPrompt;
         }
       },
     }),

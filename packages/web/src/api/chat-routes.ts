@@ -37,7 +37,7 @@ export function registerChatSubRoutes(
         : preset === 'balanced'
           ? (presets.balanced ?? MODEL_PRESETS.balanced)
           : (presets.deep ?? MODEL_PRESETS.deep);
-    agent.setModel(resolveModel(modelSpec));
+    agent.state.model = resolveModel(modelSpec);
     return reply.send({ ok: true, model: agent.state.model.id });
   });
 
