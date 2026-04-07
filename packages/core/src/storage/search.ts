@@ -190,13 +190,11 @@ export function createSearchService(
       const results = candidates.slice(0, limit);
 
       // Record access for all returned notes (fire-and-forget, non-blocking)
-      if (results.length > 0) {
-        for (const result of results) {
-          try {
-            sqlite.recordAccess(result.note.metadata.id);
-          } catch {
-            // Access tracking is best-effort; don't fail the search on write errors
-          }
+      for (const result of results) {
+        try {
+          sqlite.recordAccess(result.note.metadata.id);
+        } catch {
+          // Access tracking is best-effort; don't fail the search on write errors
         }
       }
 

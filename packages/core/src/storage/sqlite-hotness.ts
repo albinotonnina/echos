@@ -17,7 +17,7 @@ export function createHotnessOps(db: Database.Database): HotnessOps {
     INSERT INTO note_hotness (note_id, retrieval_count, last_accessed)
     VALUES (?, 1, ?)
     ON CONFLICT(note_id) DO UPDATE SET
-      retrieval_count = COALESCE(note_hotness.retrieval_count, 0) + 1,
+      retrieval_count = note_hotness.retrieval_count + 1,
       last_accessed = excluded.last_accessed
   `);
 

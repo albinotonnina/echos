@@ -312,19 +312,6 @@ describe('createSearchService - hotness scoring', () => {
     expect(sqlite.recordAccess).toHaveBeenCalledWith('obscure');
   });
 
-  it('getTopHot returns most-accessed notes for analytics', async () => {
-    // getTopHot is on SqliteStorage, tested at the storage level; confirm it is callable
-    // via the SqliteStorage interface (smoke test only — full DB test belongs in sqlite.test.ts)
-    const getTopHot = vi.fn().mockReturnValue([
-      { noteId: 'popular', retrievalCount: 50, lastAccessed: new Date().toISOString() },
-    ]);
-    (sqlite as unknown as Record<string, unknown>)['getTopHot'] = getTopHot;
-
-    const result = (sqlite as unknown as { getTopHot: (n: number) => unknown[] }).getTopHot(10);
-    expect(result).toHaveLength(1);
-    expect((result[0] as { noteId: string }).noteId).toBe('popular');
-  });
-
   it('hotness decays with time since last access', async () => {
     const service = createSearchService(sqlite, vectorDb, mdStorage, logger);
 
