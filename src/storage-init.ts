@@ -32,7 +32,9 @@ export async function initStorage(config: Config, logger: Logger): Promise<Stora
   const vectorDb = await createVectorStorage(join(config.dbPath, 'vectors'), logger, {
     dimensions: config.embeddingDimensions,
   });
-  const search = createSearchService(sqlite, vectorDb, markdown, logger);
+  const search = createSearchService(sqlite, vectorDb, markdown, logger, {
+    anthropicApiKey: config.anthropicApiKey,
+  });
 
   const generateEmbedding = createEmbeddingFn({
     openaiApiKey: config.openaiApiKey,

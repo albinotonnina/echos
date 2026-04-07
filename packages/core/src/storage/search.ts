@@ -3,6 +3,7 @@ import type { SearchOptions, SearchResult, Note, NoteMetadata } from '@echos/sha
 import type { SqliteStorage, NoteRow, FtsOptions } from './sqlite.js';
 import type { VectorStorage, VectorSearchResult } from './vectordb.js';
 import type { MarkdownStorage } from './markdown.js';
+import { rerank } from './reranker.js';
 
 export interface SearchService {
   keyword(opts: SearchOptions): SearchResult[];
@@ -78,11 +79,16 @@ function reciprocalRankFusion(
     .sort((a, b) => b.score - a.score);
 }
 
+export interface SearchServiceConfig {
+  anthropicApiKey?: string;
+}
+
 export function createSearchService(
   sqlite: SqliteStorage,
   vectorDb: VectorStorage,
   mdStorage: MarkdownStorage,
   logger: Logger,
+  config: SearchServiceConfig = {},
 ): SearchService {
   return {
     keyword(opts: SearchOptions): SearchResult[] {
@@ -156,10 +162,19 @@ export function createSearchService(
 
       // Sort by decayed score and take top `limit`
       candidates.sort((a, b) => b.score - a.score);
-      const results = candidates.slice(0, limit);
+      const sliced = candidates.slice(0, limit);
+
+      // Optional reranking stage — uses Claude as a cross-encoder for highest-quality relevance scoring.
+      // Off by default (adds one API call per search). Requires anthropicApiKey to be configured.
+      let results = sliced;
+      if (opts.rerank && config.anthropicApiKey) {
+        results = await rerank(opts.query, sliced, config.anthropicApiKey, logger);
+      } else if (opts.rerank && !config.anthropicApiKey) {
+        logger.warn({ query: opts.query }, 'Rerank requested but no anthropicApiKey configured — skipping');
+      }
 
       logger.debug(
-        { query: opts.query, ftsCount: ftsRows.length, vectorCount: vectorResults.length, resultCount: results.length, temporalDecay: applyDecay },
+        { query: opts.query, ftsCount: ftsRows.length, vectorCount: vectorResults.length, resultCount: results.length, temporalDecay: applyDecay, reranked: opts.rerank ?? false },
         'Hybrid search',
       );
       return results;
