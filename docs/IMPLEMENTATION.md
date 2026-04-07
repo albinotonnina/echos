@@ -1589,7 +1589,7 @@ Upgrade the hybrid search pipeline with temporal awareness, access-frequency boo
 
 ---
 
-## Future Phase: Knowledge Graph & Auto-Curation
+## Phase 14: Knowledge Graph & Auto-Curation (Future)
 
 > **Parked.** Entity extraction, knowledge graphs, and contradiction detection are valuable at scale (5,000+ notes) but add ongoing LLM cost and complexity that isn't justified for a personal tool at typical corpus sizes (100s–low 1,000s of notes). Revisit when users hit search quality ceilings. The existing `suggest-links`, `find-similar`, and `explore-graph` tools cover the immediate need.
 
