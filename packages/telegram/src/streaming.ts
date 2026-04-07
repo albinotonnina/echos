@@ -423,7 +423,7 @@ export async function streamAgentResponse(
     agent.state.tools = allTools;
   }
 
-  const agentError = agent.state.error;
+  const agentError = agent.state.errorMessage;
 
   if (textBuffer) {
     await updateMessage();

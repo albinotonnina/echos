@@ -173,11 +173,23 @@ export const TOOL_CATEGORIES: ToolCategory[] = [
 
 // Tools that are always available regardless of message content
 const ALWAYS_AVAILABLE = [
-  'create_note', 'add_reminder', 'list_todos', 'list_reminders',
-  'search_knowledge', 'list_notes', 'get_note', 'recall_knowledge',
-  'manage_tags', 'categorize_note', 'mark_content',
-  'reading_queue', 'knowledge_stats', 'reading_stats',
-  'save_conversation', 'search_conversations', 'link_notes',
+  'create_note',
+  'add_reminder',
+  'list_todos',
+  'list_reminders',
+  'search_knowledge',
+  'list_notes',
+  'get_note',
+  'recall_knowledge',
+  'manage_tags',
+  'categorize_note',
+  'mark_content',
+  'reading_queue',
+  'knowledge_stats',
+  'reading_stats',
+  'save_conversation',
+  'search_conversations',
+  'link_notes',
 ];
 
 /**
@@ -226,8 +238,9 @@ export function selectToolsForMessage(
     'reading_queue',
     'reading_stats',
     'knowledge_stats',
-    // Organization (1)
+    // Organization (2)
     'manage_tags',
+    'categorize_note',
     // Content Saving (6)
     'save_article',
     'save_youtube',
@@ -235,6 +248,25 @@ export function selectToolsForMessage(
     'save_audio',
     'save_image',
     'save_pdf',
+    // Content management (2)
+    'mark_content',
+    'synthesize_notes',
+    'use_template',
+    // Link tools (3)
+    'link_notes',
+    'find_similar',
+    'suggest_links',
+    // Voice (1)
+    'set_agent_voice',
+    // Export (2)
+    'export_notes',
+    'manage_backups',
+    // Journal (2)
+    'create_journal',
+    'list_journal',
+    // Note history & versions (2)
+    'note_history',
+    'restore_version',
   ];
 
   for (const name of ALWAYS_AVAILABLE) {

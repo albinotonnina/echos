@@ -1,6 +1,6 @@
 {
   "name": "@echos/telegram",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -14,13 +14,13 @@
   "dependencies": {
     "@echos/core": "workspace:*",
     "@echos/shared": "workspace:*",
-    "@mariozechner/pi-agent-core": "^0.64.0",
-    "grammy": "^1.41.1",
+    "@mariozechner/pi-agent-core": "^0.65.2",
+    "grammy": "^1.42.0",
     "openai": "^6.33.0",
     "pino": "^10.3.1"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.5.2",
     "typescript": "^5.7.0"
   }
 }

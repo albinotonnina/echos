@@ -1,6 +1,6 @@
 {
   "name": "@echos/shared",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -24,7 +24,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.5.2",
     "typescript": "^5.7.0"
   }
 }

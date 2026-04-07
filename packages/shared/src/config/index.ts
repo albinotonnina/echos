@@ -124,10 +124,6 @@ export const configSchema = z
       .default('false')
       .transform((s) => s === 'true'),
 
-    // Max tokens for conversation context window (default: 80_000).
-    // Use ~7000 for Groq free tier to stay under 8K TPM limit.
-    maxContextTokens: z.coerce.number().int().positive().default(80_000),
-
     // Update checker
     disableUpdateCheck: z
       .string()

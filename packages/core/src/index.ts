@@ -77,4 +77,3 @@ export {
   transcribeWithRetry,
   createSttClient,
 } from './stt/index.js';
-export { selectToolsForMessage } from './agent/tool-router.js';

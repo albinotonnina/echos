@@ -44,8 +44,6 @@ export interface AgentDeps {
   dbPath?: string;
   /** Speech-to-text client for voice transcription */
   sttClient?: SpeechToTextClient;
-  /** Max tokens for conversation context window (default: 80_000, use ~7000 for Groq free tier) */
-  maxContextTokens?: number;
 }
 
 export interface AgentToolDeps {

@@ -1,6 +1,6 @@
 {
   "name": "@echos/plugin-resurface",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "description": "EchOS knowledge resurfacing plugin — spaced repetition & on-this-day",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,13 +14,13 @@
   "dependencies": {
     "@echos/core": "workspace:*",
     "@echos/shared": "workspace:*",
-    "@mariozechner/pi-agent-core": "^0.64.0",
-    "@mariozechner/pi-ai": "^0.64.0",
+    "@mariozechner/pi-agent-core": "^0.65.2",
+    "@mariozechner/pi-ai": "^0.65.2",
     "@sinclair/typebox": "^0.34.49",
-    "bullmq": "^5.71.1"
+    "bullmq": "^5.73.0"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.5.2",
     "typescript": "^5.7.0"
   }
 }
