@@ -108,6 +108,12 @@ const SCHEMA = `
   );
 
   CREATE INDEX IF NOT EXISTS idx_revisions_note_id_created ON revisions(note_id, created_at);
+
+  CREATE TABLE IF NOT EXISTS note_hotness (
+    note_id TEXT PRIMARY KEY,
+    retrieval_count INTEGER NOT NULL DEFAULT 0,
+    last_accessed TEXT NOT NULL
+  );
 `;
 
 export interface PreparedStatements {
@@ -268,6 +274,15 @@ function runMigrations(db: Database.Database): void {
     CREATE TRIGGER IF NOT EXISTS revisions_on_note_delete
       AFTER DELETE ON notes
       BEGIN DELETE FROM revisions WHERE note_id = old.id; END;
+  `);
+
+  // Migration: add note_hotness table for hotness scoring
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS note_hotness (
+      note_id TEXT PRIMARY KEY,
+      retrieval_count INTEGER NOT NULL DEFAULT 0,
+      last_accessed TEXT NOT NULL
+    )
   `);
 }
 
