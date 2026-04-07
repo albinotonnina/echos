@@ -42,7 +42,7 @@ const schema = Type.Object({
   rerank: Type.Optional(
     Type.Boolean({
       description:
-        'Enable AI reranking for highest-quality results (slower, uses an extra API call). Default: false.',
+        'Enable AI reranking for highest-quality results (slower, uses an extra API call, and sends truncated note titles/content to Anthropic for scoring). Default: false.',
       default: false,
     }),
   ),

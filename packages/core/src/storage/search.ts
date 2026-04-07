@@ -167,14 +167,16 @@ export function createSearchService(
       // Optional reranking stage — uses Claude as a cross-encoder for highest-quality relevance scoring.
       // Off by default (adds one API call per search). Requires anthropicApiKey to be configured.
       let results = sliced;
+      let rerankApplied = false;
       if (opts.rerank && config.anthropicApiKey) {
         results = await rerank(opts.query, sliced, config.anthropicApiKey, logger);
+        rerankApplied = true;
       } else if (opts.rerank && !config.anthropicApiKey) {
         logger.warn({ query: opts.query }, 'Rerank requested but no anthropicApiKey configured — skipping');
       }
 
       logger.debug(
-        { query: opts.query, ftsCount: ftsRows.length, vectorCount: vectorResults.length, resultCount: results.length, temporalDecay: applyDecay, reranked: opts.rerank ?? false },
+        { query: opts.query, ftsCount: ftsRows.length, vectorCount: vectorResults.length, resultCount: results.length, temporalDecay: applyDecay, rerankRequested: opts.rerank ?? false, rerankApplied },
         'Hybrid search',
       );
       return results;

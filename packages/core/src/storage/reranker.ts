@@ -1,24 +1,36 @@
 import type { Logger } from 'pino';
+import type { Model } from '@mariozechner/pi-ai';
 import type { SearchResult } from '@echos/shared';
-import { streamSimple } from '@mariozechner/pi-ai';
-import { resolveModel } from '../agent/model-resolver.js';
+import { streamSimple, getModel } from '@mariozechner/pi-ai';
 
 export interface RerankOptions {
+  /** Number of top candidates to send to the cross-encoder (default: 20). */
   topK?: number;
-  model?: string;
+  /**
+   * Claude model to use for scoring. Pass a resolved `Model` object.
+   * Defaults to Claude Haiku (fast, cheap) when omitted.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  model?: Model<any>;
 }
 
-const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 const DEFAULT_TOP_K = 20;
 /** Max characters of note content to include in the reranking prompt */
 const MAX_CONTENT_CHARS = 400;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function defaultModel(): Model<any> {
+  return getModel('anthropic', 'claude-haiku-4-5-20251001');
+}
 
 function buildRerankPrompt(query: string, candidates: SearchResult[]): string {
   const items = candidates
     .map((r, i) => {
       const meta = r.note.metadata;
+      // Escape double quotes to prevent malformed prompt text
+      const safeTitle = meta.title.replace(/"/g, "'");
       const snippet = r.note.content.slice(0, MAX_CONTENT_CHARS).replace(/\n+/g, ' ');
-      return `${i + 1}. Title: "${meta.title}"\n   Content: ${snippet}`;
+      return `${i + 1}. Title: "${safeTitle}"\n   Content: ${snippet}`;
     })
     .join('\n\n');
 
@@ -33,8 +45,8 @@ Respond with a JSON array only, e.g.: [8, 3, 9, 1, ...]`;
 }
 
 function parseScores(text: string, expectedCount: number): number[] | null {
-  // Find first JSON array in the response
-  const match = text.match(/\[[\d\s.,]+\]/);
+  // Match any JSON array (non-greedy) then validate element types after JSON.parse
+  const match = text.match(/\[[\s\S]*?\]/);
   if (!match) return null;
 
   try {
@@ -53,7 +65,12 @@ function parseScores(text: string, expectedCount: number): number[] | null {
  *
  * Takes up to `topK` candidates, scores them against the query, and re-sorts.
  * The remaining candidates (beyond topK) are appended in their original order.
- * On API failure, returns candidates in original order (graceful degradation).
+ * Note: the topK/remainder split is only meaningful when the caller passes more
+ * candidates than DEFAULT_TOP_K (20). At default search limits the remainder is
+ * typically empty.
+ *
+ * On API failure or parse error, returns candidates in original order (graceful
+ * degradation).
  */
 export async function rerank(
   query: string,
@@ -65,12 +82,11 @@ export async function rerank(
   if (candidates.length === 0) return candidates;
 
   const topK = Math.min(options.topK ?? DEFAULT_TOP_K, candidates.length);
-  const modelId = options.model ?? DEFAULT_MODEL;
+  const model = options.model ?? defaultModel();
   const toRerank = candidates.slice(0, topK);
   const remainder = candidates.slice(topK);
 
   const prompt = buildRerankPrompt(query, toRerank);
-  const model = resolveModel(modelId);
 
   let responseText = '';
   try {
@@ -86,7 +102,7 @@ export async function rerank(
       }
     }
   } catch (err: unknown) {
-    logger.warn({ err, query, model: modelId }, 'Reranker API call failed — returning original order');
+    logger.warn({ err, query }, 'Reranker API call failed — returning original order');
     return candidates;
   }
 
