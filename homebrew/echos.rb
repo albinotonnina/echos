@@ -1,8 +1,8 @@
 class Echos < Formula
   desc "Secure, self-hosted, agent-driven personal knowledge management system"
   homepage "https://github.com/albinotonnina/echos"
-  url "https://github.com/albinotonnina/echos/archive/refs/tags/v0.17.0.tar.gz"
-  sha256 "fefff874e2c8dedfd92fdf68eb50c1423581312d1a07220d785cf8bfbd77f387"
+  url "https://github.com/albinotonnina/echos/archive/refs/tags/v0.18.0.tar.gz"
+  sha256 "7051c80257c646111826f56a5c96ccd88a95a17926f3bb3717fceb84a5e0da69"
   license "MIT"
   head "https://github.com/albinotonnina/echos.git", branch: "main"
 
