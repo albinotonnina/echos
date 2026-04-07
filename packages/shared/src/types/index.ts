@@ -50,6 +50,7 @@ export interface SearchOptions {
   dateTo?: string;
   temporalDecay?: boolean;
   decayHalfLifeDays?: number;
+  hotnessBoost?: boolean;
 }
 
 export interface MemoryEntry {
