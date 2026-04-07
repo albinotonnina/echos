@@ -4,6 +4,7 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { createSqliteStorage, type SqliteStorage } from './sqlite.js';
 import { createMarkdownStorage, type MarkdownStorage } from './markdown.js';
+import { type VectorStorage } from './vectordb.js';
 import { reconcileStorage, buildMetadata } from './reconciler.js';
 import { createLogger } from '@echos/shared';
 
@@ -143,9 +144,10 @@ describe('reconcileStorage — frontmatter edge cases', () => {
   const noopVectorDb = {
     upsert: async () => {},
     search: async () => [],
+    findByVector: async () => [],
     remove: async () => {},
-    close: async () => {},
-  };
+    close: () => {},
+  } satisfies VectorStorage;
 
   it('successfully reconciles a note with unquoted ISO timestamps (Date objects)', async () => {
     // gray-matter / js-yaml parses unquoted timestamps as Date objects
@@ -172,7 +174,7 @@ Some content here.
       reconcileStorage({
         baseDir: knowledgeDir,
         sqlite: storage,
-        vectorDb: noopVectorDb as never,
+        vectorDb: noopVectorDb,
         markdown,
         generateEmbedding: noopEmbedding,
         logger,
@@ -213,7 +215,7 @@ Content about AI skills.
       reconcileStorage({
         baseDir: knowledgeDir,
         sqlite: storage,
-        vectorDb: noopVectorDb as never,
+        vectorDb: noopVectorDb,
         markdown,
         generateEmbedding: noopEmbedding,
         logger,
@@ -250,7 +252,7 @@ Deep dive content.
       reconcileStorage({
         baseDir: knowledgeDir,
         sqlite: storage,
-        vectorDb: noopVectorDb as never,
+        vectorDb: noopVectorDb,
         markdown,
         generateEmbedding: noopEmbedding,
         logger,
@@ -281,7 +283,7 @@ No created timestamp.
       reconcileStorage({
         baseDir: knowledgeDir,
         sqlite: storage,
-        vectorDb: noopVectorDb as never,
+        vectorDb: noopVectorDb,
         markdown,
         generateEmbedding: noopEmbedding,
         logger,

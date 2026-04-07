@@ -152,11 +152,19 @@ export async function reconcileStorage(opts: ReconcileOptions): Promise<Reconcil
  * Coerce an unknown YAML value to an ISO-8601 string.
  * gray-matter / js-yaml parses unquoted timestamps (e.g. `2026-04-02T15:22:09.803Z`)
  * into native Date objects. SQLite cannot bind Date objects, so we must convert them.
- * Falls back to `now` when the value is absent or unparseable.
+ * Falls back to `now` when the value is absent or unparseable (invalid Date/string).
  */
 function toIsoString(value: unknown, fallback: string): string {
-  if (value instanceof Date) return value.toISOString();
-  if (typeof value === 'string' && value.trim()) return value.trim();
+  if (value instanceof Date) {
+    const timestamp = value.getTime();
+    return Number.isNaN(timestamp) ? fallback : value.toISOString();
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return fallback;
+    const timestamp = Date.parse(trimmed);
+    return Number.isNaN(timestamp) ? fallback : new Date(timestamp).toISOString();
+  }
   return fallback;
 }
 
@@ -168,7 +176,7 @@ function toIsoString(value: unknown, fallback: string): string {
 function toStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value
-      .map((v) => (typeof v === 'string' ? v : String(v)).trim())
+      .map((v) => (v == null ? '' : (typeof v === 'string' ? v : String(v)).trim()))
       .filter((v) => v !== '');
   }
   if (typeof value === 'string' && value.trim()) {
@@ -184,6 +192,9 @@ function toStringArray(value: unknown): string[] {
  * Coerce an unknown YAML value to a string, returning undefined when absent.
  * Date objects are converted to their ISO representation.
  * YAML block scalars (>-, |) are already resolved to plain strings by gray-matter.
+ * Non-string, non-Date, non-null values (e.g. numbers, booleans) are intentionally
+ * dropped (return undefined) — the fields this is used for (gist, author, source_url)
+ * are always strings in practice.
  */
 function toStringOrUndefined(value: unknown): string | undefined {
   if (value == null) return undefined;
