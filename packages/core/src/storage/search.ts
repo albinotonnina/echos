@@ -17,10 +17,16 @@ const TEMPORAL_DECAY_DEFAULT_HALF_LIFE = 90; // days
  * Exponential temporal decay factor.
  * Returns 1.0 for a note created now, decaying toward 0 as the note ages.
  * At `halfLifeDays` the factor is 0.5; at 2x half-life it's 0.25, etc.
+ *
+ * Inputs are clamped for safety:
+ * - Invalid or future `createdAt` → treated as age 0 (factor = 1.0)
+ * - `halfLifeDays` must be > 0; values ≤ 0 are clamped to 1 day
  */
 export function computeTemporalDecay(createdAt: string, halfLifeDays: number): number {
-  const ageDays = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24);
-  return Math.pow(2, -ageDays / halfLifeDays);
+  const safeHalfLife = Math.max(halfLifeDays, 1);
+  const ts = new Date(createdAt).getTime();
+  const ageDays = Number.isFinite(ts) ? Math.max((Date.now() - ts) / (1000 * 60 * 60 * 24), 0) : 0;
+  return Math.pow(2, -ageDays / safeHalfLife);
 }
 
 function noteRowToNote(row: NoteRow): Note {
@@ -131,23 +137,26 @@ export function createSearchService(
       // Fuse rankings
       const fused = reciprocalRankFusion(ftsRanked, vectorRanked);
 
-      // Resolve notes (exclude soft-deleted), apply temporal decay
+      // Resolve notes from the full candidate set, apply temporal decay, then truncate.
+      // Decay must be applied before slicing because it can change relative ordering:
+      // a recent-but-lower-RRF note may overtake an older higher-RRF note after decay.
       const applyDecay = opts.temporalDecay !== false;
       const halfLife = opts.decayHalfLifeDays ?? TEMPORAL_DECAY_DEFAULT_HALF_LIFE;
 
-      const results: SearchResult[] = [];
-      for (const { id, score } of fused.slice(0, limit)) {
+      const candidates: SearchResult[] = [];
+      for (const { id, score } of fused) {
         const noteRow = sqlite.getNote(id);
         if (!noteRow) continue;
         if (noteRow.status === 'deleted') continue;
         const finalScore = applyDecay
           ? score * computeTemporalDecay(noteRow.created, halfLife)
           : score;
-        results.push(noteRowToSearchResult(noteRow, finalScore, mdStorage, logger));
+        candidates.push(noteRowToSearchResult(noteRow, finalScore, mdStorage, logger));
       }
 
-      // Re-sort after decay modulation (scores may have changed relative order)
-      results.sort((a, b) => b.score - a.score);
+      // Sort by decayed score and take top `limit`
+      candidates.sort((a, b) => b.score - a.score);
+      const results = candidates.slice(0, limit);
 
       logger.debug(
         { query: opts.query, ftsCount: ftsRows.length, vectorCount: vectorResults.length, resultCount: results.length, temporalDecay: applyDecay },

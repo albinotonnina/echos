@@ -31,6 +31,14 @@ const schema = Type.Object({
       default: true,
     }),
   ),
+  decayHalfLifeDays: Type.Optional(
+    Type.Number({
+      description: 'Half-life for temporal decay in days. At this age a note\'s score is halved. Default: 90.',
+      default: 90,
+      minimum: 1,
+      maximum: 3650,
+    }),
+  ),
 });
 
 type Params = Static<typeof schema>;
@@ -49,6 +57,7 @@ export function searchKnowledgeTool(deps: SearchKnowledgeToolDeps): AgentTool<ty
       const opts: SearchOptions = { query: params.query, limit };
       if (params.type) opts.type = params.type as ContentType;
       if (params.temporalDecay === false) opts.temporalDecay = false;
+      if (params.decayHalfLifeDays != null) opts.decayHalfLifeDays = params.decayHalfLifeDays;
 
       let results;
 
