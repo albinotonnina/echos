@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import http from 'node:http';
 import net from 'node:net';
 import { createMcpServer, type McpServerDeps } from './server.js';
+import type { NoteRow } from '../storage/sqlite.js';
 
 const mockLogger = {
   info: () => {},
@@ -94,6 +95,103 @@ const INIT_REQUEST = {
     clientInfo: { name: 'test-client', version: '0.0.1' },
   },
 };
+
+const TEST_NOTE: NoteRow = {
+  id: 'note-abc123',
+  type: 'note',
+  title: 'My Test Note',
+  content: 'Hello from test.',
+  filePath: '/nonexistent/test-note.md',
+  tags: 'alpha,beta',
+  links: '',
+  category: 'testing',
+  sourceUrl: null,
+  author: null,
+  gist: 'A short summary.',
+  created: '2024-01-15T00:00:00.000Z',
+  updated: '2024-01-15T00:00:00.000Z',
+  contentHash: null,
+  status: null,
+  inputSource: null,
+  imagePath: null,
+  imageUrl: null,
+  imageMetadata: null,
+  ocrText: null,
+  deletedAt: null,
+};
+
+const resourceDeps: McpServerDeps = {
+  sqlite: {
+    listNotes: () => [TEST_NOTE],
+    getNote: (id: string) => (id === TEST_NOTE.id ? TEST_NOTE : undefined),
+    getTopTagsWithCounts: () => [{ tag: 'alpha', count: 1 }],
+    getCategoryFrequencies: () => [{ category: 'testing', count: 1 }],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  markdown: { read: () => undefined } as any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  vectorDb: {} as any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  search: {} as any,
+  generateEmbedding: async () => [],
+  knowledgeDir: '/tmp',
+  dbPath: '/tmp/test.db',
+  logger: mockLogger,
+};
+
+describe('MCP resources', () => {
+  let port: number;
+  let server: { start(): Promise<void>; stop(): Promise<void> };
+
+  beforeEach(async () => {
+    port = await getFreePort();
+    server = createMcpServer(resourceDeps, { port });
+    await server.start();
+  });
+
+  afterEach(async () => {
+    await server?.stop();
+  });
+
+  it('initialize advertises resources capability', async () => {
+    const { status, rawBody } = await httpPost(port, INIT_REQUEST, {
+      Accept: 'application/json, text/event-stream',
+    });
+    expect(status).toBe(200);
+    expect(rawBody).toContain('"resources"');
+  });
+
+  it('resources/list includes notes:// URIs', async () => {
+    const { status, rawBody } = await httpPost(
+      port,
+      { jsonrpc: '2.0', id: 2, method: 'resources/list', params: {} },
+      { Accept: 'application/json, text/event-stream' },
+    );
+    expect(status).toBe(200);
+    expect(rawBody).toContain(`notes://${TEST_NOTE.id}`);
+  });
+
+  it('resources/read returns note content for a known note', async () => {
+    const { status, rawBody } = await httpPost(
+      port,
+      { jsonrpc: '2.0', id: 3, method: 'resources/read', params: { uri: `notes://${TEST_NOTE.id}` } },
+      { Accept: 'application/json, text/event-stream' },
+    );
+    expect(status).toBe(200);
+    expect(rawBody).toContain(TEST_NOTE.title);
+  });
+
+  it('resources/read returns not-found text for unknown note', async () => {
+    const { status, rawBody } = await httpPost(
+      port,
+      { jsonrpc: '2.0', id: 4, method: 'resources/read', params: { uri: 'notes://no-such-id' } },
+      { Accept: 'application/json, text/event-stream' },
+    );
+    expect(status).toBe(200);
+    expect(rawBody).toContain('Note not found');
+  });
+});
 
 describe('MCP HTTP server', () => {
   let port: number;

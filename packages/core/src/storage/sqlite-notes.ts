@@ -114,6 +114,10 @@ export function createNoteOps(
         conditions.push('created <= ?');
         params.push(opts.dateTo);
       }
+      if (opts.category) {
+        conditions.push('category = ?');
+        params.push(opts.category);
+      }
       if (opts.tags && opts.tags.length > 0) {
         for (const tag of opts.tags) {
           conditions.push("INSTR(',' || tags || ',', ',' || ? || ',') > 0");
@@ -121,9 +125,10 @@ export function createNoteOps(
         }
       }
 
+      const contentCol = opts.excludeContent ? "'' AS content" : 'content';
       const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
       const pagination = limit > 0 ? ' LIMIT ? OFFSET ?' : '';
-      const sql = `SELECT id, type, title, content, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText, deleted_at AS deletedAt FROM notes ${where} ORDER BY created DESC${pagination}`;
+      const sql = `SELECT id, type, title, ${contentCol}, file_path AS filePath, tags, links, category, source_url AS sourceUrl, author, gist, created, updated, content_hash AS contentHash, status, input_source AS inputSource, image_path AS imagePath, image_url AS imageUrl, image_metadata AS imageMetadata, ocr_text AS ocrText, deleted_at AS deletedAt FROM notes ${where} ORDER BY created DESC${pagination}`;
       if (limit > 0) params.push(limit, offset);
 
       return db.prepare(sql).all(...params) as NoteRow[];

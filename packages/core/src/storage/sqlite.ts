@@ -111,6 +111,8 @@ export interface ListNotesOptions {
   offset?: number;
   orderBy?: 'created' | 'updated' | 'title';
   order?: 'asc' | 'desc';
+  /** When true, omits the content column from the result (returns empty string). Use for listing contexts where only metadata is needed. */
+  excludeContent?: boolean;
 }
 
 export interface FtsOptions {
