@@ -428,7 +428,7 @@ Hybrid search combines multiple strategies in a pipeline (`packages/core/src/sto
 A reproducible benchmark suite lives in `benchmarks/search/` and measures search quality (Precision@5, Recall@10, MRR) and latency across all pipeline configurations and corpus sizes.
 
 ```bash
-# Generate corpus fixtures (one-time, committed via gitignore exclusion)
+# Generate corpus fixtures locally (one-time, gitignored)
 pnpm tsx benchmarks/search/generate-corpus.ts all
 
 # Run the benchmark (all 3 scales × 5 pipeline configs)

@@ -28,6 +28,7 @@ function latestResultsPath(): string {
   if (!existsSync(resultsDir)) {
     throw new Error(`No results directory found. Run: pnpm bench:search`);
   }
+  // Files are named {ISO-timestamp}.json; lexicographic sort == chronological sort.
   const files = readdirSync(resultsDir)
     .filter((f) => f.endsWith('.json'))
     .sort()
@@ -141,17 +142,26 @@ function hybridVsBaselinesSection(summaries: PipelineSummary[]): string {
   return lines.join('\n') + '\n';
 }
 
-function decayImpactSection(summaries: PipelineSummary[]): string {
+function decayImpactSection(summaries: PipelineSummary[], results: BenchmarkResults): string {
   const lines: string[] = [];
 
-  for (const scale of ['small', 'medium', 'large']) {
-    const hyb = summaries.find((s) => s.pipeline === 'hybrid' && s.scale === scale);
-    const decay = summaries.find((s) => s.pipeline === 'hybrid+decay' && s.scale === scale);
-    if (!hyb || !decay) continue;
+  for (const scale of results.scales) {
+    // Compute MRR specifically for temporal queries so the comparison is meaningful.
+    const temporalMrr = (pipeline: string): number => {
+      const rows = results.queryResults.filter(
+        (r) => r.scale === scale && r.pipeline === pipeline && r.queryType === 'temporal' && r.latencyMs >= 0,
+      );
+      if (rows.length === 0) return -1;
+      return rows.reduce((s, r) => s + r.mrr, 0) / rows.length;
+    };
 
-    const mrrDelta = decay.avgMrr - hyb.avgMrr;
+    const hybMrr = temporalMrr('hybrid');
+    const decayMrr = temporalMrr('hybrid+decay');
+    if (hybMrr < 0 || decayMrr < 0) continue;
+
+    const delta = decayMrr - hybMrr;
     lines.push(
-      `**${scale}**: MRR ${fmt(hyb.avgMrr)} → ${fmt(decay.avgMrr)} after temporal decay (${mrrDelta >= 0 ? '+' : ''}${mrrDelta.toFixed(3)})`,
+      `**${scale}**: temporal MRR ${fmt(hybMrr)} → ${fmt(decayMrr)} after temporal decay (${delta >= 0 ? '+' : ''}${delta.toFixed(3)})`,
     );
   }
 
@@ -174,7 +184,7 @@ function generateReport(results: BenchmarkResults): string {
   sections.push(hybridVsBaselinesSection(results.summaries));
 
   sections.push(`## Temporal Decay Impact (MRR on temporal queries)\n`);
-  sections.push(decayImpactSection(results.summaries));
+  sections.push(decayImpactSection(results.summaries, results));
 
   sections.push(`## Metrics by Scale\n`);
 

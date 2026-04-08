@@ -255,7 +255,7 @@ function median(values: number[]): number {
 
 interface TempDatabases {
   sqlite: ReturnType<typeof createSqliteStorage>;
-  vectorDb: Awaited<ReturnType<typeof createVectorStorage>>;
+  vectorDb: Awaited<ReturnType<typeof createVectorStorageBulk>>;
   dir: string;
   /** Map from topicIndex → sorted list of note IDs for this scale */
   topicToIds: Map<number, string[]>;
@@ -358,35 +358,39 @@ function translateExpected(
 
   if (isNeedle && q.expectedNoteIds.length === 1) {
     // The small-corpus title is the same structure across scales — look it up
-    // by scanning titleToId for a title that ends with the same suffix as the query.
+    // by scanning titleToId for a title that starts with the same 2-word prefix as the query.
     const queryWords = q.query.trim().toLowerCase();
     for (const [title, id] of dbs.titleToId) {
       if (title.toLowerCase().includes(queryWords.split(' ').slice(0, 2).join(' '))) {
         return [id];
       }
     }
-    // Fallback: try direct title match from small-corpus note ID
+    // No matching title found in this scale's corpus — return empty (no relevant notes)
     return [];
   }
 
-  // For non-needle queries: gather all note IDs across the relevant topics
-  const topicIndex = guessTopicFromExpected(q.expectedNoteIds);
-
-  if (topicIndex >= 0) {
-    return dbs.topicToIds.get(topicIndex) ?? [];
-  }
-
-  // Multi-hop: collect topics from all expected IDs (may span 2 topics)
-  const topics = new Set<number>();
+  // For non-needle queries: gather all note IDs across the relevant topics.
+  // Multi-hop queries (or any query whose expectedNoteIds span multiple topics)
+  // must skip the single-topic fast path and return the union of all topics.
+  const expectedTopics = new Set<number>();
   for (const id of q.expectedNoteIds) {
     const numStr = id.replace(/^bench-[sml]-0*/, '');
     const num = parseInt(numStr, 10);
     if (Number.isFinite(num) && num >= 1) {
-      topics.add(Math.floor((num - 1) / 10));
+      expectedTopics.add(Math.floor((num - 1) / 10));
     }
   }
+
+  const topicIndex = guessTopicFromExpected(q.expectedNoteIds);
+  const isMultiTopic = q.queryType === 'multi-hop' || expectedTopics.size > 1;
+
+  if (!isMultiTopic && topicIndex >= 0) {
+    return dbs.topicToIds.get(topicIndex) ?? [];
+  }
+
+  // Multi-hop: collect topics from all expected IDs (may span 2 topics)
   const ids: string[] = [];
-  for (const t of topics) {
+  for (const t of expectedTopics) {
     ids.push(...(dbs.topicToIds.get(t) ?? []));
   }
   return ids;
@@ -411,7 +415,12 @@ async function runPipeline(
 
   for (const q of queries) {
     const resolvedExpected = translateExpected(q, dbs);
-    const relevant = new Set(resolvedExpected);
+    // For temporal queries use only the designated top note as the relevant set so that
+    // MRR specifically measures whether the most-recent note is ranked first.
+    const relevant =
+      q.queryType === 'temporal' && q.temporalTopNote
+        ? new Set(translateExpected({ ...q, expectedNoteIds: [q.temporalTopNote] }, dbs))
+        : new Set(resolvedExpected);
     const topicIndex = guessTopicFromExpected(q.expectedNoteIds);
     const queryVector = pseudoEmbedQuery(topicIndex);
 

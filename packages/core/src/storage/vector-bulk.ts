@@ -33,16 +33,29 @@ export async function createVectorStorageBulk(
     return createVectorStorage(dbPath, logger, { dimensions });
   }
 
+  // Preflight: validate that every doc's vector length matches the expected dimensions
+  const mismatch = docs.find((d) => d.vector.length !== dimensions);
+  if (mismatch) {
+    throw new Error(
+      `Vector dimension mismatch: document "${mismatch.id}" has ${mismatch.vector.length} dimensions, expected ${dimensions}.`,
+    );
+  }
+
   mkdirSync(dbPath, { recursive: true });
   const db = await lancedb.connect(dbPath);
 
   // Single-batch create — much faster than N individual table.add() calls
   const tableNames = await db.tableNames();
-  if (!tableNames.includes(TABLE_NAME)) {
-    const rows = docs.map((d) => ({ ...d } as Record<string, unknown>));
-    await db.createTable(TABLE_NAME, rows);
-    logger.debug({ dbPath, count: docs.length }, 'LanceDB bulk table created');
+  if (tableNames.includes(TABLE_NAME)) {
+    throw new Error(
+      `Cannot bulk load ${docs.length} documents into existing LanceDB table "${TABLE_NAME}" at "${dbPath}". ` +
+        'createVectorStorageBulk() is only safe to use with a fresh database directory.',
+    );
   }
+
+  const rows = docs.map((d) => ({ ...d } as Record<string, unknown>));
+  await db.createTable(TABLE_NAME, rows);
+  logger.debug({ dbPath, count: docs.length }, 'LanceDB bulk table created');
 
   // Return a standard VectorStorage so callers can use the search API normally
   return createVectorStorage(dbPath, logger, { dimensions });

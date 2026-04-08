@@ -1,18 +1,14 @@
 # Search Benchmark Results
 
-> Generated: 2026:04:08 16:09:59 | Scales: small, medium, large | Queries: 55
+> Generated: 2026:04:08 18:35:28 | Scales: small | Queries: 55
 
 ## Summary: Hybrid vs Baselines
 
 **small**: hybrid P@5=0.855 vs keyword=0.044 (✅ hybrid wins) vs semantic=0.825 (✅ hybrid wins)
-**medium**: hybrid P@5=0.818 vs keyword=0.084 (✅ hybrid wins) vs semantic=0.818 (✅ hybrid wins)
-**large**: hybrid P@5=0.811 vs keyword=0.153 (✅ hybrid wins) vs semantic=0.818 (⚠️ semantic wins)
 
 ## Temporal Decay Impact (MRR on temporal queries)
 
-**small**: MRR 0.985 → 0.856 after temporal decay (-0.129)
-**medium**: MRR 0.827 → 0.845 after temporal decay (+0.018)
-**large**: MRR 0.827 → 0.827 after temporal decay (+0.000)
+**small**: temporal MRR 1.000 → 1.000 after temporal decay (+0.000)
 
 ## Metrics by Scale
 
@@ -23,10 +19,10 @@
 | Pipeline | P@5 | Δ vs keyword | Recall@10 | MRR | Latency |
 |---|---|---|---|---|---|
 | keyword-only | 0.044 | — | 0.169 | 0.200 | 0.1ms |
-| semantic-only | 0.825 *(+0.782)* |  *(+0.782)* | 1.000 | 0.845 | 1.0ms |
-| hybrid | 0.855 *(+0.811)* |  *(+0.811)* | 1.000 | 0.985 | 1.0ms |
-| hybrid+decay | 0.484 *(+0.440)* |  *(+0.440)* | 0.562 | 0.856 | 1.2ms |
-| hybrid+decay+hotness | 0.484 *(+0.440)* |  *(+0.440)* | 0.562 | 0.856 | 1.2ms |
+| semantic-only | 0.825 *(+0.782)* |  *(+0.782)* | 0.945 | 0.845 | 0.6ms |
+| hybrid | 0.855 *(+0.811)* |  *(+0.811)* | 0.945 | 0.985 | 0.9ms |
+| hybrid+decay | 0.491 *(+0.447)* |  *(+0.447)* | 0.536 | 0.856 | 0.9ms |
+| hybrid+decay+hotness | 0.491 *(+0.447)* |  *(+0.447)* | 0.536 | 0.856 | 0.9ms |
 
 **MRR by query type (hybrid vs keyword):**
 
@@ -37,50 +33,6 @@
 | temporal | 0.286 | 1.000 | 1.000 |
 | multi-hop | 0.000 | 1.000 | 1.000 |
 | needle-in-haystack | 0.900 | 0.920 | 0.209 |
-
-### Medium Corpus
-
-**All pipelines — average over all 55 queries:**
-
-| Pipeline | P@5 | Δ vs keyword | Recall@10 | MRR | Latency |
-|---|---|---|---|---|---|
-| keyword-only | 0.084 | — | 0.024 | 0.182 | 0.1ms |
-| semantic-only | 0.818 *(+0.735)* |  *(+0.735)* | 0.082 | 0.818 | 1.1ms |
-| hybrid | 0.818 *(+0.735)* |  *(+0.735)* | 0.100 | 0.827 | 2.4ms |
-| hybrid+decay | 0.822 *(+0.738)* |  *(+0.738)* | 0.118 | 0.845 | 1.3ms |
-| hybrid+decay+hotness | 0.822 *(+0.738)* |  *(+0.738)* | 0.118 | 0.845 | 1.4ms |
-
-**MRR by query type (hybrid vs keyword):**
-
-| Query Type | keyword-only | hybrid | hybrid+decay |
-|---|---|---|---|
-| keyword | 0.200 | 1.000 | 1.000 |
-| semantic | 0.000 | 1.000 | 1.000 |
-| temporal | 0.714 | 1.000 | 1.000 |
-| multi-hop | 0.000 | 0.917 | 1.000 |
-| needle-in-haystack | 0.100 | 0.100 | 0.150 |
-
-### Large Corpus
-
-**All pipelines — average over all 55 queries:**
-
-| Pipeline | P@5 | Δ vs keyword | Recall@10 | MRR | Latency |
-|---|---|---|---|---|---|
-| keyword-only | 0.153 | — | 0.019 | 0.236 | 0.1ms |
-| semantic-only | 0.818 *(+0.665)* |  *(+0.665)* | 0.008 | 0.818 | 1.0ms |
-| hybrid | 0.811 *(+0.658)* |  *(+0.658)* | 0.026 | 0.827 | 1.4ms |
-| hybrid+decay | 0.811 *(+0.658)* |  *(+0.658)* | 0.026 | 0.827 | 1.3ms |
-| hybrid+decay+hotness | 0.815 *(+0.662)* |  *(+0.662)* | 0.026 | 0.836 | 1.3ms |
-
-**MRR by query type (hybrid vs keyword):**
-
-| Query Type | keyword-only | hybrid | hybrid+decay |
-|---|---|---|---|
-| keyword | 0.250 | 1.000 | 1.000 |
-| semantic | 0.000 | 1.000 | 1.000 |
-| temporal | 1.000 | 1.000 | 1.000 |
-| multi-hop | 0.000 | 0.917 | 0.917 |
-| needle-in-haystack | 0.100 | 0.100 | 0.100 |
 
 ## Pipeline Configurations
 
