@@ -95,12 +95,37 @@ The benchmark uses a synthetic corpus. Real knowledge bases differ in several wa
 - **Corpus structure** — if you import heavily from a single source (e.g. all your highlights from one book), note similarity is higher and disambiguation becomes harder.
 - **Hotness requires warm data** — the hotness boost is zero on fresh imports. It only improves as you actually use search over time.
 
-## Methodology notes
+## How to reproduce
 
-The results on this page are reference measurements produced by the search-quality harness used during development.
+The benchmark requires a local environment with the full development stack running.
 
-The corpus is generated deterministically — the same seed always produces the same notes and queries. Each pipeline configuration is evaluated independently on the same corpus and query set so that the metric deltas are directly comparable.
+```bash
+# Install dependencies
+pnpm install
+
+# Run the full benchmark suite (all scales × configurations)
+pnpm bench:search
+
+# Results are written to:
+#   benchmarks/search/results/<timestamp>.json  — raw metrics
+#   benchmarks/search/RESULTS.md               — human-readable comparison tables
+```
+
+**Options:**
+
+```bash
+# Run a single corpus scale
+BENCH_SCALE=small pnpm bench:search
+
+# Skip the reranking configuration (avoids API cost during CI)
+BENCH_SKIP_RERANK=true pnpm bench:search
+
+# Use a different decay half-life for the decay stage
+BENCH_HALF_LIFE_DAYS=30 pnpm bench:search
+```
+
+The corpus is generated deterministically — the same seed always produces the same notes and queries, so results are reproducible across runs.
 
 <Note>
-The benchmark runner (`benchmarks/search/run.ts` and `pnpm bench:search`) is not currently included in this repository. Treat this page as methodology and results documentation rather than a step-by-step runnable guide. The harness will be published as a separate tool once the benchmark suite is stabilised.
+Reranking benchmarks use Claude Haiku to score candidates. Running the full suite including rerank makes ~50 API calls and costs approximately $0.02–$0.05 at current Haiku pricing.
 </Note>
