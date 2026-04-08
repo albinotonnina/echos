@@ -1,0 +1,174 @@
+---
+title: "MCP Server"
+description: "Connect EchOS to Claude Code, Cursor, Windsurf, and any other MCP-compatible AI client."
+---
+
+# MCP Server
+
+EchOS includes a built-in [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server that exposes your personal knowledge base to any MCP-compatible AI client. Once connected, tools like Claude Code, Cursor, or Windsurf can search your notes, create new ones, and browse your knowledge base as a data source — without leaving the editor.
+
+The server runs as part of the EchOS daemon and listens on a configurable local port. It is disabled by default.
+
+---
+
+## Enabling the MCP server
+
+Add these variables to your `.env` file:
+
+```bash
+ENABLE_MCP=true       # start the MCP server when the daemon starts
+MCP_PORT=3939         # port to listen on (default: 3939)
+
+# Optional: require bearer token authentication (recommended if port-forwarding)
+MCP_API_KEY=your_secret_key_here
+```
+
+Generate a key:
+
+```bash
+openssl rand -hex 32
+```
+
+Restart the daemon. You should see:
+
+```
+MCP server started (localhost only) port=3939
+```
+
+The server binds to `127.0.0.1` — it is not reachable from other machines without an explicit tunnel or reverse proxy.
+
+---
+
+## What it exposes
+
+### Tools
+
+| Tool | Description |
+|---|---|
+| `search_knowledge` | Hybrid, semantic, or keyword search across all notes |
+| `create_note` | Create a new note in the knowledge base |
+| `get_note` | Retrieve a note by ID (full content + metadata) |
+| `list_notes` | List notes with optional filters (type, status, date range) |
+| `find_similar` | Find semantically similar notes given a note ID |
+| `knowledge_stats` | Overview of your knowledge base (counts, top tags, etc.) |
+| `recall_knowledge` | Recall personal memory entries by topic |
+
+### Resources
+
+Resources let MCP clients browse your knowledge base as a structured data source, without needing to call a tool.
+
+| URI pattern | Description |
+|---|---|
+| `notes://{noteId}` | Full markdown content of a note, with YAML frontmatter |
+| `tags://{tagName}` | All notes with a given tag |
+| `categories://{categoryName}` | All notes in a given category |
+
+Clients that support resource browsing (e.g. Claude Code) can list all notes, tags, or categories via `resources/list`, then read individual items via `resources/read`.
+
+---
+
+## Connecting from Claude Code
+
+Add the following to your Claude Code configuration. The file is `~/.claude.json` for a global setup, or `.claude.json` at the root of a project for a project-scoped connection.
+
+**Without authentication** (localhost only, no `MCP_API_KEY` set):
+
+```json
+{
+  "mcpServers": {
+    "echos": {
+      "type": "http",
+      "url": "http://localhost:3939/mcp"
+    }
+  }
+}
+```
+
+**With authentication** (`MCP_API_KEY` set in `.env`):
+
+```json
+{
+  "mcpServers": {
+    "echos": {
+      "type": "http",
+      "url": "http://localhost:3939/mcp",
+      "headers": {
+        "Authorization": "Bearer <your MCP_API_KEY>"
+      }
+    }
+  }
+}
+```
+
+Replace `<your MCP_API_KEY>` with the value you set in `.env`.
+
+After saving the file, restart Claude Code (or run `/mcp` to reload). The `echos` server should appear as connected.
+
+---
+
+## Connecting from Cursor
+
+Create or edit `.cursor/mcp.json` in your home directory (global) or project root (project-scoped):
+
+```json
+{
+  "mcpServers": {
+    "echos": {
+      "url": "http://localhost:3939/mcp",
+      "headers": {
+        "Authorization": "Bearer <your MCP_API_KEY>"
+      }
+    }
+  }
+}
+```
+
+Omit the `headers` block if `MCP_API_KEY` is not set.
+
+---
+
+## Connecting from other MCP clients
+
+Any client that supports the [Streamable HTTP transport](https://spec.modelcontextprotocol.io/specification/2025-03-26/basic/transports/#streamable-http) can connect:
+
+- **URL**: `http://localhost:3939/mcp`
+- **Transport**: `streamable-http` (POST to `/mcp`)
+- **Auth**: `Authorization: Bearer <MCP_API_KEY>` header (if key is set)
+
+---
+
+## Authentication
+
+| Scenario | Behaviour |
+|---|---|
+| `MCP_API_KEY` not set | All requests accepted — convenient for localhost-only use |
+| `MCP_API_KEY` set, correct token | Request accepted |
+| `MCP_API_KEY` set, wrong or missing token | `401 Unauthorized` with a JSON-RPC error response |
+
+Token comparison uses a timing-safe string equality check to prevent timing attacks.
+
+---
+
+## Security considerations
+
+- The server only binds to `127.0.0.1` and is not reachable from other machines by default.
+- If you expose the port via a reverse proxy, SSH tunnel, or `ngrok`, **always** set `MCP_API_KEY`.
+- The MCP server has the same read/write access as the EchOS agent — it can create and retrieve notes.
+- See [Security](/security) for the full EchOS security model.
+
+---
+
+## Troubleshooting
+
+**Server not starting**
+- Check that `ENABLE_MCP=true` is set in `.env` and the daemon has been restarted.
+- Check for port conflicts: `lsof -ti:3939`
+
+**Claude Code shows the server as disconnected**
+- Confirm the daemon is running: `pnpm start` or check the systemd/launchd service status.
+- Verify the URL in your `.claude.json` matches `MCP_PORT` in `.env`.
+- If using auth, double-check that the `Authorization` header value matches `MCP_API_KEY` exactly.
+
+**`Unauthorized` errors**
+- The `MCP_API_KEY` in `.env` must match the bearer token in your client config.
+- Regenerate the key with `openssl rand -hex 32`, update both `.env` and the client config, then restart the daemon.
