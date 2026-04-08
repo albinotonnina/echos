@@ -147,13 +147,15 @@ type PipelineConfig =
   | { name: 'semantic' }
   | { name: 'hybrid' }
   | { name: 'hybrid+decay' }
-  | { name: 'hybrid+decay+rerank' };
+  | { name: 'hybrid+decay+hotness' }
+  | { name: 'hybrid+decay+hotness+rerank' };
 
 const BASE_CONFIGS: PipelineConfig[] = [
   { name: 'keyword' },
   { name: 'semantic' },
   { name: 'hybrid' },
   { name: 'hybrid+decay' },
+  { name: 'hybrid+decay+hotness' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -310,7 +312,7 @@ async function runScaleBenchmark(scaleName: string): Promise<ScaleResult> {
   // Determine configs to test
   const configs: PipelineConfig[] = [...BASE_CONFIGS];
   if (ENABLE_RERANK && ANTHROPIC_API_KEY) {
-    configs.push({ name: 'hybrid+decay+rerank' });
+    configs.push({ name: 'hybrid+decay+hotness+rerank' });
   }
 
   // Run benchmarks for each config
@@ -341,6 +343,7 @@ async function runScaleBenchmark(scaleName: string): Promise<ScaleResult> {
           vector: queryVector,
           limit: DEFAULT_LIMIT,
           temporalDecay: false,
+          hotnessBoost: false,
           rerank: false,
         });
         resultIds = results.map((r) => r.note.metadata.id);
@@ -351,16 +354,29 @@ async function runScaleBenchmark(scaleName: string): Promise<ScaleResult> {
           limit: DEFAULT_LIMIT,
           temporalDecay: true,
           decayHalfLifeDays: 90,
+          hotnessBoost: false,
           rerank: false,
         });
         resultIds = results.map((r) => r.note.metadata.id);
-      } else if (config.name === 'hybrid+decay+rerank') {
+      } else if (config.name === 'hybrid+decay+hotness') {
         const results = await searchService.hybrid({
           query: q.query,
           vector: queryVector,
           limit: DEFAULT_LIMIT,
           temporalDecay: true,
           decayHalfLifeDays: 90,
+          hotnessBoost: true,
+          rerank: false,
+        });
+        resultIds = results.map((r) => r.note.metadata.id);
+      } else if (config.name === 'hybrid+decay+hotness+rerank') {
+        const results = await searchService.hybrid({
+          query: q.query,
+          vector: queryVector,
+          limit: DEFAULT_LIMIT,
+          temporalDecay: true,
+          decayHalfLifeDays: 90,
+          hotnessBoost: true,
           rerank: true,
         });
         resultIds = results.map((r) => r.note.metadata.id);

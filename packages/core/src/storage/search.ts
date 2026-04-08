@@ -4,6 +4,7 @@ import type { SqliteStorage, NoteRow, FtsOptions } from './sqlite.js';
 import type { VectorStorage, VectorSearchResult } from './vectordb.js';
 import type { MarkdownStorage } from './markdown.js';
 import { rerank } from './reranker.js';
+import { computeHotness, sigmoid } from './sqlite-hotness.js';
 
 export interface SearchService {
   keyword(opts: SearchOptions): SearchResult[];
@@ -13,6 +14,8 @@ export interface SearchService {
 
 const RRF_K = 60; // Reciprocal rank fusion constant
 const TEMPORAL_DECAY_DEFAULT_HALF_LIFE = 90; // days
+const HOTNESS_WEIGHT = 0.15; // Additive weight for hotness boost: score *= (1 + HOTNESS_WEIGHT * hotnessScore)
+const HOTNESS_ACCESS_HALF_LIFE = 90; // days — how quickly a note's access recency decays
 
 /**
  * Exponential temporal decay factor.
@@ -148,19 +151,40 @@ export function createSearchService(
       // a recent-but-lower-RRF note may overtake an older higher-RRF note after decay.
       const applyDecay = opts.temporalDecay !== false;
       const halfLife = opts.decayHalfLifeDays ?? TEMPORAL_DECAY_DEFAULT_HALF_LIFE;
+      const applyHotness = opts.hotnessBoost !== false;
+
+      // Pre-fetch hotness data for all fused candidates in a single batch query
+      const fusedIds = fused.map((f) => f.id);
+      const hotnessMap = applyHotness ? sqlite.getHotness(fusedIds) : new Map<string, { retrievalCount: number; lastAccessed: string }>();
 
       const candidates: SearchResult[] = [];
       for (const { id, score } of fused) {
         const noteRow = sqlite.getNote(id);
         if (!noteRow) continue;
         if (noteRow.status === 'deleted') continue;
-        const finalScore = applyDecay
+
+        let finalScore = applyDecay
           ? score * computeTemporalDecay(noteRow.created, halfLife)
           : score;
+
+        if (applyHotness) {
+          const h = hotnessMap.get(id);
+          if (h) {
+            const hotnessScore = computeHotness(
+              h.retrievalCount,
+              h.lastAccessed,
+              HOTNESS_ACCESS_HALF_LIFE,
+              computeTemporalDecay,
+            );
+            finalScore *= 1 + HOTNESS_WEIGHT * hotnessScore;
+          }
+          // Notes with no hotness history get no boost (neutral multiplier of 1)
+        }
+
         candidates.push(noteRowToSearchResult(noteRow, finalScore, mdStorage, logger));
       }
 
-      // Sort by decayed score and take top `limit`
+      // Sort by decayed+boosted score and take top `limit`
       candidates.sort((a, b) => b.score - a.score);
       const sliced = candidates.slice(0, limit);
 
@@ -175,8 +199,17 @@ export function createSearchService(
         logger.warn({ query: opts.query }, 'Rerank requested but no anthropicApiKey configured — skipping');
       }
 
+      // Record access for all returned notes (fire-and-forget: hotness tracking must not fail a search)
+      try {
+        for (const result of results) {
+          sqlite.recordAccess(result.note.metadata.id);
+        }
+      } catch (err: unknown) {
+        logger.warn({ err }, 'Hotness recordAccess failed — search results unaffected');
+      }
+
       logger.debug(
-        { query: opts.query, ftsCount: ftsRows.length, vectorCount: vectorResults.length, resultCount: results.length, temporalDecay: applyDecay, rerankRequested: opts.rerank ?? false, rerankApplied },
+        { query: opts.query, ftsCount: ftsRows.length, vectorCount: vectorResults.length, resultCount: results.length, temporalDecay: applyDecay, hotnessBoost: applyHotness, rerankRequested: opts.rerank ?? false, rerankApplied },
         'Hybrid search',
       );
       return results;

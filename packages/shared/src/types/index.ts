@@ -50,6 +50,8 @@ export interface SearchOptions {
   dateTo?: string;
   temporalDecay?: boolean;
   decayHalfLifeDays?: number;
+  /** Apply hotness boost based on retrieval frequency and recency (default: true). */
+  hotnessBoost?: boolean;
   rerank?: boolean;
 }
 

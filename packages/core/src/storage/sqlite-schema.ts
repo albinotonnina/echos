@@ -269,6 +269,16 @@ function runMigrations(db: Database.Database): void {
       AFTER DELETE ON notes
       BEGIN DELETE FROM revisions WHERE note_id = old.id; END;
   `);
+
+  // Migration: add note_hotness table for search access tracking (task 10.02)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS note_hotness (
+      note_id TEXT PRIMARY KEY,
+      retrieval_count INTEGER NOT NULL DEFAULT 0,
+      last_accessed TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_note_hotness_retrieval ON note_hotness(retrieval_count DESC);
+  `);
 }
 
 const NOTE_COLUMNS =

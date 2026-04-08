@@ -121,7 +121,8 @@ function buildKeyFindings(results: BenchmarkResults): string {
     const semantic = scaleResult.configs.find((c) => c.config === 'semantic');
     const hybrid = scaleResult.configs.find((c) => c.config === 'hybrid');
     const hybridDecay = scaleResult.configs.find((c) => c.config === 'hybrid+decay');
-    const rerank = scaleResult.configs.find((c) => c.config === 'hybrid+decay+rerank');
+    const hybridHotness = scaleResult.configs.find((c) => c.config === 'hybrid+decay+hotness');
+    const rerank = scaleResult.configs.find((c) => c.config === 'hybrid+decay+hotness+rerank');
 
     if (!keyword) continue;
 
@@ -154,10 +155,17 @@ function buildKeyFindings(results: BenchmarkResults): string {
       );
     }
 
-    if (rerank && hybrid) {
-      const rerankGain = (rerank.aggregated.meanPrecisionAt5 - hybrid.aggregated.meanPrecisionAt5) * 100;
+    if (hybridHotness && hybridDecay) {
+      const hotnessGain = (hybridHotness.aggregated.meanPrecisionAt5 - hybridDecay.aggregated.meanPrecisionAt5) * 100;
       findings.push(
-        `- ${scaleLabel} Reranking adds ${rerankGain >= 0 ? '+' : ''}${rerankGain.toFixed(1)}pp P@5 over hybrid (${ms(rerank.aggregated.medianLatencyMs)} latency)`,
+        `- ${scaleLabel} Hotness boost adds ${hotnessGain >= 0 ? '+' : ''}${hotnessGain.toFixed(1)}pp P@5 over hybrid+decay`,
+      );
+    }
+
+    if (rerank && hybridHotness) {
+      const rerankGain = (rerank.aggregated.meanPrecisionAt5 - hybridHotness.aggregated.meanPrecisionAt5) * 100;
+      findings.push(
+        `- ${scaleLabel} Reranking adds ${rerankGain >= 0 ? '+' : ''}${rerankGain.toFixed(1)}pp P@5 over hybrid+decay+hotness (${ms(rerank.aggregated.medianLatencyMs)} latency)`,
       );
     }
   }
@@ -207,7 +215,8 @@ export function generateReport(results: BenchmarkResults): string {
   sections.push('| `semantic` | Vector search only (cosine similarity) |');
   sections.push('| `hybrid` | RRF fusion of FTS + vector results |');
   sections.push('| `hybrid+decay` | Hybrid + exponential temporal decay (90-day half-life) |');
-  sections.push('| `hybrid+decay+rerank` | Hybrid + decay + Claude cross-encoder reranking |');
+  sections.push('| `hybrid+decay+hotness` | Hybrid + decay + retrieval-frequency boost (hotness) |');
+  sections.push('| `hybrid+decay+hotness+rerank` | Full pipeline + Claude cross-encoder reranking |');
   sections.push('');
   sections.push('## Metric Definitions');
   sections.push('');
