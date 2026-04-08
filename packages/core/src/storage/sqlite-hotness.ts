@@ -29,6 +29,22 @@ export function createHotnessOps(db: Database.Database): HotnessOps {
     LIMIT ?
   `);
 
+  // Cache prepared statements for getHotness by placeholder count to avoid
+  // re-preparing on every call (which happens frequently, on every hybrid search).
+  const stmtGetHotnessCache = new Map<number, Database.Statement>();
+  function getHotnessStmt(count: number): Database.Statement {
+    let stmt = stmtGetHotnessCache.get(count);
+    if (!stmt) {
+      const placeholders = Array(count).fill('?').join(', ');
+      stmt = db.prepare(
+        `SELECT note_id AS noteId, retrieval_count AS retrievalCount, last_accessed AS lastAccessed
+         FROM note_hotness WHERE note_id IN (${placeholders})`,
+      );
+      stmtGetHotnessCache.set(count, stmt);
+    }
+    return stmt;
+  }
+
   return {
     recordAccess(noteId: string): void {
       stmtUpsert.run(noteId, new Date().toISOString());
@@ -37,11 +53,7 @@ export function createHotnessOps(db: Database.Database): HotnessOps {
     getHotness(noteIds: string[]): Map<string, { retrievalCount: number; lastAccessed: string }> {
       if (noteIds.length === 0) return new Map();
 
-      const placeholders = noteIds.map(() => '?').join(', ');
-      const rows = db.prepare(
-        `SELECT note_id AS noteId, retrieval_count AS retrievalCount, last_accessed AS lastAccessed
-         FROM note_hotness WHERE note_id IN (${placeholders})`,
-      ).all(...noteIds) as HotnessRow[];
+      const rows = getHotnessStmt(noteIds.length).all(...noteIds) as HotnessRow[];
 
       const result = new Map<string, { retrievalCount: number; lastAccessed: string }>();
       for (const row of rows) {

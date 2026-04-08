@@ -112,7 +112,8 @@ const SCHEMA = `
   CREATE TABLE IF NOT EXISTS note_hotness (
     note_id TEXT PRIMARY KEY,
     retrieval_count INTEGER NOT NULL DEFAULT 0,
-    last_accessed TEXT NOT NULL
+    last_accessed TEXT NOT NULL,
+    FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE
   );
 
   CREATE INDEX IF NOT EXISTS idx_note_hotness_count ON note_hotness(retrieval_count DESC);
@@ -287,6 +288,14 @@ function runMigrations(db: Database.Database): void {
     )
   `);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_note_hotness_count ON note_hotness(retrieval_count DESC)`);
+  // Cascade trigger: clean up orphaned hotness rows when a note is hard-deleted.
+  // Existing databases may not have the FK (SQLite cannot add FKs to existing tables);
+  // this trigger provides the same guarantee for all database ages.
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS note_hotness_on_note_delete
+      AFTER DELETE ON notes
+      BEGIN DELETE FROM note_hotness WHERE note_id = old.id; END;
+  `);
 }
 
 const NOTE_COLUMNS =

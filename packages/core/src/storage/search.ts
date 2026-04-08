@@ -214,7 +214,14 @@ export function createSearchService(
       // Record access unconditionally: hotness data is always collected even
       // when hotnessBoost is disabled, so future searches can benefit from it.
       for (const r of results) {
-        sqlite.recordAccess(r.note.metadata.id);
+        try {
+          sqlite.recordAccess(r.note.metadata.id);
+        } catch (error: unknown) {
+          logger.warn(
+            { query: opts.query, noteId: r.note.metadata.id, error },
+            'Failed to record note access during hybrid search',
+          );
+        }
       }
 
       logger.debug(
