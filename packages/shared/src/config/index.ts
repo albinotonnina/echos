@@ -105,6 +105,14 @@ export const configSchema = z
     .default('false')
     .transform((s) => s === 'true'),
 
+  // MCP Server
+  enableMcp: z
+    .string()
+    .default('false')
+    .transform((s) => s === 'true'),
+  mcpPort: z.coerce.number().int().positive().default(3939),
+  mcpApiKey: z.string().optional(),
+
   // Backup
   backupEnabled: z
     .string()
@@ -177,6 +185,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     cacheRetention: env['CACHE_RETENTION'],
     logLlmPayloads: env['LOG_LLM_PAYLOADS'],
     disableUpdateCheck: env['DISABLE_UPDATE_CHECK'],
+    enableMcp: env['ENABLE_MCP'],
+    mcpPort: env['MCP_PORT'],
+    mcpApiKey: env['MCP_API_KEY'],
     backupEnabled: env['BACKUP_ENABLED'],
     backupCron: env['BACKUP_CRON'],
     backupDir: env['BACKUP_DIR'] || join(echosHome, 'backups'),

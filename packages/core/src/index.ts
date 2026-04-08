@@ -64,3 +64,4 @@ export {
   type BackupResult,
   type BackupInfo,
 } from './backup/index.js';
+export { createMcpServer, type McpServerDeps, type McpServerOptions, type McpAdapter } from './mcp/index.js';

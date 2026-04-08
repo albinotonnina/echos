@@ -7,6 +7,25 @@ description: "Configuration changes and fixes log."
 
 This document tracks configuration changes and fixes made to ensure the project runs correctly.
 
+## April 2026 — MCP Server Core (Phase 11.01)
+
+### New env vars: `ENABLE_MCP`, `MCP_PORT`, `MCP_API_KEY`
+
+A new MCP (Model Context Protocol) server is available. It is disabled by default.
+
+```bash
+# .env
+ENABLE_MCP=false        # Set to true to start the MCP server
+MCP_PORT=3939           # Port for the MCP server (default: 3939)
+MCP_API_KEY=            # Optional bearer token for authentication
+```
+
+When `ENABLE_MCP=true`, EchOS starts an HTTP server on `MCP_PORT` (default `3939`) that exposes seven knowledge tools via the Model Context Protocol. The server only binds to `127.0.0.1`.
+
+If `MCP_API_KEY` is unset, all requests are accepted without authentication (suitable for localhost-only use). If set, all requests must include `Authorization: Bearer <MCP_API_KEY>`.
+
+---
+
 ## March 2026 — SSHFS write access via Docker entrypoint ownership fix
 
 ### Problem

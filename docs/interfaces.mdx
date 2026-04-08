@@ -1,11 +1,11 @@
 ---
 title: "Interfaces"
-description: "Configure and use Telegram, Web API, and CLI interfaces."
+description: "Configure and use Telegram, Web API, CLI, and MCP Server interfaces."
 ---
 
 # Interface Guide
 
-EchOS supports three interfaces for interacting with your personal knowledge base. You can enable/disable each interface in your `.env` file.
+EchOS supports four interfaces for interacting with your personal knowledge base. You can enable/disable each interface in your `.env` file.
 
 ## Configuration
 
@@ -15,6 +15,7 @@ Edit `.env` to control which interfaces are active:
 # Enable/disable interfaces
 ENABLE_TELEGRAM=true   # Telegram bot (stable, recommended)
 ENABLE_WEB=false       # Web API server (experimental, disabled by default)
+ENABLE_MCP=false       # MCP server for AI agent integrations (disabled by default)
 
 # Web server port (only used when ENABLE_WEB=true)
 WEB_PORT=3000
@@ -22,6 +23,14 @@ WEB_PORT=3000
 # Web API authentication key — mandatory when ENABLE_WEB=true (server exits without it)
 # Generate with: openssl rand -hex 32
 WEB_API_KEY=your_secret_key_here
+
+# MCP server port (only used when ENABLE_MCP=true)
+MCP_PORT=3939
+
+# MCP API key — optional, but recommended for remote access
+# If unset, unauthenticated requests are accepted (localhost-only use case)
+# Generate with: openssl rand -hex 32
+MCP_API_KEY=your_secret_key_here
 ```
 
 <Note>The Web UI is experimental. The CLI (`pnpm echos`) is stable and requires no daemon. Telegram is the recommended interface for daily use. The setup wizard (`pnpm wizard`) generates a `WEB_API_KEY` automatically when you enable the web interface.</Note>
@@ -580,6 +589,69 @@ pnpm start
 
 ---
 
+## 4. MCP Server
+
+**Default**: Disabled (`ENABLE_MCP=false`)
+
+The MCP (Model Context Protocol) server exposes your EchOS knowledge base to any MCP-compatible AI client — Claude Code, Cursor, Windsurf, and others. It runs as part of the daemon (not a separate process) and listens on a configurable port.
+
+### Setup
+
+Add to your `.env`:
+
+```bash
+ENABLE_MCP=true
+MCP_PORT=3939       # default
+
+# Optional: protect with a bearer token (recommended for non-localhost)
+MCP_API_KEY=$(openssl rand -hex 32)
+```
+
+Restart the daemon (`pnpm start`). You should see:
+```
+MCP server started (localhost only) port=3939
+```
+
+### Exposed Tools
+
+| Tool | Description |
+|---|---|
+| `search_knowledge` | Hybrid/semantic/keyword search across all notes |
+| `create_note` | Create a new note |
+| `get_note` | Retrieve a note by ID |
+| `list_notes` | List notes with optional filters |
+| `find_similar` | Find semantically similar notes |
+| `knowledge_stats` | Knowledge base overview and statistics |
+| `recall_knowledge` | Recall personal memories by topic |
+
+### Connect from Claude Code
+
+Add to your Claude Code configuration (`~/.claude.json` or project `.claude.json`):
+
+```json
+{
+  "mcpServers": {
+    "echos": {
+      "type": "http",
+      "url": "http://localhost:3939/mcp",
+      "headers": {
+        "Authorization": "Bearer <your MCP_API_KEY>"
+      }
+    }
+  }
+}
+```
+
+If `MCP_API_KEY` is not set, omit the `headers` block.
+
+### Security
+
+- The MCP server only binds to `127.0.0.1` (localhost) — not accessible from other machines by default
+- Set `MCP_API_KEY` to require bearer token authentication on all requests
+- If `MCP_API_KEY` is unset, the server accepts all requests (convenient for localhost-only use)
+
+---
+
 ## Troubleshooting
 
 ### Telegram: 409 Conflict Error
@@ -620,4 +692,5 @@ Look for messages like:
 - **Telegram**: See examples in the [main README](../README.md)
 - **Web API**: Build a frontend with React/Vue/etc.
 - **CLI**: Terminal queries, SSH access, scripting
+- **MCP Server**: Connect Claude Code, Cursor, and other AI agents to your knowledge base
 - **Deploy**: See [Deployment](/deployment) for production setup

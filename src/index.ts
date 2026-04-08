@@ -4,7 +4,7 @@
  */
 import { join } from 'node:path';
 import { loadConfig, createLogger, type InterfaceAdapter } from '@echos/shared';
-import { PluginRegistry, type AgentDeps } from '@echos/core';
+import { PluginRegistry, type AgentDeps, createMcpServer } from '@echos/core';
 import { createTelegramAdapter, type TelegramAdapter } from '@echos/telegram';
 import { createWebAdapter } from '@echos/web';
 import { createManageScheduleTool } from '@echos/scheduler';
@@ -63,6 +63,22 @@ async function main(): Promise<void> {
       config, agentDeps, logger, exportsDir: join(config.dbPath, '..', 'exports'),
       syncSchedule: scheduler.syncSchedule, deleteSchedule: scheduler.deleteSchedule,
     }));
+  }
+
+  if (config.enableMcp) {
+    interfaces.push(createMcpServer(
+      {
+        sqlite: storage.sqlite,
+        markdown: storage.markdown,
+        vectorDb: storage.vectorDb,
+        search: storage.search,
+        generateEmbedding: storage.generateEmbedding,
+        knowledgeDir: config.knowledgeDir,
+        dbPath: config.dbPath,
+        logger,
+      },
+      { port: config.mcpPort, apiKey: config.mcpApiKey },
+    ));
   }
 
   for (const iface of interfaces) await iface.start();
