@@ -1,0 +1,394 @@
+[
+  {
+    "id": "q-001",
+    "query": "backpropagation gradient descent neural network loss",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00001","bench-s-00002","bench-s-00003","bench-s-00004","bench-s-00005","bench-s-00006","bench-s-00007","bench-s-00008","bench-s-00009","bench-s-00010"],
+    "description": "Exact vocabulary from machine-learning topic"
+  },
+  {
+    "id": "q-002",
+    "query": "React component hooks state render typescript",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00011","bench-s-00012","bench-s-00013","bench-s-00014","bench-s-00015","bench-s-00016","bench-s-00017","bench-s-00018","bench-s-00019","bench-s-00020"],
+    "description": "Exact vocabulary from web-development topic"
+  },
+  {
+    "id": "q-003",
+    "query": "protein muscle strength recovery cardio exercise",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00021","bench-s-00022","bench-s-00023","bench-s-00024","bench-s-00025","bench-s-00026","bench-s-00027","bench-s-00028","bench-s-00029","bench-s-00030"],
+    "description": "Exact vocabulary from health-fitness topic"
+  },
+  {
+    "id": "q-004",
+    "query": "compound interest portfolio dividend stock equity",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00031","bench-s-00032","bench-s-00033","bench-s-00034","bench-s-00035","bench-s-00036","bench-s-00037","bench-s-00038","bench-s-00039","bench-s-00040"],
+    "description": "Exact vocabulary from investing-finance topic"
+  },
+  {
+    "id": "q-005",
+    "query": "fermentation umami sauce flavor technique recipe",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00041","bench-s-00042","bench-s-00043","bench-s-00044","bench-s-00045","bench-s-00046","bench-s-00047","bench-s-00048","bench-s-00049","bench-s-00050"],
+    "description": "Exact vocabulary from cooking-food topic"
+  },
+  {
+    "id": "q-006",
+    "query": "consciousness epistemology metaphysics ethics morality",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00051","bench-s-00052","bench-s-00053","bench-s-00054","bench-s-00055","bench-s-00056","bench-s-00057","bench-s-00058","bench-s-00059","bench-s-00060"],
+    "description": "Exact vocabulary from philosophy topic"
+  },
+  {
+    "id": "q-007",
+    "query": "civilization empire dynasty conquest medieval revolution",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00061","bench-s-00062","bench-s-00063","bench-s-00064","bench-s-00065","bench-s-00066","bench-s-00067","bench-s-00068","bench-s-00069","bench-s-00070"],
+    "description": "Exact vocabulary from history-culture topic"
+  },
+  {
+    "id": "q-008",
+    "query": "evolution DNA species adaptation biology ecology",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00071","bench-s-00072","bench-s-00073","bench-s-00074","bench-s-00075","bench-s-00076","bench-s-00077","bench-s-00078","bench-s-00079","bench-s-00080"],
+    "description": "Exact vocabulary from science-nature topic"
+  },
+  {
+    "id": "q-009",
+    "query": "startup mvp traction customer validation product market",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00081","bench-s-00082","bench-s-00083","bench-s-00084","bench-s-00085","bench-s-00086","bench-s-00087","bench-s-00088","bench-s-00089","bench-s-00090"],
+    "description": "Exact vocabulary from entrepreneurship topic"
+  },
+  {
+    "id": "q-010",
+    "query": "destination itinerary packing visa exploration culture",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00091","bench-s-00092","bench-s-00093","bench-s-00094","bench-s-00095","bench-s-00096","bench-s-00097","bench-s-00098","bench-s-00099","bench-s-00100"],
+    "description": "Exact vocabulary from travel topic"
+  },
+  {
+    "id": "q-011",
+    "query": "epoch training batch accuracy inference layer",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00001","bench-s-00002","bench-s-00003","bench-s-00004","bench-s-00005","bench-s-00006","bench-s-00007","bench-s-00008","bench-s-00009","bench-s-00010"],
+    "description": "Secondary keyword set for machine-learning"
+  },
+  {
+    "id": "q-012",
+    "query": "server client API request response backend deploy",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00011","bench-s-00012","bench-s-00013","bench-s-00014","bench-s-00015","bench-s-00016","bench-s-00017","bench-s-00018","bench-s-00019","bench-s-00020"],
+    "description": "Secondary keyword set for web-development"
+  },
+  {
+    "id": "q-013",
+    "query": "inflation yield rebalance allocation risk diversification",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00031","bench-s-00032","bench-s-00033","bench-s-00034","bench-s-00035","bench-s-00036","bench-s-00037","bench-s-00038","bench-s-00039","bench-s-00040"],
+    "description": "Secondary keyword set for investing-finance"
+  },
+  {
+    "id": "q-014",
+    "query": "entrepreneur pivot growth investor pitch revenue moat",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00081","bench-s-00082","bench-s-00083","bench-s-00084","bench-s-00085","bench-s-00086","bench-s-00087","bench-s-00088","bench-s-00089","bench-s-00090"],
+    "description": "Secondary keyword set for entrepreneurship"
+  },
+  {
+    "id": "q-015",
+    "query": "quantum particle thermodynamics entropy molecule cell",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00071","bench-s-00072","bench-s-00073","bench-s-00074","bench-s-00075","bench-s-00076","bench-s-00077","bench-s-00078","bench-s-00079","bench-s-00080"],
+    "description": "Secondary keyword set for science-nature"
+  },
+  {
+    "id": "q-016",
+    "query": "artificial intelligence pattern recognition supervised learning systems",
+    "queryType": "semantic",
+    "expectedNoteIds": ["bench-s-00001","bench-s-00002","bench-s-00003","bench-s-00004","bench-s-00005","bench-s-00006","bench-s-00007","bench-s-00008","bench-s-00009","bench-s-00010"],
+    "description": "Semantic paraphrase for machine-learning — uses AI/pattern recognition terminology"
+  },
+  {
+    "id": "q-017",
+    "query": "web application programming user interface design development",
+    "queryType": "semantic",
+    "expectedNoteIds": ["bench-s-00011","bench-s-00012","bench-s-00013","bench-s-00014","bench-s-00015","bench-s-00016","bench-s-00017","bench-s-00018","bench-s-00019","bench-s-00020"],
+    "description": "Semantic paraphrase for web-development"
+  },
+  {
+    "id": "q-018",
+    "query": "physical activity diet wellness optimization body performance",
+    "queryType": "semantic",
+    "expectedNoteIds": ["bench-s-00021","bench-s-00022","bench-s-00023","bench-s-00024","bench-s-00025","bench-s-00026","bench-s-00027","bench-s-00028","bench-s-00029","bench-s-00030"],
+    "description": "Semantic paraphrase for health-fitness"
+  },
+  {
+    "id": "q-019",
+    "query": "personal finance wealth building long-term investment growth",
+    "queryType": "semantic",
+    "expectedNoteIds": ["bench-s-00031","bench-s-00032","bench-s-00033","bench-s-00034","bench-s-00035","bench-s-00036","bench-s-00037","bench-s-00038","bench-s-00039","bench-s-00040"],
+    "description": "Semantic paraphrase for investing-finance"
+  },
+  {
+    "id": "q-020",
+    "query": "culinary arts preparation kitchen methods ingredients",
+    "queryType": "semantic",
+    "expectedNoteIds": ["bench-s-00041","bench-s-00042","bench-s-00043","bench-s-00044","bench-s-00045","bench-s-00046","bench-s-00047","bench-s-00048","bench-s-00049","bench-s-00050"],
+    "description": "Semantic paraphrase for cooking-food"
+  },
+  {
+    "id": "q-021",
+    "query": "philosophical inquiry human nature existence thought",
+    "queryType": "semantic",
+    "expectedNoteIds": ["bench-s-00051","bench-s-00052","bench-s-00053","bench-s-00054","bench-s-00055","bench-s-00056","bench-s-00057","bench-s-00058","bench-s-00059","bench-s-00060"],
+    "description": "Semantic paraphrase for philosophy"
+  },
+  {
+    "id": "q-022",
+    "query": "ancient societies historical development cultural change",
+    "queryType": "semantic",
+    "expectedNoteIds": ["bench-s-00061","bench-s-00062","bench-s-00063","bench-s-00064","bench-s-00065","bench-s-00066","bench-s-00067","bench-s-00068","bench-s-00069","bench-s-00070"],
+    "description": "Semantic paraphrase for history-culture"
+  },
+  {
+    "id": "q-023",
+    "query": "natural world scientific discovery research phenomena",
+    "queryType": "semantic",
+    "expectedNoteIds": ["bench-s-00071","bench-s-00072","bench-s-00073","bench-s-00074","bench-s-00075","bench-s-00076","bench-s-00077","bench-s-00078","bench-s-00079","bench-s-00080"],
+    "description": "Semantic paraphrase for science-nature"
+  },
+  {
+    "id": "q-024",
+    "query": "building a company from scratch market opportunity",
+    "queryType": "semantic",
+    "expectedNoteIds": ["bench-s-00081","bench-s-00082","bench-s-00083","bench-s-00084","bench-s-00085","bench-s-00086","bench-s-00087","bench-s-00088","bench-s-00089","bench-s-00090"],
+    "description": "Semantic paraphrase for entrepreneurship"
+  },
+  {
+    "id": "q-025",
+    "query": "exploring foreign countries places people adventure journey",
+    "queryType": "semantic",
+    "expectedNoteIds": ["bench-s-00091","bench-s-00092","bench-s-00093","bench-s-00094","bench-s-00095","bench-s-00096","bench-s-00097","bench-s-00098","bench-s-00099","bench-s-00100"],
+    "description": "Semantic paraphrase for travel"
+  },
+  {
+    "id": "q-026",
+    "query": "deep learning neural network",
+    "queryType": "temporal",
+    "expectedNoteIds": ["bench-s-00001","bench-s-00002","bench-s-00003","bench-s-00004","bench-s-00005","bench-s-00006","bench-s-00007","bench-s-00008","bench-s-00009","bench-s-00010"],
+    "temporalTopNote": "bench-s-00001",
+    "description": "Temporal query: bench-s-00001 is the most recent ML note — temporal decay should boost it"
+  },
+  {
+    "id": "q-027",
+    "query": "React component frontend development",
+    "queryType": "temporal",
+    "expectedNoteIds": ["bench-s-00011","bench-s-00012","bench-s-00013","bench-s-00014","bench-s-00015","bench-s-00016","bench-s-00017","bench-s-00018","bench-s-00019","bench-s-00020"],
+    "temporalTopNote": "bench-s-00011",
+    "description": "Temporal query: bench-s-00011 is the most recent web note"
+  },
+  {
+    "id": "q-028",
+    "query": "exercise nutrition sleep wellness",
+    "queryType": "temporal",
+    "expectedNoteIds": ["bench-s-00021","bench-s-00022","bench-s-00023","bench-s-00024","bench-s-00025","bench-s-00026","bench-s-00027","bench-s-00028","bench-s-00029","bench-s-00030"],
+    "temporalTopNote": "bench-s-00021",
+    "description": "Temporal query: bench-s-00021 is the most recent health note"
+  },
+  {
+    "id": "q-029",
+    "query": "portfolio investment stock market",
+    "queryType": "temporal",
+    "expectedNoteIds": ["bench-s-00031","bench-s-00032","bench-s-00033","bench-s-00034","bench-s-00035","bench-s-00036","bench-s-00037","bench-s-00038","bench-s-00039","bench-s-00040"],
+    "temporalTopNote": "bench-s-00031",
+    "description": "Temporal query: bench-s-00031 is the most recent finance note"
+  },
+  {
+    "id": "q-030",
+    "query": "cooking recipe ingredient technique",
+    "queryType": "temporal",
+    "expectedNoteIds": ["bench-s-00041","bench-s-00042","bench-s-00043","bench-s-00044","bench-s-00045","bench-s-00046","bench-s-00047","bench-s-00048","bench-s-00049","bench-s-00050"],
+    "temporalTopNote": "bench-s-00041",
+    "description": "Temporal query: bench-s-00041 is the most recent cooking note"
+  },
+  {
+    "id": "q-031",
+    "query": "philosophy consciousness mind reality",
+    "queryType": "temporal",
+    "expectedNoteIds": ["bench-s-00051","bench-s-00052","bench-s-00053","bench-s-00054","bench-s-00055","bench-s-00056","bench-s-00057","bench-s-00058","bench-s-00059","bench-s-00060"],
+    "temporalTopNote": "bench-s-00051",
+    "description": "Temporal query: bench-s-00051 is the most recent philosophy note"
+  },
+  {
+    "id": "q-032",
+    "query": "history civilization culture empire",
+    "queryType": "temporal",
+    "expectedNoteIds": ["bench-s-00061","bench-s-00062","bench-s-00063","bench-s-00064","bench-s-00065","bench-s-00066","bench-s-00067","bench-s-00068","bench-s-00069","bench-s-00070"],
+    "temporalTopNote": "bench-s-00061",
+    "description": "Temporal query: bench-s-00061 is the most recent history note"
+  },
+  {
+    "id": "q-033",
+    "query": "machine learning applications in financial markets prediction",
+    "queryType": "multi-hop",
+    "expectedNoteIds": ["bench-s-00001","bench-s-00002","bench-s-00003","bench-s-00004","bench-s-00005","bench-s-00031","bench-s-00032","bench-s-00033","bench-s-00034","bench-s-00035"],
+    "description": "Multi-hop: spans machine-learning and investing-finance topics"
+  },
+  {
+    "id": "q-034",
+    "query": "health science body biology nutrition wellness",
+    "queryType": "multi-hop",
+    "expectedNoteIds": ["bench-s-00021","bench-s-00022","bench-s-00023","bench-s-00024","bench-s-00025","bench-s-00071","bench-s-00072","bench-s-00073","bench-s-00074","bench-s-00075"],
+    "description": "Multi-hop: spans health-fitness and science-nature topics"
+  },
+  {
+    "id": "q-035",
+    "query": "technology startup software product build deploy",
+    "queryType": "multi-hop",
+    "expectedNoteIds": ["bench-s-00011","bench-s-00012","bench-s-00013","bench-s-00014","bench-s-00015","bench-s-00081","bench-s-00082","bench-s-00083","bench-s-00084","bench-s-00085"],
+    "description": "Multi-hop: spans web-development and entrepreneurship topics"
+  },
+  {
+    "id": "q-036",
+    "query": "philosophical foundations of scientific knowledge epistemology",
+    "queryType": "multi-hop",
+    "expectedNoteIds": ["bench-s-00051","bench-s-00052","bench-s-00053","bench-s-00054","bench-s-00055","bench-s-00071","bench-s-00072","bench-s-00073","bench-s-00074","bench-s-00075"],
+    "description": "Multi-hop: spans philosophy and science-nature topics"
+  },
+  {
+    "id": "q-037",
+    "query": "food travel cuisine culture local exploration",
+    "queryType": "multi-hop",
+    "expectedNoteIds": ["bench-s-00041","bench-s-00042","bench-s-00043","bench-s-00044","bench-s-00045","bench-s-00091","bench-s-00092","bench-s-00093","bench-s-00094","bench-s-00095"],
+    "description": "Multi-hop: spans cooking-food and travel topics"
+  },
+  {
+    "id": "q-038",
+    "query": "historical empires governance trade economics",
+    "queryType": "multi-hop",
+    "expectedNoteIds": ["bench-s-00031","bench-s-00032","bench-s-00033","bench-s-00034","bench-s-00035","bench-s-00061","bench-s-00062","bench-s-00063","bench-s-00064","bench-s-00065"],
+    "description": "Multi-hop: spans investing-finance and history-culture topics"
+  },
+  {
+    "id": "q-039",
+    "query": "Transformer Architecture 00006",
+    "queryType": "needle-in-haystack",
+    "expectedNoteIds": ["bench-s-00006"],
+    "description": "Needle: exact title of a single ML note"
+  },
+  {
+    "id": "q-040",
+    "query": "State Management 00013",
+    "queryType": "needle-in-haystack",
+    "expectedNoteIds": ["bench-s-00013"],
+    "description": "Needle: exact title of a single web-development note"
+  },
+  {
+    "id": "q-041",
+    "query": "Sleep Optimization 00023",
+    "queryType": "needle-in-haystack",
+    "expectedNoteIds": ["bench-s-00023"],
+    "description": "Needle: exact title of a single health note"
+  },
+  {
+    "id": "q-042",
+    "query": "Dividend Investing 00032",
+    "queryType": "needle-in-haystack",
+    "expectedNoteIds": ["bench-s-00032"],
+    "description": "Needle: exact title of a single finance note"
+  },
+  {
+    "id": "q-043",
+    "query": "Fermentation Guide 00043",
+    "queryType": "needle-in-haystack",
+    "expectedNoteIds": ["bench-s-00043"],
+    "description": "Needle: exact title of a single cooking note"
+  },
+  {
+    "id": "q-044",
+    "query": "Free Will Debate 00057",
+    "queryType": "needle-in-haystack",
+    "expectedNoteIds": ["bench-s-00057"],
+    "description": "Needle: exact title of a single philosophy note"
+  },
+  {
+    "id": "q-045",
+    "query": "Archaeological Find 00068",
+    "queryType": "needle-in-haystack",
+    "expectedNoteIds": ["bench-s-00068"],
+    "description": "Needle: exact title of a single history note"
+  },
+  {
+    "id": "q-046",
+    "query": "Particle Physics 00080",
+    "queryType": "needle-in-haystack",
+    "expectedNoteIds": ["bench-s-00080"],
+    "description": "Needle: exact title of a single science note"
+  },
+  {
+    "id": "q-047",
+    "query": "Competitive Moat 00087",
+    "queryType": "needle-in-haystack",
+    "expectedNoteIds": ["bench-s-00087"],
+    "description": "Needle: exact title of a single entrepreneurship note"
+  },
+  {
+    "id": "q-048",
+    "query": "Visa Requirements 00100",
+    "queryType": "needle-in-haystack",
+    "expectedNoteIds": ["bench-s-00100"],
+    "description": "Needle: exact title of a single travel note"
+  },
+  {
+    "id": "q-049",
+    "query": "embedding transformer attention mechanism sequence",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00001","bench-s-00002","bench-s-00003","bench-s-00004","bench-s-00005","bench-s-00006","bench-s-00007","bench-s-00008","bench-s-00009","bench-s-00010"],
+    "description": "Keyword: transformer/attention vocabulary for ML topic"
+  },
+  {
+    "id": "q-050",
+    "query": "hydration metabolism flexibility endurance habit",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00021","bench-s-00022","bench-s-00023","bench-s-00024","bench-s-00025","bench-s-00026","bench-s-00027","bench-s-00028","bench-s-00029","bench-s-00030"],
+    "description": "Keyword: secondary health vocabulary"
+  },
+  {
+    "id": "q-051",
+    "query": "virtue justice morality free will reasoning logic",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00051","bench-s-00052","bench-s-00053","bench-s-00054","bench-s-00055","bench-s-00056","bench-s-00057","bench-s-00058","bench-s-00059","bench-s-00060"],
+    "description": "Keyword: secondary philosophy vocabulary"
+  },
+  {
+    "id": "q-052",
+    "query": "accommodation budget local photography journey passport",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00091","bench-s-00092","bench-s-00093","bench-s-00094","bench-s-00095","bench-s-00096","bench-s-00097","bench-s-00098","bench-s-00099","bench-s-00100"],
+    "description": "Keyword: secondary travel vocabulary"
+  },
+  {
+    "id": "q-053",
+    "query": "trade archaeology artifact ancient society governance religion",
+    "queryType": "keyword",
+    "expectedNoteIds": ["bench-s-00061","bench-s-00062","bench-s-00063","bench-s-00064","bench-s-00065","bench-s-00066","bench-s-00067","bench-s-00068","bench-s-00069","bench-s-00070"],
+    "description": "Keyword: secondary history vocabulary"
+  },
+  {
+    "id": "q-054",
+    "query": "how to optimize machine learning model performance and speed",
+    "queryType": "semantic",
+    "expectedNoteIds": ["bench-s-00001","bench-s-00002","bench-s-00003","bench-s-00004","bench-s-00005","bench-s-00006","bench-s-00007","bench-s-00008","bench-s-00009","bench-s-00010"],
+    "description": "Semantic: conversational phrasing for ML topic"
+  },
+  {
+    "id": "q-055",
+    "query": "how to build and scale a profitable internet business",
+    "queryType": "semantic",
+    "expectedNoteIds": ["bench-s-00081","bench-s-00082","bench-s-00083","bench-s-00084","bench-s-00085","bench-s-00086","bench-s-00087","bench-s-00088","bench-s-00089","bench-s-00090"],
+    "description": "Semantic: conversational phrasing for entrepreneurship topic"
+  }
+]

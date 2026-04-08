@@ -36,7 +36,8 @@
     "clean": "pnpm -r clean && rm -rf node_modules",
     "deploy": "./scripts/deploy-fast.sh",
     "release": "tsx scripts/release.ts",
-    "sync-plugins": "tsx scripts/sync-plugin-config.ts"
+    "sync-plugins": "tsx scripts/sync-plugin-config.ts",
+    "bench:search": "tsx benchmarks/search/run.ts"
   },
   "engines": {
     "node": ">=20.0.0",
