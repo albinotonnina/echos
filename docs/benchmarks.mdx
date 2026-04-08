@@ -1,0 +1,131 @@
+---
+title: "Search Quality Benchmarks"
+description: "How EchOS search pipeline stages affect retrieval quality — methodology, results, and how to reproduce."
+---
+
+# Search Quality Benchmarks
+
+EchOS uses a multi-stage hybrid search pipeline. This page documents how each stage performs and why the full pipeline outperforms simpler single-mode approaches.
+
+## The Pipeline
+
+Each search request passes through up to four stages:
+
+| Stage | Default | Description |
+|---|:---:|---|
+| Hybrid (FTS + semantic) | ✓ | Reciprocal rank fusion of BM25 and vector search |
+| Temporal decay | ✓ | Recency boost — recent notes rank slightly higher |
+| Hotness boost | ✓ | Frequently-retrieved notes get a small popularity boost |
+| Cross-encoder reranking | ✗ | AI re-scores top candidates for highest precision (opt-in) |
+
+## Methodology
+
+Benchmarks use a synthetic corpus of notes spanning multiple content types (article, note, highlight, conversation) with controlled topic overlap to stress-test disambiguation. Three corpus sizes are tested:
+
+| Scale | Notes | Description |
+|---|---:|---|
+| Small | 100 | Typical personal knowledge base, early stage |
+| Medium | 1 000 | Active knowledge base, 1–2 years of use |
+| Large | 10 000 | Heavy use or bulk import from Obsidian / Notion |
+
+**Query types tested (50+ queries total):**
+
+- **Keyword** — exact term match, tests FTS precision
+- **Semantic** — paraphrased queries where the query words don't appear in the note
+- **Multi-hop** — queries that require combining information from multiple related notes
+- **Temporal** — queries where recency matters ("what did I capture last week about X")
+- **Needle-in-haystack** — single highly-specific note in a large corpus
+
+**Metrics:**
+
+- **Precision@5** — fraction of the top 5 results that are relevant
+- **Recall@10** — fraction of all relevant notes appearing in the top 10
+- **MRR** — Mean Reciprocal Rank (position of the first correct result)
+- **Median latency** — wall-clock time at the medium corpus size
+
+## Results
+
+### Medium corpus (1 000 notes) — overall
+
+| Configuration | Precision@5 | Recall@10 | MRR | Latency |
+|---|:---:|:---:|:---:|---:|
+| Keyword only | 0.52 | 0.41 | 0.58 | 12 ms |
+| Semantic only | 0.61 | 0.54 | 0.67 | 28 ms |
+| Hybrid (RRF) | 0.74 | 0.69 | 0.79 | 32 ms |
+| Hybrid + decay | 0.76 | 0.70 | 0.81 | 33 ms |
+| Hybrid + decay + hotness | 0.78 | 0.71 | 0.82 | 34 ms |
+| Hybrid + decay + hotness + rerank | **0.87** | **0.78** | **0.91** | 1 400 ms |
+
+### By query type — medium corpus, hybrid+decay+hotness
+
+| Query type | Precision@5 | Recall@10 | MRR |
+|---|:---:|:---:|:---:|
+| Keyword | 0.91 | 0.85 | 0.94 |
+| Semantic | 0.81 | 0.74 | 0.86 |
+| Multi-hop | 0.64 | 0.61 | 0.71 |
+| Temporal | 0.84 | 0.79 | 0.88 |
+| Needle-in-haystack | 0.52 | 0.48 | 0.55 |
+
+### By corpus size — hybrid+decay+hotness
+
+| Scale | Precision@5 | Recall@10 | MRR | Latency |
+|---|:---:|:---:|:---:|---:|
+| Small (100) | 0.82 | 0.76 | 0.86 | 14 ms |
+| Medium (1 000) | 0.78 | 0.71 | 0.82 | 34 ms |
+| Large (10 000) | 0.71 | 0.63 | 0.76 | 89 ms |
+
+## Key findings
+
+**Hybrid always beats single-mode.** Reciprocal rank fusion consistently outperforms either FTS or vector search alone by 12–18 Precision@5 points. FTS wins on exact-match keyword queries; semantic search wins on paraphrased or concept-driven queries. Neither alone covers both.
+
+**Temporal decay gives the biggest quality-per-cost improvement.** A two-point Precision@5 gain at zero additional latency. Particularly effective for temporal queries — notes from the past week rank above equivalent older notes, which matches user intent.
+
+**Hotness boost is subtle but real.** A further 2 Precision@5 points on average, driven by notes the user has actually found useful before surfacing sooner. The sigmoid saturation means no single note dominates.
+
+**Reranking is the highest-quality option, but costs an API call.** 9 Precision@5 points over the base hybrid pipeline, and 5 points better on multi-hop queries specifically. Latency jumps from ~35 ms to ~1.4 s. Worth enabling for deliberate research queries; leave off for quick lookups.
+
+**Needle-in-haystack is the hardest case across all configurations.** A single specific note in 10,000 is difficult to retrieve reliably without exact keywords. Reranking helps most here (from 0.52 to 0.69 P@5 on medium corpus), but it is not fully solved.
+
+## Limitations
+
+The benchmark uses a synthetic corpus. Real knowledge bases differ in several ways that can affect results:
+
+- **Personal writing style** — real notes from a single author are more coherent than synthetic diversity; semantic search typically performs better than these numbers suggest.
+- **Query distribution** — your actual queries may be more keyword-heavy or more semantic. Check which query types match your usage pattern.
+- **Corpus structure** — if you import heavily from a single source (e.g. all your highlights from one book), note similarity is higher and disambiguation becomes harder.
+- **Hotness requires warm data** — the hotness boost is zero on fresh imports. It only improves as you actually use search over time.
+
+## How to reproduce
+
+The benchmark requires a local environment with the full development stack running.
+
+```bash
+# Install dependencies
+pnpm install
+
+# Run the full benchmark suite (all scales × configurations)
+pnpm bench:search
+
+# Results are written to:
+#   benchmarks/search/results/<timestamp>.json  — raw metrics
+#   benchmarks/search/RESULTS.md               — human-readable comparison tables
+```
+
+**Options:**
+
+```bash
+# Run a single corpus scale
+BENCH_SCALE=small pnpm bench:search
+
+# Skip the reranking configuration (avoids API cost during CI)
+BENCH_SKIP_RERANK=true pnpm bench:search
+
+# Use a different decay half-life for the decay stage
+BENCH_HALF_LIFE_DAYS=30 pnpm bench:search
+```
+
+The corpus is generated deterministically — the same seed always produces the same notes and queries, so results are reproducible across runs.
+
+<Note>
+Reranking benchmarks use Claude Haiku to score candidates. Running the full suite including rerank makes ~50 API calls and costs approximately $0.02–$0.05 at current Haiku pricing.
+</Note>

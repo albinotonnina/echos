@@ -84,7 +84,8 @@
         "security",
         "remote-access",
         "oracle-cloud-vault",
-        "releasing"
+        "releasing",
+        "benchmarks"
       ]
     }
   ]
