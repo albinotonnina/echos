@@ -114,6 +114,8 @@ describe('createSearchService - hybrid temporal decay', () => {
     sqlite = {
       searchFts: vi.fn().mockReturnValue([rows['old'], rows['new']]),
       getNote: vi.fn().mockImplementation((id: string) => rows[id]),
+      getHotness: vi.fn().mockReturnValue(new Map()),
+      recordAccess: vi.fn(),
     } as unknown as SqliteStorage;
 
     vectorDb = {
@@ -230,6 +232,8 @@ describe('createSearchService - hybrid reranking', () => {
     sqlite = {
       searchFts: vi.fn().mockReturnValue([rows['a'], rows['b']]),
       getNote: vi.fn().mockImplementation((id: string) => rows[id]),
+      getHotness: vi.fn().mockReturnValue(new Map()),
+      recordAccess: vi.fn(),
     } as unknown as SqliteStorage;
 
     vectorDb = {
