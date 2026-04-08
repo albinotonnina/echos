@@ -21,6 +21,7 @@ import {
   createKnowledgeStatsTool,
   recallKnowledgeTool,
 } from '../agent/tools/index.js';
+import { registerResources } from './resources.js';
 
 export interface McpServerDeps {
   sqlite: SqliteStorage;
@@ -41,7 +42,7 @@ export interface McpServerOptions {
 function buildMcpServer(deps: McpServerDeps, version: string): McpServer {
   const server = new McpServer(
     { name: 'echos', version },
-    { capabilities: { tools: {} } },
+    { capabilities: { tools: {}, resources: {} } },
   );
 
   const storageDeps = {
@@ -171,6 +172,8 @@ function buildMcpServer(deps: McpServerDeps, version: string): McpServer {
     const result = await recallTool.execute(randomUUID(), { topic: params.topic } as Parameters<typeof recallTool.execute>[1]);
     return { content: result.content };
   });
+
+  registerResources(server, { sqlite: deps.sqlite, markdown: deps.markdown });
 
   return server;
 }

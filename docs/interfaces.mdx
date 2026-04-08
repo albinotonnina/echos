@@ -625,6 +625,18 @@ MCP server started (localhost only) port=3939
 | `knowledge_stats` | Knowledge base overview and statistics |
 | `recall_knowledge` | Recall personal memories by topic |
 
+### Exposed Resources
+
+MCP resources let clients browse and read notes, tags, and categories without calling a tool. Each resource type uses a URI template:
+
+| URI pattern | Description |
+|---|---|
+| `notes://{noteId}` | Individual note — full markdown content with YAML frontmatter |
+| `tags://{tagName}` | Notes with a given tag (URL-encoded) |
+| `categories://{categoryName}` | Notes in a given category (URL-encoded) |
+
+Listing resources (e.g. `resources/list`) returns all notes, tags, or categories. Reading a resource (e.g. `resources/read` with `notes://abc-123`) returns the full content as `text/markdown`.
+
 ### Connect from Claude Code
 
 Add to your Claude Code configuration (`~/.claude.json` or project `.claude.json`):
