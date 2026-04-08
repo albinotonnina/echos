@@ -1,0 +1,387 @@
+[
+  {
+    "id": "q01",
+    "query": "neural network training accuracy",
+    "expectedNoteIds": ["bench-t0-0000", "bench-t0-0001", "bench-t0-0002", "bench-t0-0008"],
+    "queryType": "keyword",
+    "topic": "machine-learning"
+  },
+  {
+    "id": "q02",
+    "query": "machine learning model dataset",
+    "expectedNoteIds": ["bench-t0-0000", "bench-t0-0003", "bench-t0-0004", "bench-t0-0009"],
+    "queryType": "keyword",
+    "topic": "machine-learning"
+  },
+  {
+    "id": "q03",
+    "query": "improving AI model performance generalization",
+    "expectedNoteIds": ["bench-t0-0000", "bench-t0-0002", "bench-t0-0010", "bench-t0-0011"],
+    "queryType": "semantic",
+    "topic": "machine-learning"
+  },
+  {
+    "id": "q04",
+    "query": "deep learning optimization techniques",
+    "expectedNoteIds": ["bench-t0-0001", "bench-t0-0004", "bench-t0-0006", "bench-t0-0007"],
+    "queryType": "semantic",
+    "topic": "machine-learning"
+  },
+  {
+    "id": "q05",
+    "query": "recipe cooking kitchen ingredient",
+    "expectedNoteIds": ["bench-t1-0000", "bench-t1-0001", "bench-t1-0002", "bench-t1-0009"],
+    "queryType": "keyword",
+    "topic": "cooking"
+  },
+  {
+    "id": "q06",
+    "query": "flavor seasoning cuisine chef",
+    "expectedNoteIds": ["bench-t1-0001", "bench-t1-0003", "bench-t1-0007", "bench-t1-0011"],
+    "queryType": "keyword",
+    "topic": "cooking"
+  },
+  {
+    "id": "q07",
+    "query": "preparing delicious meals at home",
+    "expectedNoteIds": ["bench-t1-0000", "bench-t1-0004", "bench-t1-0009", "bench-t1-0010"],
+    "queryType": "semantic",
+    "topic": "cooking"
+  },
+  {
+    "id": "q08",
+    "query": "professional culinary techniques and methods",
+    "expectedNoteIds": ["bench-t1-0003", "bench-t1-0005", "bench-t1-0008", "bench-t1-0011"],
+    "queryType": "semantic",
+    "topic": "cooking"
+  },
+  {
+    "id": "q09",
+    "query": "climate emissions carbon temperature",
+    "expectedNoteIds": ["bench-t2-0000", "bench-t2-0001", "bench-t2-0002", "bench-t2-0006"],
+    "queryType": "keyword",
+    "topic": "climate"
+  },
+  {
+    "id": "q10",
+    "query": "renewable energy solar wind sustainability",
+    "expectedNoteIds": ["bench-t2-0001", "bench-t2-0004", "bench-t2-0008", "bench-t2-0011"],
+    "queryType": "keyword",
+    "topic": "climate"
+  },
+  {
+    "id": "q11",
+    "query": "global warming solutions and climate policy",
+    "expectedNoteIds": ["bench-t2-0000", "bench-t2-0003", "bench-t2-0006", "bench-t2-0009"],
+    "queryType": "semantic",
+    "topic": "climate"
+  },
+  {
+    "id": "q12",
+    "query": "reducing environmental impact of human activity",
+    "expectedNoteIds": ["bench-t2-0002", "bench-t2-0004", "bench-t2-0010", "bench-t2-0011"],
+    "queryType": "semantic",
+    "topic": "climate"
+  },
+  {
+    "id": "q13",
+    "query": "investing portfolio savings compound interest",
+    "expectedNoteIds": ["bench-t3-0000", "bench-t3-0001", "bench-t3-0004", "bench-t3-0007"],
+    "queryType": "keyword",
+    "topic": "finance"
+  },
+  {
+    "id": "q14",
+    "query": "ETF index fund expense ratio budget",
+    "expectedNoteIds": ["bench-t3-0001", "bench-t3-0006", "bench-t3-0009", "bench-t3-0011"],
+    "queryType": "keyword",
+    "topic": "finance"
+  },
+  {
+    "id": "q15",
+    "query": "building wealth over long time horizons",
+    "expectedNoteIds": ["bench-t3-0000", "bench-t3-0004", "bench-t3-0007", "bench-t3-0008"],
+    "queryType": "semantic",
+    "topic": "finance"
+  },
+  {
+    "id": "q16",
+    "query": "retirement savings and tax-advantaged accounts",
+    "expectedNoteIds": ["bench-t3-0005", "bench-t3-0006", "bench-t3-0010", "bench-t3-0011"],
+    "queryType": "semantic",
+    "topic": "finance"
+  },
+  {
+    "id": "q17",
+    "query": "travel destination adventure passport culture",
+    "expectedNoteIds": ["bench-t4-0000", "bench-t4-0001", "bench-t4-0004", "bench-t4-0010"],
+    "queryType": "keyword",
+    "topic": "travel"
+  },
+  {
+    "id": "q18",
+    "query": "backpacking budget visa itinerary",
+    "expectedNoteIds": ["bench-t4-0000", "bench-t4-0002", "bench-t4-0005", "bench-t4-0009"],
+    "queryType": "keyword",
+    "topic": "travel"
+  },
+  {
+    "id": "q19",
+    "query": "exploring foreign countries on limited budget",
+    "expectedNoteIds": ["bench-t4-0000", "bench-t4-0005", "bench-t4-0008", "bench-t4-0009"],
+    "queryType": "semantic",
+    "topic": "travel"
+  },
+  {
+    "id": "q20",
+    "query": "discovering authentic local experiences abroad",
+    "expectedNoteIds": ["bench-t4-0001", "bench-t4-0007", "bench-t4-0010", "bench-t4-0011"],
+    "queryType": "semantic",
+    "topic": "travel"
+  },
+  {
+    "id": "q21",
+    "query": "code software algorithm debugging API",
+    "expectedNoteIds": ["bench-t5-0000", "bench-t5-0001", "bench-t5-0002", "bench-t5-0007"],
+    "queryType": "keyword",
+    "topic": "programming"
+  },
+  {
+    "id": "q22",
+    "query": "TypeScript deployment microservices container",
+    "expectedNoteIds": ["bench-t5-0003", "bench-t5-0004", "bench-t5-0005", "bench-t5-0006"],
+    "queryType": "keyword",
+    "topic": "programming"
+  },
+  {
+    "id": "q23",
+    "query": "writing maintainable and scalable software",
+    "expectedNoteIds": ["bench-t5-0000", "bench-t5-0004", "bench-t5-0010", "bench-t5-0011"],
+    "queryType": "semantic",
+    "topic": "programming"
+  },
+  {
+    "id": "q24",
+    "query": "automated testing and continuous integration",
+    "expectedNoteIds": ["bench-t5-0001", "bench-t5-0005", "bench-t5-0009", "bench-t5-0010"],
+    "queryType": "semantic",
+    "topic": "programming"
+  },
+  {
+    "id": "q25",
+    "query": "exercise workout fitness nutrition strength",
+    "expectedNoteIds": ["bench-t6-0000", "bench-t6-0001", "bench-t6-0002", "bench-t6-0005"],
+    "queryType": "keyword",
+    "topic": "fitness"
+  },
+  {
+    "id": "q26",
+    "query": "running cardio HIIT heart rate training",
+    "expectedNoteIds": ["bench-t6-0003", "bench-t6-0004", "bench-t6-0007", "bench-t6-0011"],
+    "queryType": "keyword",
+    "topic": "fitness"
+  },
+  {
+    "id": "q27",
+    "query": "improving athletic performance and endurance",
+    "expectedNoteIds": ["bench-t6-0001", "bench-t6-0003", "bench-t6-0004", "bench-t6-0010"],
+    "queryType": "semantic",
+    "topic": "fitness"
+  },
+  {
+    "id": "q28",
+    "query": "body composition and muscle building strategies",
+    "expectedNoteIds": ["bench-t6-0000", "bench-t6-0006", "bench-t6-0008", "bench-t6-0009"],
+    "queryType": "semantic",
+    "topic": "fitness"
+  },
+  {
+    "id": "q29",
+    "query": "history civilization empire ancient war",
+    "expectedNoteIds": ["bench-t7-0000", "bench-t7-0001", "bench-t7-0002", "bench-t7-0009"],
+    "queryType": "keyword",
+    "topic": "history"
+  },
+  {
+    "id": "q30",
+    "query": "medieval dynasty archaeology religion culture",
+    "expectedNoteIds": ["bench-t7-0002", "bench-t7-0006", "bench-t7-0010", "bench-t7-0011"],
+    "queryType": "keyword",
+    "topic": "history"
+  },
+  {
+    "id": "q31",
+    "query": "rise and fall of ancient political powers",
+    "expectedNoteIds": ["bench-t7-0000", "bench-t7-0003", "bench-t7-0007", "bench-t7-0009"],
+    "queryType": "semantic",
+    "topic": "history"
+  },
+  {
+    "id": "q32",
+    "query": "cross-cultural exchange along ancient trade routes",
+    "expectedNoteIds": ["bench-t7-0001", "bench-t7-0005", "bench-t7-0006", "bench-t7-0008"],
+    "queryType": "semantic",
+    "topic": "history"
+  },
+  {
+    "id": "q33",
+    "query": "AlphaGo self-play reinforcement learning",
+    "expectedNoteIds": ["bench-needle-0000"],
+    "queryType": "needle-in-haystack",
+    "topic": "machine-learning"
+  },
+  {
+    "id": "q34",
+    "query": "sourdough starter hydration ratio wild yeast",
+    "expectedNoteIds": ["bench-needle-0001"],
+    "queryType": "needle-in-haystack",
+    "topic": "cooking"
+  },
+  {
+    "id": "q35",
+    "query": "Atlantic Meridional Overturning Circulation thermohaline",
+    "expectedNoteIds": ["bench-needle-0002"],
+    "queryType": "needle-in-haystack",
+    "topic": "climate"
+  },
+  {
+    "id": "q36",
+    "query": "sequence to sequence transformer code generation HumanEval",
+    "expectedNoteIds": ["bench-needle-0003"],
+    "queryType": "needle-in-haystack",
+    "topic": "programming"
+  },
+  {
+    "id": "q37",
+    "query": "AI application in personal finance and investment",
+    "expectedNoteIds": ["bench-t0-0000", "bench-t0-0003", "bench-t3-0000", "bench-t3-0001"],
+    "queryType": "multi-hop",
+    "topic": "cross"
+  },
+  {
+    "id": "q38",
+    "query": "technology innovation transforming health and fitness",
+    "expectedNoteIds": ["bench-t5-0000", "bench-t5-0002", "bench-t6-0000", "bench-t6-0010"],
+    "queryType": "multi-hop",
+    "topic": "cross"
+  },
+  {
+    "id": "q39",
+    "query": "climate data and machine learning predictions",
+    "expectedNoteIds": ["bench-t0-0000", "bench-t0-0003", "bench-t2-0000", "bench-t2-0003"],
+    "queryType": "multi-hop",
+    "topic": "cross"
+  },
+  {
+    "id": "q40",
+    "query": "historical empire and financial systems",
+    "expectedNoteIds": ["bench-t3-0000", "bench-t7-0000", "bench-t7-0001", "bench-t7-0007"],
+    "queryType": "multi-hop",
+    "topic": "cross"
+  },
+  {
+    "id": "q41",
+    "query": "recent advances in deep learning architectures",
+    "expectedNoteIds": ["bench-t0-0004", "bench-t0-0006", "bench-t0-0007"],
+    "queryType": "temporal",
+    "topic": "machine-learning"
+  },
+  {
+    "id": "q42",
+    "query": "latest sustainable energy research findings",
+    "expectedNoteIds": ["bench-t2-0001", "bench-t2-0008", "bench-t2-0011"],
+    "queryType": "temporal",
+    "topic": "climate"
+  },
+  {
+    "id": "q43",
+    "query": "gradient descent backpropagation optimization",
+    "expectedNoteIds": ["bench-t0-0001", "bench-t0-0004", "bench-t0-0005"],
+    "queryType": "keyword",
+    "topic": "machine-learning"
+  },
+  {
+    "id": "q44",
+    "query": "feature engineering convolutional transformer",
+    "expectedNoteIds": ["bench-t0-0005", "bench-t0-0006", "bench-t0-0007"],
+    "queryType": "keyword",
+    "topic": "machine-learning"
+  },
+  {
+    "id": "q45",
+    "query": "baking bread fermentation yeast",
+    "expectedNoteIds": ["bench-t1-0004", "bench-t1-0010", "bench-needle-0001"],
+    "queryType": "keyword",
+    "topic": "cooking"
+  },
+  {
+    "id": "q46",
+    "query": "stock market ETF passive investing strategy",
+    "expectedNoteIds": ["bench-t3-0001", "bench-t3-0006", "bench-t3-0009"],
+    "queryType": "keyword",
+    "topic": "finance"
+  },
+  {
+    "id": "q47",
+    "query": "Tokyo Japan travel tips for first time visitors",
+    "expectedNoteIds": ["bench-t4-0002", "bench-t4-0010"],
+    "queryType": "semantic",
+    "topic": "travel"
+  },
+  {
+    "id": "q48",
+    "query": "open source contribution software development workflow",
+    "expectedNoteIds": ["bench-t5-0009", "bench-t5-0011"],
+    "queryType": "semantic",
+    "topic": "programming"
+  },
+  {
+    "id": "q49",
+    "query": "deadlift squat compound movements strength gains",
+    "expectedNoteIds": ["bench-t6-0000", "bench-t6-0005", "bench-t6-0008"],
+    "queryType": "keyword",
+    "topic": "fitness"
+  },
+  {
+    "id": "q50",
+    "query": "Julius Caesar Roman Empire political power",
+    "expectedNoteIds": ["bench-t7-0000", "bench-t7-0009"],
+    "queryType": "keyword",
+    "topic": "history"
+  },
+  {
+    "id": "q51",
+    "query": "rebalancing portfolio annual review allocation",
+    "expectedNoteIds": ["bench-t3-0008", "bench-t3-0011"],
+    "queryType": "keyword",
+    "topic": "finance"
+  },
+  {
+    "id": "q52",
+    "query": "VO2 max cardio fitness heart rate zones",
+    "expectedNoteIds": ["bench-t6-0004", "bench-t6-0007"],
+    "queryType": "keyword",
+    "topic": "fitness"
+  },
+  {
+    "id": "q53",
+    "query": "food culture and local cuisine when traveling",
+    "expectedNoteIds": ["bench-t1-0000", "bench-t4-0007"],
+    "queryType": "multi-hop",
+    "topic": "cross"
+  },
+  {
+    "id": "q54",
+    "query": "Mongol Empire conquest trade routes Silk Road",
+    "expectedNoteIds": ["bench-t7-0003", "bench-t7-0001"],
+    "queryType": "keyword",
+    "topic": "history"
+  },
+  {
+    "id": "q55",
+    "query": "debugging performance issues in production software",
+    "expectedNoteIds": ["bench-t5-0002", "bench-t5-0010"],
+    "queryType": "semantic",
+    "topic": "programming"
+  }
+]

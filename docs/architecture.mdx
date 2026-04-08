@@ -422,6 +422,17 @@ Hybrid search combines multiple strategies in a pipeline (`packages/core/src/sto
 4. **Temporal decay** (optional, default on): exponential decay factor `2^(-age/halfLife)` applied to RRF scores so recent notes rank higher. Configurable half-life (default 90 days). Set `temporalDecay: false` for archival searches.
 5. **Cross-encoder reranking** (optional, default off): after all scoring stages, the top-N candidates are sent to Claude Haiku with a relevance-scoring prompt. Scores are parsed and results re-sorted. Adds one API call per search but yields the highest-quality ranking. Enable with `rerank: true` in `SearchOptions` or the `search_knowledge` tool. Requires `ANTHROPIC_API_KEY`. Implemented in `packages/core/src/storage/reranker.ts`.
 
+### Search Benchmark
+
+A reproducible benchmark suite lives in `benchmarks/search/` and measures search quality across pipeline configurations and corpus sizes:
+
+- `generate-corpus.ts` — generates a synthetic corpus (100 / 1,000 / 10,000 notes) using a seeded PRNG. Topics span machine learning, cooking, climate, finance, travel, programming, fitness, and history, with controlled vocabulary overlap to test semantic similarity.
+- `queries.json` — 55 test queries with known relevant note IDs, covering keyword, semantic, multi-hop, temporal, and needle-in-haystack query types.
+- `run.ts` — benchmark runner. For each scale × configuration (`keyword`, `semantic`, `hybrid`, `hybrid+decay`, optionally `hybrid+decay+rerank`), loads the corpus into a temporary SQLite + LanceDB instance and computes Precision@5, Recall@10, MRR, and median latency. Uses deterministic hash-based bag-of-words embeddings — no OpenAI API key required for the baseline configurations.
+- `report.ts` — reads the latest results JSON and generates `benchmarks/search/RESULTS.md` with comparison tables and delta analysis.
+
+Run with: `pnpm bench:search` (add `--scale small` to run only the small corpus, `--rerank` to include the reranking configuration).
+
 ## Memory System
 
 Long-term memory (`remember_about_me` / `recall_knowledge` tools) uses a hybrid strategy to balance cost and recall:
