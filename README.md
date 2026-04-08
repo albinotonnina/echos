@@ -87,23 +87,23 @@ The only outbound calls are to the AI APIs you configure — and only when you a
 
 ## How EchOS Compares
 
-| Feature | EchOS | Obsidian + AI | Notion AI | Mem | Apple Notes |
+| Feature | 🔮 EchOS | 💎 Obsidian + AI | 📋 Notion AI | 🧠 Mem | 🍎 Apple Notes |
 |---|:---:|:---:|:---:|:---:|:---:|
-| Runs locally | ✓ | ✓ | ✗ | ✗ | ✗ |
-| Local storage | ✓ | ✓ | ✗ | ✗ | ~ |
-| Agent-driven | ✓ | ✗ | ✗ | ~ | ✗ |
-| Telegram interface | ✓ | ✗ | ✗ | ✗ | ✗ |
-| CLI | ✓ | ~ | ✗ | ✗ | ✗ |
-| Plugin system | ✓ | ✓ | ~ | ✗ | ✗ |
-| Semantic search | ✓ | ~ | ~ | ✓ | ✗ |
-| Knowledge graph | ~ | ✓ | ✗ | ✗ | ✗ |
-| MCP server | ✓ | ~ | ✗ | ✗ | ✗ |
-| Voice input | ✓ | ~ | ✗ | ✗ | ~ |
-| Content capture (URL/YouTube) | ✓ | ~ | ~ | ~ | ~ |
-| Plain markdown files | ✓ | ✓ | ✗ | ✗ | ✗ |
-| Obsidian compatible | ✓ | ✓ | ✗ | ✗ | ✗ |
+| 🏠 Runs locally | ✅ | ✅ | ❌ | ❌ | ❌ |
+| 💾 Local storage | ✅ | ✅ | ❌ | ❌ | 🟡 |
+| 🤖 Agent-driven | ✅ | ❌ | ❌ | 🟡 | ❌ |
+| ✈️ Telegram interface | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 💻 CLI | ✅ | 🟡 | ❌ | ❌ | ❌ |
+| 🔌 Plugin system | ✅ | ✅ | 🟡 | ❌ | ❌ |
+| 🔍 Semantic search | ✅ | 🟡 | 🟡 | ✅ | ❌ |
+| 🕸️ Knowledge graph | 🟡 | ✅ | ❌ | ❌ | ❌ |
+| 🔗 MCP server | ✅ | 🟡 | ❌ | ❌ | ❌ |
+| 🎤 Voice input | ✅ | 🟡 | ❌ | ❌ | 🟡 |
+| 📎 Content capture (URL/YouTube) | ✅ | 🟡 | 🟡 | 🟡 | 🟡 |
+| 📄 Plain markdown files | ✅ | ✅ | ❌ | ❌ | ❌ |
+| 💎 Obsidian compatible | ✅ | ✅ | ❌ | ❌ | ❌ |
 
-~ = partial support via plugins or workarounds
+🟡 = partial support via plugins or workarounds
 
 **Choose Obsidian + AI plugins** if you want a mature, polished UI with a large plugin ecosystem and you're happy to configure things yourself. EchOS trades Obsidian's graph view and rich editor for a conversational agent that captures and organizes for you automatically.
 
