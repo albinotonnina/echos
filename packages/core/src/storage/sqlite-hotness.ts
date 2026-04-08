@@ -9,6 +9,7 @@ export interface HotnessRow {
 export interface HotnessOps {
   recordAccess(noteId: string): void;
   getHotness(noteIds: string[]): Map<string, { retrievalCount: number; lastAccessed: string }>;
+  /** Returns the most frequently accessed notes. Intended for analytics and debugging (e.g. "what have I been reading most?"). */
   getTopHot(limit: number): HotnessRow[];
 }
 

@@ -70,6 +70,7 @@ export interface SqliteStorage {
   // Hotness tracking
   recordAccess(noteId: string): void;
   getHotness(noteIds: string[]): Map<string, { retrievalCount: number; lastAccessed: string }>;
+  /** Returns the most frequently accessed notes. For analytics and debugging. */
   getTopHot(limit: number): HotnessRow[];
   // Lifecycle
   close(): void;

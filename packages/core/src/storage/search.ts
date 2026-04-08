@@ -211,7 +211,8 @@ export function createSearchService(
         logger.warn({ query: opts.query }, 'Rerank requested but no anthropicApiKey configured — skipping');
       }
 
-      // Record access for all returned notes to power the hotness signal.
+      // Record access unconditionally: hotness data is always collected even
+      // when hotnessBoost is disabled, so future searches can benefit from it.
       for (const r of results) {
         sqlite.recordAccess(r.note.metadata.id);
       }

@@ -108,9 +108,7 @@ const SCHEMA = `
   );
 
   CREATE INDEX IF NOT EXISTS idx_revisions_note_id_created ON revisions(note_id, created_at);
-`;
 
-const HOTNESS_SCHEMA = `
   CREATE TABLE IF NOT EXISTS note_hotness (
     note_id TEXT PRIMARY KEY,
     retrieval_count INTEGER NOT NULL DEFAULT 0,
@@ -280,7 +278,7 @@ function runMigrations(db: Database.Database): void {
       BEGIN DELETE FROM revisions WHERE note_id = old.id; END;
   `);
 
-  // Migration: add note_hotness table for existing databases
+  // Migration: add note_hotness table for existing databases (added in v0.19)
   db.exec(`
     CREATE TABLE IF NOT EXISTS note_hotness (
       note_id TEXT PRIMARY KEY,
@@ -455,7 +453,6 @@ export function initSchema(db: Database.Database, logger: Logger): PreparedState
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(SCHEMA);
-  db.exec(HOTNESS_SCHEMA);
   runMigrations(db);
   logger.info('SQLite schema initialized');
   return prepareStatements(db);
