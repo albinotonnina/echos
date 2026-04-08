@@ -16,6 +16,9 @@ import { createReminderOps } from './sqlite-reminders.js';
 import { createScheduleOps } from './sqlite-schedules.js';
 import { createMemoryOps } from './sqlite-memory.js';
 import { createStatsOps } from './sqlite-stats.js';
+import { createHotnessOps } from './sqlite-hotness.js';
+import type { HotnessRow } from './sqlite-hotness.js';
+export type { HotnessRow } from './sqlite-hotness.js';
 
 export interface SqliteStorage {
   db: Database.Database;
@@ -64,6 +67,10 @@ export interface SqliteStorage {
   getLinkCount(): number;
   getWeeklyCreationCounts(weeks: number): { week: string; count: number }[];
   getCategoryFrequencies(limit: number): { category: string; count: number }[];
+  // Hotness tracking
+  recordAccess(noteId: string): void;
+  getHotness(noteIds: string[]): Map<string, { retrievalCount: number; lastAccessed: string }>;
+  getTopHot(limit: number): HotnessRow[];
   // Lifecycle
   close(): void;
 }
@@ -124,6 +131,7 @@ export function createSqliteStorage(dbPath: string, logger: Logger): SqliteStora
     ...createScheduleOps(db, stmts, logger),
     ...createMemoryOps(db, stmts, logger),
     ...createStatsOps(db, stmts, logger),
+    ...createHotnessOps(db),
     close(): void {
       db.close();
       logger.info('SQLite database closed');

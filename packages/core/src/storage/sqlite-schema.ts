@@ -110,6 +110,16 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_revisions_note_id_created ON revisions(note_id, created_at);
 `;
 
+const HOTNESS_SCHEMA = `
+  CREATE TABLE IF NOT EXISTS note_hotness (
+    note_id TEXT PRIMARY KEY,
+    retrieval_count INTEGER NOT NULL DEFAULT 0,
+    last_accessed TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_note_hotness_count ON note_hotness(retrieval_count DESC);
+`;
+
 export interface PreparedStatements {
   upsertNote: Database.Statement;
   updateNoteStatus: Database.Statement;
@@ -269,6 +279,16 @@ function runMigrations(db: Database.Database): void {
       AFTER DELETE ON notes
       BEGIN DELETE FROM revisions WHERE note_id = old.id; END;
   `);
+
+  // Migration: add note_hotness table for existing databases
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS note_hotness (
+      note_id TEXT PRIMARY KEY,
+      retrieval_count INTEGER NOT NULL DEFAULT 0,
+      last_accessed TEXT NOT NULL
+    )
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_note_hotness_count ON note_hotness(retrieval_count DESC)`);
 }
 
 const NOTE_COLUMNS =
@@ -435,6 +455,7 @@ export function initSchema(db: Database.Database, logger: Logger): PreparedState
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(SCHEMA);
+  db.exec(HOTNESS_SCHEMA);
   runMigrations(db);
   logger.info('SQLite schema initialized');
   return prepareStatements(db);
