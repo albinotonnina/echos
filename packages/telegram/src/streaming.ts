@@ -12,6 +12,46 @@ import {
 const EDIT_DEBOUNCE_MS = 1000;
 const MAX_MESSAGE_LENGTH = 4096;
 
+// --- Last response store (for /save command) ---
+// Scoped by (chatId, userId) so private responses can't leak into group chats.
+const LAST_RESPONSE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+interface LastResponseEntry {
+  text: string;
+  storedAt: number;
+}
+
+const lastResponses = new Map<string, LastResponseEntry>();
+
+function lastResponseKey(chatId: number, userId: number): string {
+  return `${chatId}:${userId}`;
+}
+
+export function setLastResponse(chatId: number, userId: number, text: string): void {
+  // Prune expired entries opportunistically (cheap — runs at most once per response)
+  const now = Date.now();
+  for (const [k, v] of lastResponses) {
+    if (now - v.storedAt > LAST_RESPONSE_TTL_MS) lastResponses.delete(k);
+  }
+  lastResponses.set(lastResponseKey(chatId, userId), { text, storedAt: now });
+}
+
+export function getLastResponse(chatId: number, userId: number): string | undefined {
+  const entry = lastResponses.get(lastResponseKey(chatId, userId));
+  if (!entry) return undefined;
+  if (Date.now() - entry.storedAt > LAST_RESPONSE_TTL_MS) {
+    lastResponses.delete(lastResponseKey(chatId, userId));
+    return undefined;
+  }
+  return entry.text;
+}
+
+export function clearLastResponse(userId: number): void {
+  for (const key of lastResponses.keys()) {
+    if (key.endsWith(`:${userId}`)) lastResponses.delete(key);
+  }
+}
+
 // Exact tool name → emoji mapping
 const TOOL_EMOJI_MAP: Record<string, string> = {
   create_note: '✏️',
@@ -362,6 +402,25 @@ export async function streamAgentResponse(
 
   if (textBuffer) {
     await updateMessage();
+
+    // Store last response for /save command (scoped by chat + user)
+    const chatId = ctx.chat!.id;
+    const userId = ctx.from?.id;
+    if (userId) setLastResponse(chatId, userId, textBuffer);
+
+    // If the response was truncated, attach the full text as a .md file
+    const html = markdownToHtml(textBuffer);
+    if (html.length > MAX_MESSAGE_LENGTH) {
+      try {
+        const buf = Buffer.from(textBuffer, 'utf8');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        await ctx.replyWithDocument(new InputFile(buf, `response-${timestamp}.md`), {
+          caption: '📎 Full response attached (message was truncated)',
+        });
+      } catch {
+        // Non-fatal: the truncated message was already delivered
+      }
+    }
   } else if (agentError && isAgentMessageOverflow(lastAssistantMessage, agent.state.model.contextWindow)) {
     await updateMessage('⚠️ Conversation history is too long. Use /reset to start a new session.');
   } else if (agentError) {
