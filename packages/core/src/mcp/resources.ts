@@ -20,11 +20,11 @@ function formatNoteMarkdown(
   author: string | null,
   content: string,
 ): string {
-  const tags = tagsRaw.split(',').filter(Boolean).map((t) => `"${t.trim().replace(/"/g, '\\"')}"`);
+  const tags = tagsRaw.split(',').filter(Boolean).map((t) => `"${t.trim().replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`);
   const lines = [
     '---',
     `id: ${id}`,
-    `title: "${title.replace(/"/g, '\\"')}"`,
+    `title: "${title.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`,
     `type: ${type}`,
     `category: ${category}`,
     `tags: [${tags.join(', ')}]`,
