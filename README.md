@@ -157,7 +157,7 @@ Everything you need to go deeper is at **[docs.echos.sh](https://docs.echos.sh)*
 | [Architecture](https://docs.echos.sh/architecture) | How the pieces fit together |
 | [Deployment](https://docs.echos.sh/deployment) | VPS, Docker, nginx, systemd |
 | [Security](https://docs.echos.sh/security) | What EchOS does and doesn't do with your data |
-| [MCP Server](https://docs.echos.sh/mcp) | Connect Claude Code, Cursor, and other AI tools |
+| [MCP Server](https://docs.echos.sh/mcp-server) | Connect Claude Code, Cursor, and other AI tools |
 | [Knowledge Import](https://docs.echos.sh/knowledge-import) | Bring in your Obsidian vault or Notion export |
 | [Writing](https://docs.echos.sh/writing) | Voice profiles and content generation |
 | [Plugins](https://docs.echos.sh/plugins) | YouTube, articles, and building your own |
