@@ -27,11 +27,15 @@ function pickApiKey(provider: string, deps: AgentDeps): string {
 }
 
 export function createEchosAgent(deps: AgentDeps): Agent {
-  const model = resolveModel(
-    deps.modelId ?? 'claude-haiku-4-5-20251001',
-    deps.llmBaseUrl,
-  );
+  const model = resolveModel(deps.modelId ?? 'claude-haiku-4-5-20251001', deps.llmBaseUrl);
   const apiKey = pickApiKey(model.provider as string, deps);
+
+  // Override maxTokens for Groq free tier (8K TPM limit)
+  // Groq counts prompt + max_completion_tokens towards TPM
+  // Most responses are <500 tokens, so 1024 is plenty
+  if ((model.provider as string) === 'groq' || model.baseUrl?.includes('groq.com')) {
+    model.maxTokens = 1024;
+  }
 
   // Prompt caching is only supported by Anthropic models
   const effectiveCacheRetention =
@@ -75,6 +79,18 @@ export function createEchosAgent(deps: AgentDeps): Agent {
 
   const systemPrompt = buildSystemPrompt(memories, hasMore, agentVoice);
 
+  // Estimate system prompt + tools token count for debugging
+  const systemPromptTokens = Math.ceil(systemPrompt.length / 4);
+  const toolsTokens = tools.reduce((sum, tool) => {
+    const toolJson = JSON.stringify({
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters,
+    });
+    return sum + Math.ceil(toolJson.length / 4);
+  }, 0);
+  const totalBaseTokens = systemPromptTokens + toolsTokens;
+
   deps.logger.info(
     {
       model: model.id,
@@ -86,6 +102,14 @@ export function createEchosAgent(deps: AgentDeps): Agent {
       memoriesLoaded: memories.length,
       memoriesTotal: hasMore ? `>${MEMORY_INJECT_LIMIT}` : memories.length,
       agentVoice: agentVoice ? 'custom' : 'default',
+      maxContextTokens: deps.maxContextTokens,
+      contextWindow: model.contextWindow,
+      tokenEstimates: {
+        systemPrompt: systemPromptTokens,
+        allTools: toolsTokens,
+        totalBase: totalBaseTokens,
+        note: 'Actual LLM request tokens may differ; this is a rough char/4 estimate',
+      },
     },
     'Creating EchOS agent',
   );
@@ -98,23 +122,26 @@ export function createEchosAgent(deps: AgentDeps): Agent {
       thinkingLevel: deps.thinkingLevel ?? 'off',
     },
     convertToLlm: echosConvertToLlm,
-    transformContext: createContextWindow(80_000),
+    transformContext: createContextWindow(deps.maxContextTokens ?? 80_000),
   });
 
   // Wire the mutable ref so set_agent_voice can update the system prompt mid-session
   agentRef.current = agent;
 
-  if (apiKey || deps.logLlmPayloads) {
-    agent.streamFn = (m, context, options) =>
-      streamSimple(m, context, {
-        ...options,
-        ...(apiKey ? { apiKey } : {}),
-        cacheRetention: effectiveCacheRetention,
-        ...(deps.logLlmPayloads
-          ? { onPayload: (payload) => deps.logger.debug({ payload }, 'LLM request payload') }
-          : {}),
-      });
-  }
+  // Always set custom streamFn so we can log payloads
+  agent.streamFn = (model, context, options) => {
+    // Log payload size for debugging
+    const toolNames = (context.tools || []).map((t: { name: string }) => t.name);
+    const systemPromptLen = (context.systemPrompt || '').length;
+    const toolsJsonLen = JSON.stringify(context.tools).length;
+    const totalPayloadLen = systemPromptLen + toolsJsonLen;
+    console.log(`[LLM-PAYLOAD] systemPrompt=${systemPromptLen} chars, tools=${toolNames.length} (${toolsJsonLen} chars), est. ~${Math.ceil(totalPayloadLen / 4)} tokens`);
+    return streamSimple(model, context, {
+      ...options,
+      ...(apiKey ? { apiKey } : {}),
+      cacheRetention: effectiveCacheRetention,
+    });
+  };
 
   return agent;
 }

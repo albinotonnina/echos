@@ -43,10 +43,9 @@ function extractMessageText(message: AgentMessage): string {
         .join(' ');
     }
     case 'toolResult': {
-      return message.content
-        .filter((c): c is { type: 'text'; text: string } => c.type === 'text')
-        .map((c) => c.text)
-        .join(' ');
+      // Include full JSON size for tool results, not just extracted text
+      // Tool results often contain large JSON payloads that count toward tokens
+      return JSON.stringify(message);
     }
     default:
       return '';
@@ -67,6 +66,9 @@ function estimateMessageTokens(message: AgentMessage): number {
 export function createContextWindow(
   maxInputTokens: number = DEFAULT_MAX_INPUT_TOKENS,
 ): (messages: AgentMessage[], signal?: AbortSignal) => Promise<AgentMessage[]> {
+  // Log the configured budget
+  const configuredBudget = maxInputTokens;
+  
   return async (messages: AgentMessage[]): Promise<AgentMessage[]> => {
     if (messages.length === 0) return messages;
 
@@ -77,6 +79,17 @@ export function createContextWindow(
       totalTokens += count;
       return count;
     });
+
+    // Log context size for debugging
+    if (totalTokens > configuredBudget) {
+      console.log(
+        `[CONTEXT-WINDOW] messages=${messages.length} tokens=${totalTokens} budget=${configuredBudget} PRUNING`,
+      );
+    } else {
+      console.log(
+        `[CONTEXT-WINDOW] messages=${messages.length} tokens=${totalTokens} budget=${configuredBudget} OK`,
+      );
+    }
 
     // Under budget — keep everything
     if (totalTokens <= maxInputTokens) return messages;
@@ -102,12 +115,18 @@ export function createContextWindow(
         slicedTokens += tokenCounts[j]!;
       }
       if (slicedTokens <= maxInputTokens) {
+        console.log(
+          `[CONTEXT-WINDOW] pruned ${messages.length - (messages.length - sliceStart)} messages, remaining=${messages.length - sliceStart} tokens=${slicedTokens}`,
+        );
         return messages.slice(sliceStart);
       }
     }
 
     // Even the last user turn exceeds budget — keep it anyway
     const lastCut = cutPoints[cutPoints.length - 1]!;
+    console.log(
+      `[CONTEXT-WINDOW] KEEPING ONLY last user turn: messages=${messages.length - lastCut} tokens=${tokenCounts.slice(lastCut).reduce((a, b) => a + b, 0)}`,
+    );
     return messages.slice(lastCut);
   };
 }

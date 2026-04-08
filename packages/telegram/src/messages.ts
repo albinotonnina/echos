@@ -27,10 +27,7 @@ export function registerMessageHandlers(bot: Bot, deps: MessageDeps): void {
   // Handle document messages (PDF, CSV)
   const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024; // 20 MB
   const DOWNLOAD_TIMEOUT_MS = 30_000;
-  const SUPPORTED_EXTS = new Set<string>([
-    '.pdf',
-    '.csv',
-  ]);
+  const SUPPORTED_EXTS = new Set<string>(['.pdf', '.csv']);
 
   bot.on('message:document', async (ctx) => {
     const doc = ctx.message?.document;
@@ -131,14 +128,15 @@ export function registerMessageHandlers(bot: Bot, deps: MessageDeps): void {
     const userId = ctx.from?.id;
     if (!userId) return;
 
-    if (!config.openaiApiKey) {
-      await ctx.reply('Voice messages require OpenAI API key configuration.');
+    const sttClient = agentDeps.sttClient;
+    if (!sttClient) {
+      await ctx.reply('Voice messages require STT provider configuration.');
       return;
     }
 
     if (config.telegramReactions) await ctx.react('🤗').catch(() => undefined);
     const agent = getOrCreateSession(userId, agentDeps);
-    await handleVoiceMessage(ctx, agent, config.openaiApiKey, logger, config.whisperLanguage);
+    await handleVoiceMessage(ctx, agent, sttClient, logger, config.whisperLanguage);
   });
 
   // Handle photo messages

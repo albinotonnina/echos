@@ -21,20 +21,19 @@ export interface ExploreGraphToolDeps {
 
 const schema = Type.Object({
   action: StringEnum(['around', 'export', 'stats'], {
-    description:
-      "'around' — describe connections around a note or topic. 'export' — export full graph in a given format. 'stats' — topology overview (clusters, hubs, orphans).",
+    description: "'around': connections around a note. 'export': full graph export. 'stats': topology overview",
   }),
   note_id: Type.Optional(
-    Type.String({ description: "For 'around': ID of the center note." }),
+    Type.String({ description: "For 'around': center note ID" }),
   ),
   topic: Type.Optional(
     Type.String({
-      description: "For 'around': search query to find the center note when note_id is unknown.",
+      description: "For 'around': search query to find center note",
     }),
   ),
   depth: Type.Optional(
     Type.Number({
-      description: "For 'around': number of hops from the center (default 2).",
+      description: "For 'around': hop depth (default 2)",
       minimum: 1,
       maximum: 5,
       default: 2,
@@ -42,7 +41,7 @@ const schema = Type.Object({
   ),
   format: Type.Optional(
     StringEnum(['mermaid', 'dot', 'json'], {
-      description: "For 'export': output format (default 'mermaid').",
+      description: "For 'export': format (default 'mermaid')",
       default: 'mermaid',
     }),
   ),

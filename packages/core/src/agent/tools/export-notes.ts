@@ -25,35 +25,33 @@ export interface ExportNotesToolDeps {
 
 const schema = Type.Object({
   format: StringEnum(['markdown', 'json', 'text', 'zip'], {
-    description:
-      'Export format. "text" strips markdown syntax (good for plain prose). "markdown" preserves formatting. "json" wraps content with metadata. "zip" bundles multiple notes. Single content/note exports return inline; multi-note or json/zip write a file.',
+    description: 'Export format: markdown, json, text, or zip',
   }),
   content: Type.Optional(
     Type.String({
-      description:
-        'Arbitrary text to export directly — use this for analysis results, agent responses, conversation excerpts, or any content not stored as a note. When provided, id and filter are ignored.',
+      description: 'Arbitrary text to export (analysis results, excerpts, etc.)',
     }),
   ),
   title: Type.Optional(
     Type.String({
-      description: 'Title / filename hint when exporting via content. Defaults to "export".',
+      description: 'Title/filename for content export',
     }),
   ),
-  id: Type.Optional(Type.String({ description: 'Single note ID (UUID). Omit to export by filter.' })),
+  id: Type.Optional(Type.String({ description: 'Single note ID' })),
   filter: Type.Optional(
     Type.Object({
       type: Type.Optional(
         StringEnum(['note', 'journal', 'article', 'youtube', 'tweet', 'reminder', 'conversation'], {
-          description: 'Filter by content type',
+          description: 'Filter by type',
         }),
       ),
-      tags: Type.Optional(Type.Array(Type.String(), { description: 'Filter by tags (all must match)' })),
+      tags: Type.Optional(Type.Array(Type.String(), { description: 'Filter by tags' })),
       category: Type.Optional(Type.String({ description: 'Filter by category' })),
-      dateFrom: Type.Optional(Type.String({ description: 'ISO 8601 start date' })),
-      dateTo: Type.Optional(Type.String({ description: 'ISO 8601 end date' })),
+      dateFrom: Type.Optional(Type.String({ description: 'Start date (ISO 8601)' })),
+      dateTo: Type.Optional(Type.String({ description: 'End date (ISO 8601)' })),
       limit: Type.Optional(
         Type.Number({
-          description: 'Max notes to export (default 50, max 100)',
+          description: 'Max notes (default 50, max 100)',
           default: 50,
           minimum: 1,
           maximum: 100,

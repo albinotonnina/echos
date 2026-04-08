@@ -15,22 +15,22 @@ export interface CreateNoteToolDeps {
 }
 
 const schema = Type.Object({
-  title: Type.String({ description: 'Note title', minLength: 1 }),
+  title: Type.String({ description: 'Note title' }),
   content: Type.String({ description: 'Note content in markdown' }),
   type: Type.Optional(
     Type.Literal('note', {
-      description: 'Note type (always "note"). For journal entries use the journal tool.',
+      description: 'Note type (always "note")',
       default: 'note',
     }),
   ),
-  tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags for categorization' })),
+  tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags' })),
   category: Type.Optional(
     Type.String({ description: 'Category (e.g., "programming", "health")' }),
   ),
   inputSource: Type.Optional(
     Type.Union(
       [Type.Literal('text'), Type.Literal('voice'), Type.Literal('url'), Type.Literal('file')],
-      { description: 'How the note was captured (text, voice, url, file)' },
+      { description: 'Capture method' },
     ),
   ),
 });

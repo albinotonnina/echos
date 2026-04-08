@@ -6,7 +6,7 @@
 import { join } from 'node:path';
 import type { Logger } from 'pino';
 import type { Config, NotificationService } from '@echos/shared';
-import type { PluginRegistry } from '@echos/core';
+import type { PluginRegistry, SpeechToTextClient } from '@echos/core';
 import type { StorageResult } from './storage-init.js';
 import {
   createQueue,
@@ -37,6 +37,7 @@ export async function setupScheduler(
   pluginRegistry: PluginRegistry,
   notificationService: NotificationService,
   manageScheduleTool: ReturnType<typeof createManageScheduleTool>,
+  sttClient: SpeechToTextClient | undefined,
   logger: Logger,
 ): Promise<SchedulerResult> {
   const exportsDir = join(config.dbPath, '..', 'exports');
@@ -55,7 +56,7 @@ export async function setupScheduler(
     vectorDb: storage.vectorDb,
     generateEmbedding: storage.generateEmbedding,
     logger,
-    ...(config.openaiApiKey ? { openaiApiKey: config.openaiApiKey } : {}),
+    sttClient,
     ...(config.whisperLanguage ? { whisperLanguage: config.whisperLanguage } : {}),
   });
 

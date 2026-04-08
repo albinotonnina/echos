@@ -37,6 +37,8 @@ export function resolveModel(spec: string, baseUrl?: string): Model<any> {
   if (baseUrl) {
     // Custom OpenAI-compatible endpoint — preserve full spec as model ID
     // (DeepInfra expects e.g. "meta-llama/Meta-Llama-3.1-70B-Instruct" as model ID)
+    // Use conservative maxTokens for Groq free tier (8K TPM limit):
+    // prompt (~2K) + maxTokens must stay under 8K
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return {
       id: spec,
@@ -50,7 +52,7 @@ export function resolveModel(spec: string, baseUrl?: string): Model<any> {
       input: ['text' as const],
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
       contextWindow: 128000,
-      maxTokens: 32000,
+      maxTokens: 1024, // Reduced for Groq free tier TPM limits (prompt + max_completion counted)
     } as Model<any>;
   }
 

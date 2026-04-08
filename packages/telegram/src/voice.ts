@@ -6,7 +6,8 @@ import { join } from 'node:path';
 import type { Context } from 'grammy';
 import type { Agent } from '@mariozechner/pi-agent-core';
 import type { Logger } from 'pino';
-import OpenAI from 'openai';
+import type { SpeechToTextClient, TranscribeOptions } from '@echos/core';
+import { transcribeWithRetry } from '@echos/core';
 import { streamAgentResponse } from './streaming.js';
 
 const MAX_VOICE_DURATION_SECONDS = 600; // 10 minutes
@@ -15,7 +16,7 @@ const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25MB — Whisper limit
 export async function handleVoiceMessage(
   ctx: Context,
   agent: Agent,
-  openaiApiKey: string,
+  sttClient: SpeechToTextClient,
   logger: Logger,
   language?: string,
 ): Promise<void> {
@@ -39,7 +40,11 @@ export async function handleVoiceMessage(
     const file = await ctx.api.getFile(voice.file_id);
     const filePath = file.file_path;
     if (!filePath) {
-      await ctx.api.editMessageText(ctx.chat!.id, statusMsg.message_id, '❌ Failed to retrieve voice file.');
+      await ctx.api.editMessageText(
+        ctx.chat!.id,
+        statusMsg.message_id,
+        '❌ Failed to retrieve voice file.',
+      );
       return;
     }
 
@@ -61,23 +66,18 @@ export async function handleVoiceMessage(
 
     await writeFile(tempFilePath, audioBuffer);
 
-    const openai = new OpenAI({ apiKey: openaiApiKey });
-    const audioStream = createReadStream(tempFilePath) as unknown as File;
-    const transcription = await openai.audio.transcriptions.create({
-      file: audioStream,
-      model: 'whisper-1',
-      response_format: 'text',
+    const result = await transcribeWithRetry(sttClient, {
+      audioBuffer,
+      mimeType: 'audio/ogg',
       ...(language ? { language } : {}),
     });
 
-    const transcribedText = typeof transcription === 'string' ? transcription.trim() : '';
+    const transcribedText = result.text.trim();
 
     if (!transcribedText) {
-      await ctx.api.setMessageReaction(
-        ctx.chat!.id,
-        ctx.message!.message_id,
-        [{ type: 'emoji', emoji: '😱' }],
-      ).catch(() => undefined);
+      await ctx.api
+        .setMessageReaction(ctx.chat!.id, ctx.message!.message_id, [{ type: 'emoji', emoji: '😱' }])
+        .catch(() => undefined);
       await ctx.api.editMessageText(
         ctx.chat!.id,
         statusMsg.message_id,
@@ -86,8 +86,12 @@ export async function handleVoiceMessage(
       return;
     }
 
-    const preview = transcribedText.length > 200 ? `${transcribedText.slice(0, 200)}...` : transcribedText;
-    logger.info({ preview }, 'Voice message transcribed');
+    const preview =
+      transcribedText.length > 200 ? `${transcribedText.slice(0, 200)}...` : transcribedText;
+    logger.info(
+      { preview, provider: result.provider, duration: result.duration },
+      'Voice message transcribed',
+    );
 
     await ctx.api.editMessageText(
       ctx.chat!.id,
@@ -98,11 +102,9 @@ export async function handleVoiceMessage(
     await streamAgentResponse(agent, transcribedText, ctx);
   } catch (err) {
     logger.error({ err }, 'Failed to process voice message');
-    await ctx.api.setMessageReaction(
-      ctx.chat!.id,
-      ctx.message!.message_id,
-      [{ type: 'emoji', emoji: '😱' }],
-    ).catch(() => undefined);
+    await ctx.api
+      .setMessageReaction(ctx.chat!.id, ctx.message!.message_id, [{ type: 'emoji', emoji: '😱' }])
+      .catch(() => undefined);
     await ctx.api.editMessageText(
       ctx.chat!.id,
       statusMsg.message_id,

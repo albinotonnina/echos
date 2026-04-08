@@ -1,16 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { writeFile, unlink } from 'node:fs/promises';
-import { createReadStream } from 'node:fs';
 import { join, extname } from 'node:path';
 import { Type, type Static } from '@mariozechner/pi-ai';
 import type { AgentTool } from '@mariozechner/pi-agent-core';
 import { v4 as uuidv4 } from 'uuid';
-import OpenAI from 'openai';
 import type { NoteMetadata } from '@echos/shared';
 import { validateUrl } from '@echos/shared';
-import type { PluginContext } from '@echos/core';
-import { categorizeContent, type ProcessingMode } from '@echos/core';
+import type { PluginContext, SpeechToTextClient, TranscribeOptions } from '@echos/core';
+import { categorizeContent, type ProcessingMode, transcribeWithRetry } from '@echos/core';
 import {
   WHISPER_MAX_BYTES,
   downloadInChunks,
@@ -49,9 +47,11 @@ function formatBytes(bytes: number): string {
 function estimateDuration(bytes: number, mimeType: string): string {
   // Approximate average bitrates for common formats
   const bitrateKbps =
-    mimeType === 'audio/wav' ? 1411 :   // uncompressed
-    mimeType === 'audio/flac' ? 800 :   // lossless compressed
-    128;                                 // compressed (mp3/ogg/m4a/etc.)
+    mimeType === 'audio/wav'
+      ? 1411 // uncompressed
+      : mimeType === 'audio/flac'
+        ? 800 // lossless compressed
+        : 128; // compressed (mp3/ogg/m4a/etc.)
 
   const seconds = Math.round((bytes * 8) / (bitrateKbps * 1000));
   const minutes = Math.floor(seconds / 60);
@@ -60,9 +60,18 @@ function estimateDuration(bytes: number, mimeType: string): string {
 }
 
 const schema = Type.Object({
-  url: Type.String({ description: 'URL of the audio file or podcast episode to download and transcribe', format: 'uri' }),
-  title: Type.Optional(Type.String({ description: 'Optional title for the saved note (defaults to filename from URL)' })),
-  tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags to apply to the saved note' })),
+  url: Type.String({
+    description: 'URL of the audio file or podcast episode to download and transcribe',
+    format: 'uri',
+  }),
+  title: Type.Optional(
+    Type.String({
+      description: 'Optional title for the saved note (defaults to filename from URL)',
+    }),
+  ),
+  tags: Type.Optional(
+    Type.Array(Type.String(), { description: 'Tags to apply to the saved note' }),
+  ),
   categorize: Type.Optional(
     Type.Boolean({
       description: 'Automatically categorize using AI (default: true)',
@@ -74,31 +83,21 @@ const schema = Type.Object({
 type Params = Static<typeof schema>;
 
 /**
- * Transcribe a single audio buffer via the Whisper API.
- * Writes the buffer to a temp file (Whisper SDK requires a readable stream),
- * then cleans up.
+ * Transcribe a single audio buffer via the configured STT provider.
  */
 async function transcribeBuffer(
-  openai: OpenAI,
+  sttClient: SpeechToTextClient,
   data: Buffer,
   filename: string,
   language?: string,
 ): Promise<string> {
-  const ext = extname(filename) || '.mp3';
-  const tempPath = join(tmpdir(), `echos-audio-${randomUUID()}${ext}`);
-  try {
-    await writeFile(tempPath, data);
-    const stream = createReadStream(tempPath) as unknown as File;
-    const result = await openai.audio.transcriptions.create({
-      file: stream,
-      model: 'whisper-1',
-      response_format: 'text',
-      ...(language ? { language } : {}),
-    });
-    return typeof result === 'string' ? result.trim() : '';
-  } finally {
-    await unlink(tempPath).catch(() => undefined);
-  }
+  const mimeType = getAudioMime(filename) || 'audio/mpeg';
+  const result = await transcribeWithRetry(sttClient, {
+    audioBuffer: data,
+    mimeType,
+    ...(language ? { language } : {}),
+  });
+  return result.text;
 }
 
 export function createSaveAudioTool(context: PluginContext): AgentTool<typeof schema> {
@@ -131,23 +130,28 @@ export function createSaveAudioTool(context: PluginContext): AgentTool<typeof sc
 
       if (mimeType === undefined) {
         return {
-          content: [{
-            type: 'text' as const,
-            text: `Unsupported audio format. Supported extensions: ${Object.keys(SUPPORTED_EXTENSIONS).join(', ')}. ` +
-                  `Got: "${extname(urlFilename) || '(no extension)'}"`,
-          }],
+          content: [
+            {
+              type: 'text' as const,
+              text:
+                `Unsupported audio format. Supported extensions: ${Object.keys(SUPPORTED_EXTENSIONS).join(', ')}. ` +
+                `Got: "${extname(urlFilename) || '(no extension)'}"`,
+            },
+          ],
           details: { error: 'unsupported_format' },
         };
       }
 
-      const openaiApiKey = context.config.openaiApiKey;
-      if (!openaiApiKey) {
+      const sttClient = context.sttClient;
+      if (!sttClient) {
         return {
-          content: [{
-            type: 'text' as const,
-            text: 'OPENAI_API_KEY is not configured. Whisper transcription requires an OpenAI API key.',
-          }],
-          details: { error: 'missing_api_key' },
+          content: [
+            {
+              type: 'text' as const,
+              text: 'STT provider is not configured. Set STT_API_KEY (or STT_PROVIDER=local) to enable transcription.',
+            },
+          ],
+          details: { error: 'missing_stt_config' },
         };
       }
 
@@ -180,10 +184,10 @@ export function createSaveAudioTool(context: PluginContext): AgentTool<typeof sc
         contentLength = await probeContentLength(safeUrl);
       }
 
-      const openai = new OpenAI({ apiKey: openaiApiKey as string });
-      const language = typeof context.config['whisperLanguage'] === 'string'
-        ? context.config['whisperLanguage']
-        : undefined;
+      const language =
+        typeof context.config['whisperLanguage'] === 'string'
+          ? context.config['whisperLanguage']
+          : undefined;
 
       let transcript: string;
       let fileSizeBytes: number;
@@ -192,10 +196,12 @@ export function createSaveAudioTool(context: PluginContext): AgentTool<typeof sc
         // Large file: split into chunks
         const chunkCount = Math.ceil(contentLength / (24 * 1024 * 1024));
         onUpdate?.({
-          content: [{
-            type: 'text',
-            text: `Audio is ${formatBytes(contentLength)} — splitting into ${chunkCount} chunks for Whisper...`,
-          }],
+          content: [
+            {
+              type: 'text',
+              text: `Audio is ${formatBytes(contentLength)} — splitting into ${chunkCount} chunks for Whisper...`,
+            },
+          ],
           details: { phase: 'chunking', contentLength, chunkCount },
         });
 
@@ -215,23 +221,27 @@ export function createSaveAudioTool(context: PluginContext): AgentTool<typeof sc
 
         for (const chunk of chunks) {
           onUpdate?.({
-            content: [{
-              type: 'text',
-              text: `Transcribing chunk ${chunk.index + 1}/${chunk.total} (${formatBytes(chunk.data.length)})...`,
-            }],
+            content: [
+              {
+                type: 'text',
+                text: `Transcribing chunk ${chunk.index + 1}/${chunk.total} (${formatBytes(chunk.data.length)})...`,
+              },
+            ],
             details: { phase: 'transcribing', chunkIndex: chunk.index, chunkTotal: chunk.total },
           });
 
           let chunkText: string;
           try {
-            chunkText = await transcribeBuffer(openai, chunk.data, urlFilename, language);
+            chunkText = await transcribeBuffer(sttClient, chunk.data, urlFilename, language);
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             return {
-              content: [{
-                type: 'text' as const,
-                text: `Transcription failed on chunk ${chunk.index + 1}/${chunk.total}: ${message}`,
-              }],
+              content: [
+                {
+                  type: 'text' as const,
+                  text: `Transcription failed on chunk ${chunk.index + 1}/${chunk.total}: ${message}`,
+                },
+              ],
               details: { error: message },
             };
           }
@@ -261,12 +271,17 @@ export function createSaveAudioTool(context: PluginContext): AgentTool<typeof sc
         fileSizeBytes = audioBuffer.length;
 
         onUpdate?.({
-          content: [{ type: 'text', text: `Transcribing ${formatBytes(fileSizeBytes)} of audio via Whisper...` }],
+          content: [
+            {
+              type: 'text',
+              text: `Transcribing ${formatBytes(fileSizeBytes)} of audio via Whisper...`,
+            },
+          ],
           details: { phase: 'transcribing' },
         });
 
         try {
-          transcript = await transcribeBuffer(openai, audioBuffer, urlFilename, language);
+          transcript = await transcribeBuffer(sttClient, audioBuffer, urlFilename, language);
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           return {
@@ -278,10 +293,12 @@ export function createSaveAudioTool(context: PluginContext): AgentTool<typeof sc
 
       if (!transcript) {
         return {
-          content: [{
-            type: 'text' as const,
-            text: 'Whisper returned an empty transcript. The audio may be silent or in an unsupported language.',
-          }],
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Whisper returned an empty transcript. The audio may be silent or in an unsupported language.',
+            },
+          ],
           details: { error: 'empty_transcript' },
         };
       }

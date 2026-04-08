@@ -24,30 +24,30 @@ export interface UseTemplateToolDeps {
 
 const schema = Type.Object({
   action: StringEnum(['list', 'use', 'create'], {
-    description: 'Action: "list" to show templates, "use" to create a note from a template, "create" to save a new custom template',
+    description: '"list": show templates, "use": create note from template, "create": save new template',
   }),
   templateName: Type.Optional(
-    Type.String({ description: 'Name of the template (for "use" action)' }),
+    Type.String({ description: 'Template name (for "use")' }),
   ),
   variables: Type.Optional(
     Type.Record(Type.String(), Type.String(), {
-      description: 'Variables to fill in template placeholders like {{title}}, {{date}} (for "use" action)',
+      description: 'Fill template placeholders like {{title}}, {{date}} (for "use")',
     }),
   ),
   title: Type.Optional(
-    Type.String({ description: 'Title for the new note (for "use" action) or new template name (for "create" action)' }),
+    Type.String({ description: 'Note title (for "use") or template name (for "create")' }),
   ),
   description: Type.Optional(
-    Type.String({ description: 'Description of the new template (for "create" action)' }),
+    Type.String({ description: 'Template description (for "create")' }),
   ),
   content: Type.Optional(
-    Type.String({ description: 'Content of the new template with {{placeholder}} variables (for "create" action)' }),
+    Type.String({ description: 'Template content with {{placeholder}} (for "create")' }),
   ),
   category: Type.Optional(
-    Type.String({ description: 'Category for the new template (for "create" action)' }),
+    Type.String({ description: 'Template category (for "create")' }),
   ),
   tags: Type.Optional(
-    Type.Array(Type.String(), { description: 'Tags for the new template (for "create" action)' }),
+    Type.Array(Type.String(), { description: 'Template tags (for "create")' }),
   ),
 });
 

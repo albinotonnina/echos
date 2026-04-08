@@ -9,20 +9,20 @@ export interface ReminderToolDeps {
 }
 
 const addSchema = Type.Object({
-  title: Type.String({ description: 'Reminder title', minLength: 1 }),
+  title: Type.String({ description: 'Reminder title' }),
   description: Type.Optional(Type.String({ description: 'Additional details' })),
-  due_date: Type.Optional(Type.String({ description: 'Due date in ISO 8601 format (e.g. "2026-02-16T19:49:00Z"). Always compute the exact date/time — do NOT use relative expressions like "in 20 minutes".' })),
+  due_date: Type.Optional(Type.String({ description: 'Due date in ISO 8601 format' })),
   priority: Type.Optional(
     StringEnum(['low', 'medium', 'high'], { description: 'Priority level', default: 'medium' }),
   ),
   kind: Type.Optional(
     StringEnum(['reminder', 'todo'], {
-      description: 'Use "todo" for action items to do (no due date required). Use "reminder" for time-based reminders with a due date. Default: "reminder".',
+      description: '"todo" for action items, "reminder" for time-based. Default: "reminder"',
     }),
   ),
   recurrence: Type.Optional(
     StringEnum(['daily', 'weekly', 'monthly'], {
-      description: 'Recurrence pattern. Only set this if the user EXPLICITLY asks for a repeating/recurring reminder (e.g. "every day", "weekly", "each month"). Default is one-time (no recurrence).',
+      description: 'Recurrence pattern (only if explicitly requested)',
     }),
   ),
 });

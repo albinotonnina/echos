@@ -37,22 +37,22 @@ const schema = Type.Object({
     Type.Array(Type.String(), { description: 'Specific note IDs to synthesize' }),
   ),
   query: Type.Optional(
-    Type.String({ description: 'Search query to find notes to synthesize' }),
+    Type.String({ description: 'Search query to find notes' }),
   ),
   tags: Type.Optional(
-    Type.Array(Type.String(), { description: 'Filter notes by tags' }),
+    Type.Array(Type.String(), { description: 'Filter by tags' }),
   ),
-  title: Type.String({ description: 'Title for the synthesis note', minLength: 1 }),
+  title: Type.String({ description: 'Title for the synthesis note' }),
   format: Type.Optional(
     StringEnum([...FORMATS], {
       description:
-        'Output format: summary (unified summary), brief (executive briefing), comparison (compare/contrast), timeline (chronological narrative). Default: summary',
+        'Output format: summary, brief, comparison, timeline. Default: summary',
       default: 'summary',
     }),
   ),
   maxNotes: Type.Optional(
     Type.Number({
-      description: `Maximum number of notes to synthesize (default ${DEFAULT_MAX_NOTES}, max ${MAX_NOTES})`,
+      description: `Max notes to synthesize (default ${DEFAULT_MAX_NOTES}, max ${MAX_NOTES})`,
       default: DEFAULT_MAX_NOTES,
       minimum: 2,
       maximum: MAX_NOTES,
