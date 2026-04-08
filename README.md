@@ -85,6 +85,36 @@ The only outbound calls are to the AI APIs you configure — and only when you a
 
 ---
 
+## How EchOS Compares
+
+| Feature | EchOS | Obsidian + AI | Notion AI | Mem | Apple Notes |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Runs locally | ✓ | ✓ | ✗ | ✗ | ✗ |
+| Local storage | ✓ | ✓ | ✗ | ✗ | ~ |
+| Agent-driven | ✓ | ✗ | ✗ | ~ | ✗ |
+| Telegram interface | ✓ | ✗ | ✗ | ✗ | ✗ |
+| CLI | ✓ | ~ | ✗ | ✗ | ✗ |
+| Plugin system | ✓ | ✓ | ~ | ✗ | ✗ |
+| Semantic search | ✓ | ~ | ~ | ✓ | ✗ |
+| Knowledge graph | ~ | ✓ | ✗ | ✗ | ✗ |
+| MCP server | ✗ | ~ | ✗ | ✗ | ✗ |
+| Voice input | ✓ | ~ | ✗ | ✗ | ~ |
+| Content capture (URL/YouTube) | ✓ | ~ | ~ | ~ | ~ |
+| Plain markdown files | ✓ | ✓ | ✗ | ✗ | ✗ |
+| Obsidian compatible | ✓ | ✓ | ✗ | ✗ | ✗ |
+
+~ = partial support via plugins or workarounds
+
+**Choose Obsidian + AI plugins** if you want a mature, polished UI with a large plugin ecosystem and you're happy to configure things yourself. EchOS trades Obsidian's graph view and rich editor for a conversational agent that captures and organizes for you automatically.
+
+**Choose Notion AI** if you need team collaboration, structured databases, and don't mind cloud storage. EchOS is intentionally single-user and keeps everything local.
+
+**Choose Mem** if you want zero-setup, cloud-native AI notes without any self-hosting. EchOS requires a server but gives you full data ownership in return.
+
+**Choose Apple Notes** if you're deep in the Apple ecosystem and want something that just works without any configuration. EchOS is for people who want a programmable, AI-driven knowledge layer they fully control.
+
+---
+
 ## Get started
 
 **macOS (Homebrew)**

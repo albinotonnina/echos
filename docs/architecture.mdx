@@ -420,7 +420,31 @@ Hybrid search combines multiple strategies in a pipeline (`packages/core/src/sto
 2. **Semantic** (LanceDB): Cosine similarity on OpenAI embeddings
 3. **Hybrid**: RRF fusion of keyword + semantic results
 4. **Temporal decay** (optional, default on): exponential decay factor `2^(-age/halfLife)` applied to RRF scores so recent notes rank higher. Configurable half-life (default 90 days). Set `temporalDecay: false` for archival searches.
-5. **Cross-encoder reranking** (optional, default off): after all scoring stages, the top-N candidates are sent to Claude Haiku with a relevance-scoring prompt. Scores are parsed and results re-sorted. Adds one API call per search but yields the highest-quality ranking. Enable with `rerank: true` in `SearchOptions` or the `search_knowledge` tool. Requires `ANTHROPIC_API_KEY`. Implemented in `packages/core/src/storage/reranker.ts`.
+5. **Hotness scoring** (optional, default on): after temporal decay, applies a frequency-recency boost `score *= (1 + 0.15 * sigmoid(log1p(retrievalCount)) * temporalDecay(lastAccessed))`. Tracks retrieval count and last access time per note in the `note_hotness` SQLite table. Notes that consistently surface in search results get a small but compounding boost. Disable with `hotnessBoost: false`. Implemented in `packages/core/src/storage/sqlite-hotness.ts`.
+6. **Cross-encoder reranking** (optional, default off): after all scoring stages, the top-N candidates are sent to Claude Haiku with a relevance-scoring prompt. Scores are parsed and results re-sorted. Adds one API call per search but yields the highest-quality ranking. Enable with `rerank: true` in `SearchOptions` or the `search_knowledge` tool. Requires `ANTHROPIC_API_KEY`. Implemented in `packages/core/src/storage/reranker.ts`.
+
+### Search Benchmark
+
+A reproducible benchmark suite lives in `benchmarks/search/` and measures search quality (Precision@5, Recall@10, MRR) and latency across all pipeline configurations and corpus sizes.
+
+```bash
+# Generate corpus fixtures locally (one-time, gitignored)
+pnpm tsx benchmarks/search/generate-corpus.ts all
+
+# Run the benchmark (all 3 scales × 5 pipeline configs)
+pnpm bench:search
+
+# Generate RESULTS.md report
+pnpm tsx benchmarks/search/report.ts
+```
+
+The benchmark uses **deterministic pseudo-embeddings** derived from topic-cluster assignments — no OpenAI API key required. Results are fully reproducible: the same corpus always produces the same scores. The `hybrid+decay+hotness+rerank` configuration requires `ANTHROPIC_API_KEY` and is skipped otherwise.
+
+Key files:
+- `benchmarks/search/generate-corpus.ts` — generates synthetic notes (100/1000/10k) across 10 topic clusters
+- `benchmarks/search/queries.json` — 55 annotated test queries with expected note IDs
+- `benchmarks/search/run.ts` — loads corpus into temp SQLite+LanceDB, runs queries, emits `results/{timestamp}.json`
+- `benchmarks/search/report.ts` — reads latest results JSON, writes `RESULTS.md`
 
 ## Memory System
 

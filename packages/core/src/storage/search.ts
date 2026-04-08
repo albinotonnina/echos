@@ -13,6 +13,7 @@ export interface SearchService {
 
 const RRF_K = 60; // Reciprocal rank fusion constant
 const TEMPORAL_DECAY_DEFAULT_HALF_LIFE = 90; // days
+const HOTNESS_WEIGHT = 0.15;
 
 /**
  * Exponential temporal decay factor.
@@ -28,6 +29,22 @@ export function computeTemporalDecay(createdAt: string, halfLifeDays: number): n
   const ts = new Date(createdAt).getTime();
   const ageDays = Number.isFinite(ts) ? Math.max((Date.now() - ts) / (1000 * 60 * 60 * 24), 0) : 0;
   return Math.pow(2, -ageDays / safeHalfLife);
+}
+
+/**
+ * Sigmoid-shaped hotness factor based on retrieval count and recency of last access.
+ * - sigmoid(log1p(n)) maps retrieval count to [0, 1) — saturates slowly
+ * - multiplied by temporal decay of last access so stale popularity fades
+ */
+export function computeHotnessBoost(
+  retrievalCount: number,
+  lastAccessed: string,
+  halfLifeDays: number,
+): number {
+  const x = Math.log1p(retrievalCount);
+  const sigmoid = 1 / (1 + Math.exp(-x));
+  const recency = computeTemporalDecay(lastAccessed, halfLifeDays);
+  return sigmoid * recency;
 }
 
 function noteRowToNote(row: NoteRow): Note {
@@ -147,20 +164,39 @@ export function createSearchService(
       // Decay must be applied before slicing because it can change relative ordering:
       // a recent-but-lower-RRF note may overtake an older higher-RRF note after decay.
       const applyDecay = opts.temporalDecay !== false;
+      const applyHotness = opts.hotnessBoost !== false;
       const halfLife = opts.decayHalfLifeDays ?? TEMPORAL_DECAY_DEFAULT_HALF_LIFE;
 
-      const candidates: SearchResult[] = [];
+      // Resolve all candidate rows first so we can batch-fetch hotness data.
+      const resolvedCandidates: Array<{ noteRow: NoteRow; score: number }> = [];
       for (const { id, score } of fused) {
         const noteRow = sqlite.getNote(id);
         if (!noteRow) continue;
         if (noteRow.status === 'deleted') continue;
-        const finalScore = applyDecay
+        resolvedCandidates.push({ noteRow, score });
+      }
+
+      // Batch-fetch hotness data for all candidates in one query.
+      const candidateIds = resolvedCandidates.map(({ noteRow }) => noteRow.id);
+      const hotnessMap = applyHotness ? sqlite.getHotness(candidateIds) : new Map<string, { retrievalCount: number; lastAccessed: string }>();
+
+      const candidates: SearchResult[] = [];
+      for (const { noteRow, score } of resolvedCandidates) {
+        let finalScore = applyDecay
           ? score * computeTemporalDecay(noteRow.created, halfLife)
           : score;
+
+        if (applyHotness) {
+          const hotness = hotnessMap.get(noteRow.id);
+          if (hotness) {
+            finalScore *= 1 + HOTNESS_WEIGHT * computeHotnessBoost(hotness.retrievalCount, hotness.lastAccessed, halfLife);
+          }
+        }
+
         candidates.push(noteRowToSearchResult(noteRow, finalScore, mdStorage, logger));
       }
 
-      // Sort by decayed score and take top `limit`
+      // Sort by final score and take top `limit`
       candidates.sort((a, b) => b.score - a.score);
       const sliced = candidates.slice(0, limit);
 
@@ -175,8 +211,21 @@ export function createSearchService(
         logger.warn({ query: opts.query }, 'Rerank requested but no anthropicApiKey configured — skipping');
       }
 
+      // Record access unconditionally: hotness data is always collected even
+      // when hotnessBoost is disabled, so future searches can benefit from it.
+      for (const r of results) {
+        try {
+          sqlite.recordAccess(r.note.metadata.id);
+        } catch (error: unknown) {
+          logger.warn(
+            { query: opts.query, noteId: r.note.metadata.id, error },
+            'Failed to record note access during hybrid search',
+          );
+        }
+      }
+
       logger.debug(
-        { query: opts.query, ftsCount: ftsRows.length, vectorCount: vectorResults.length, resultCount: results.length, temporalDecay: applyDecay, rerankRequested: opts.rerank ?? false, rerankApplied },
+        { query: opts.query, ftsCount: ftsRows.length, vectorCount: vectorResults.length, resultCount: results.length, temporalDecay: applyDecay, hotnessBoost: applyHotness, rerankRequested: opts.rerank ?? false, rerankApplied },
         'Hybrid search',
       );
       return results;

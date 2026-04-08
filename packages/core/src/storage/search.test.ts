@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { computeTemporalDecay, createSearchService } from './search.js';
+import { computeTemporalDecay, computeHotnessBoost, createSearchService } from './search.js';
 import { rerank as mockRerank } from './reranker.js';
 import type { SqliteStorage, NoteRow } from './sqlite.js';
 import type { VectorStorage } from './vectordb.js';
@@ -114,6 +114,8 @@ describe('createSearchService - hybrid temporal decay', () => {
     sqlite = {
       searchFts: vi.fn().mockReturnValue([rows['old'], rows['new']]),
       getNote: vi.fn().mockImplementation((id: string) => rows[id]),
+      getHotness: vi.fn().mockReturnValue(new Map()),
+      recordAccess: vi.fn(),
     } as unknown as SqliteStorage;
 
     vectorDb = {
@@ -230,6 +232,8 @@ describe('createSearchService - hybrid reranking', () => {
     sqlite = {
       searchFts: vi.fn().mockReturnValue([rows['a'], rows['b']]),
       getNote: vi.fn().mockImplementation((id: string) => rows[id]),
+      getHotness: vi.fn().mockReturnValue(new Map()),
+      recordAccess: vi.fn(),
     } as unknown as SqliteStorage;
 
     vectorDb = {
@@ -300,5 +304,150 @@ describe('createSearchService - hybrid reranking', () => {
 
     expect(results[0]!.note.metadata.id).toBe('a');
     expect(results[1]!.note.metadata.id).toBe('b');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// computeHotnessBoost — unit tests
+// ---------------------------------------------------------------------------
+
+describe('computeHotnessBoost', () => {
+  it('returns ~0.5 for a note never retrieved (count=0) — sigmoid(log1p(0)) = 0.5', () => {
+    const lastAccessed = new Date().toISOString();
+    // sigmoid(0) = 0.5, recency ≈ 1.0 for a fresh access
+    expect(computeHotnessBoost(0, lastAccessed, 90)).toBeCloseTo(0.5, 2);
+  });
+
+  it('increases monotonically with retrieval count', () => {
+    const lastAccessed = new Date().toISOString();
+    const b1 = computeHotnessBoost(1, lastAccessed, 90);
+    const b50 = computeHotnessBoost(50, lastAccessed, 90);
+    const b1000 = computeHotnessBoost(1000, lastAccessed, 90);
+    expect(b50).toBeGreaterThan(b1);
+    expect(b1000).toBeGreaterThan(b50);
+  });
+
+  it('saturates below 1.0 even for very high retrieval counts', () => {
+    const lastAccessed = new Date().toISOString();
+    expect(computeHotnessBoost(100000, lastAccessed, 90)).toBeLessThan(1.0);
+  });
+
+  it('decays when last access was long ago', () => {
+    const recent = new Date().toISOString();
+    const old = new Date(Date.now() - 365 * DAY_MS).toISOString();
+    const boostRecent = computeHotnessBoost(50, recent, 90);
+    const boostOld = computeHotnessBoost(50, old, 90);
+    expect(boostRecent).toBeGreaterThan(boostOld);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// createSearchService — hotness scoring integration tests
+// ---------------------------------------------------------------------------
+
+describe('createSearchService - hotness scoring', () => {
+  let vectorDb: VectorStorage;
+  let mdStorage: MarkdownStorage;
+
+  function makeRow(id: string): NoteRow {
+    return {
+      id,
+      type: 'note',
+      title: `Note ${id}`,
+      content: `Content for note ${id}`,
+      filePath: `/notes/${id}.md`,
+      tags: '',
+      links: '',
+      category: 'general',
+      sourceUrl: null,
+      author: null,
+      gist: null,
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+      contentHash: null,
+      status: null,
+      inputSource: null,
+      imagePath: null,
+      imageUrl: null,
+      imageMetadata: null,
+      ocrText: null,
+      deletedAt: null,
+    };
+  }
+
+  beforeEach(() => {
+    vectorDb = {
+      search: vi.fn().mockResolvedValue([
+        { id: 'a', score: 0.9, type: 'note', title: 'a', text: '' },
+        { id: 'b', score: 0.8, type: 'note', title: 'b', text: '' },
+      ]),
+    } as unknown as VectorStorage;
+
+    mdStorage = {
+      read: vi.fn().mockReturnValue(undefined),
+    } as unknown as MarkdownStorage;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('recordAccess is called for all returned notes', async () => {
+    const rows: Record<string, NoteRow> = { a: makeRow('a'), b: makeRow('b') };
+    const recordAccess = vi.fn();
+    const sqlite = {
+      searchFts: vi.fn().mockReturnValue([rows['a'], rows['b']]),
+      getNote: vi.fn().mockImplementation((id: string) => rows[id]),
+      getHotness: vi.fn().mockReturnValue(new Map()),
+      recordAccess,
+    } as unknown as SqliteStorage;
+
+    const service = createSearchService(sqlite, vectorDb, mdStorage, logger);
+    await service.hybrid({ query: 'test', limit: 2, vector: [] });
+
+    expect(recordAccess).toHaveBeenCalledTimes(2);
+    expect(recordAccess).toHaveBeenCalledWith('a');
+    expect(recordAccess).toHaveBeenCalledWith('b');
+  });
+
+  it('hotnessBoost: false skips hotness and does not call getHotness', async () => {
+    const rows: Record<string, NoteRow> = { a: makeRow('a'), b: makeRow('b') };
+    const getHotness = vi.fn().mockReturnValue(new Map());
+    const sqlite = {
+      searchFts: vi.fn().mockReturnValue([rows['a'], rows['b']]),
+      getNote: vi.fn().mockImplementation((id: string) => rows[id]),
+      getHotness,
+      recordAccess: vi.fn(),
+    } as unknown as SqliteStorage;
+
+    const service = createSearchService(sqlite, vectorDb, mdStorage, logger);
+    await service.hybrid({ query: 'test', limit: 2, vector: [], hotnessBoost: false });
+
+    expect(getHotness).not.toHaveBeenCalled();
+  });
+
+  it('high-retrieval note scores higher than low-retrieval note with equal RRF', async () => {
+    // Both notes have identical rank 1 in FTS and vector → equal RRF.
+    // Note 'b' has 100 retrievals, 'a' has 0. After hotness, 'b' should win.
+    const rows: Record<string, NoteRow> = { a: makeRow('a'), b: makeRow('b') };
+    const sqlite = {
+      searchFts: vi.fn().mockReturnValue([rows['a'], rows['b']]),
+      getNote: vi.fn().mockImplementation((id: string) => rows[id]),
+      getHotness: vi.fn().mockReturnValue(new Map([
+        ['b', { retrievalCount: 100, lastAccessed: new Date().toISOString() }],
+      ])),
+      recordAccess: vi.fn(),
+    } as unknown as SqliteStorage;
+
+    // Override vector results so 'b' has the same rank as 'a'
+    (vectorDb.search as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'b', score: 0.9, type: 'note', title: 'b', text: '' },
+      { id: 'a', score: 0.9, type: 'note', title: 'a', text: '' },
+    ]);
+
+    const service = createSearchService(sqlite, vectorDb, mdStorage, logger);
+    const results = await service.hybrid({ query: 'test', limit: 2, vector: [], temporalDecay: false });
+
+    expect(results[0]!.note.metadata.id).toBe('b');
   });
 });

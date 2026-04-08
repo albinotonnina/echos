@@ -47,6 +47,10 @@ coverage/
 # Docker
 docker-compose.override.yml
 
+# Benchmark fixtures and results (generated locally, not committed)
+benchmarks/search/fixtures/
+benchmarks/search/results/
+
 # Private notes (not for version control)
 docs/private/
 
