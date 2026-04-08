@@ -11,6 +11,7 @@ import type { SqliteStorage } from '../storage/sqlite.js';
 import type { MarkdownStorage } from '../storage/markdown.js';
 import type { VectorStorage } from '../storage/vectordb.js';
 import type { SearchService } from '../storage/search.js';
+import { timingSafeStringEqual } from '@echos/shared';
 import {
   searchKnowledgeTool,
   createNoteTool,
@@ -203,7 +204,7 @@ export function createMcpServer(deps: McpServerDeps, options: McpServerOptions):
         if (apiKey) {
           const authHeader = req.headers['authorization'];
           const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
-          if (!token || token !== apiKey) {
+          if (!token || !timingSafeStringEqual(token, apiKey)) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32001, message: 'Unauthorized' }, id: null }));
             return;
@@ -211,15 +212,38 @@ export function createMcpServer(deps: McpServerDeps, options: McpServerOptions):
         }
 
         if (req.method === 'POST') {
+          const MAX_BODY_SIZE = 1_048_576; // 1 MB
+          const declaredLength = Number(req.headers['content-length'] ?? 0);
+          if (!isNaN(declaredLength) && declaredLength > MAX_BODY_SIZE) {
+            res.writeHead(413, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32700, message: 'Request body too large' }, id: null }));
+            return;
+          }
+
           const mcpServer = buildMcpServer(deps, version);
           // Stateless mode: omit sessionIdGenerator so no session ID is generated or tracked
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const transport = new StreamableHTTPServerTransport({} as any);
 
+          let cleaned = false;
+          const cleanup = () => {
+            if (cleaned) return;
+            cleaned = true;
+            transport.close().catch(() => {});
+            mcpServer.close().catch(() => {});
+          };
+
           try {
-            // Parse body
+            // Parse body with a running size guard
             const chunks: Buffer[] = [];
+            let totalSize = 0;
             for await (const chunk of req) {
+              totalSize += (chunk as Buffer).length;
+              if (totalSize > MAX_BODY_SIZE) {
+                res.writeHead(413, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32700, message: 'Request body too large' }, id: null }));
+                return;
+              }
               chunks.push(chunk as Buffer);
             }
             const body: unknown = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
@@ -227,19 +251,18 @@ export function createMcpServer(deps: McpServerDeps, options: McpServerOptions):
             // Cast needed: exactOptionalPropertyTypes causes Transport interface mismatch with SDK types
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await mcpServer.connect(transport as any);
+            // Attach listeners before handleRequest so early disconnects are not missed
+            res.on('close', cleanup);
+            res.on('finish', cleanup);
             await transport.handleRequest(req, res, body);
-            res.on('close', () => {
-              transport.close().catch(() => {});
-              mcpServer.close().catch(() => {});
-            });
           } catch (err) {
             logger.error({ err }, 'MCP request error');
             if (!res.headersSent) {
               res.writeHead(500, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32603, message: 'Internal server error' }, id: null }));
             }
-            transport.close().catch(() => {});
-            mcpServer.close().catch(() => {});
+          } finally {
+            cleanup();
           }
         } else {
           res.writeHead(405, { 'Content-Type': 'application/json' });

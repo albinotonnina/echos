@@ -27,8 +27,9 @@ WEB_API_KEY=your_secret_key_here
 # MCP server port (only used when ENABLE_MCP=true)
 MCP_PORT=3939
 
-# MCP API key — optional, but recommended for remote access
-# If unset, unauthenticated requests are accepted (localhost-only use case)
+# MCP API key — optional authentication for the MCP server
+# The daemon binds to 127.0.0.1 by default; setting this key does not by itself enable or secure remote access
+# If you expose MCP via a proxy or port-forward, set this key and add appropriate network/TLS protections
 # Generate with: openssl rand -hex 32
 MCP_API_KEY=your_secret_key_here
 ```
