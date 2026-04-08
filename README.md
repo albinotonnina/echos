@@ -89,15 +89,15 @@ The only outbound calls are to the AI APIs you configure — and only when you a
 
 | Feature | EchOS | Obsidian + AI | Notion AI | Mem | Apple Notes |
 |---|:---:|:---:|:---:|:---:|:---:|
-| Self-hosted | ✓ | ✓ | ✗ | ✗ | ✗ |
-| Privacy (local-only) | ✓ | ✓ | ✗ | ✗ | ~ |
+| Runs locally | ✓ | ✓ | ✗ | ✗ | ✗ |
+| Local storage | ✓ | ✓ | ✗ | ✗ | ~ |
 | Agent-driven | ✓ | ✗ | ✗ | ~ | ✗ |
 | Telegram interface | ✓ | ✗ | ✗ | ✗ | ✗ |
 | CLI | ✓ | ~ | ✗ | ✗ | ✗ |
 | Plugin system | ✓ | ✓ | ~ | ✗ | ✗ |
 | Semantic search | ✓ | ~ | ~ | ✓ | ✗ |
 | Knowledge graph | ~ | ✓ | ✗ | ✗ | ✗ |
-| MCP server | ✓ | ~ | ✗ | ✗ | ✗ |
+| MCP server | ✗ | ~ | ✗ | ✗ | ✗ |
 | Voice input | ✓ | ~ | ✗ | ✗ | ~ |
 | Content capture (URL/YouTube) | ✓ | ~ | ~ | ~ | ~ |
 | Plain markdown files | ✓ | ✓ | ✗ | ✗ | ✗ |
@@ -105,7 +105,7 @@ The only outbound calls are to the AI APIs you configure — and only when you a
 
 ~ = partial support via plugins or workarounds
 
-**Choose Obsidian + AI plugins** if you want a mature, polished UI with a large plugin ecosystem and you're happy to configure things yourself. EchOS trades Obsidian's graph view and rich editor for a conversational agent that captures and organises for you automatically.
+**Choose Obsidian + AI plugins** if you want a mature, polished UI with a large plugin ecosystem and you're happy to configure things yourself. EchOS trades Obsidian's graph view and rich editor for a conversational agent that captures and organizes for you automatically.
 
 **Choose Notion AI** if you need team collaboration, structured databases, and don't mind cloud storage. EchOS is intentionally single-user and keeps everything local.
 
