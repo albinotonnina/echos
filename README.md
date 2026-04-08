@@ -75,7 +75,7 @@ The only outbound calls are to the AI APIs you configure — and only when you a
 
 **Capture without friction.** Text, URLs, voice messages, photos — through Telegram, the terminal, or the web. It figures out what to do with them.
 
-**Search that actually understands you.** Not keyword matching. Hybrid full-text and semantic search: ask it a question the way you'd ask a person, and it finds what you meant.
+**Search that actually understands you.** Not keyword matching. Hybrid full-text and semantic search with temporal decay, hotness scoring, and optional AI reranking: ask it a question the way you'd ask a person, and it finds what you meant. [See benchmark results →](https://docs.echos.sh/benchmarks)
 
 **Write in your voice.** Tell it to write a blog post, a thread, an email. It reads your notes for source material and matches the way you actually write — not generic AI prose.
 
