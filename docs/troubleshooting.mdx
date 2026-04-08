@@ -703,6 +703,41 @@ The routing rules in the system prompt direct `twitter.com` and `x.com` URLs to 
 
 ---
 
+## MCP Server Issues
+
+### MCP server not starting
+
+**Problem**: `ENABLE_MCP=true` is set but no "MCP server started" log line appears.
+
+**Solution**: Check for a port conflict on `MCP_PORT` (default 3939):
+
+```bash
+lsof -ti:3939
+```
+
+Kill the conflicting process or change `MCP_PORT` in `.env`, then restart the daemon.
+
+### Claude Code shows the MCP server as disconnected
+
+**Problem**: The `echos` server appears in Claude Code but shows as disconnected or errors on use.
+
+**Solution**:
+1. Confirm the daemon is running (`pnpm start` or check your service manager).
+2. Verify the URL in `.claude.json` matches `MCP_PORT` in `.env`.
+3. If `MCP_API_KEY` is set, confirm the `Authorization` header value matches exactly.
+
+### `Unauthorized` errors from the MCP server
+
+**Problem**: Requests return `401 Unauthorized`.
+
+**Solution**: The bearer token in your client config does not match `MCP_API_KEY`. Regenerate and update both:
+
+```bash
+openssl rand -hex 32   # copy this value
+# Update MCP_API_KEY in .env and the Authorization header in your client config
+# Restart the daemon
+```
+
 ## Getting Help
 
 If you're still stuck:

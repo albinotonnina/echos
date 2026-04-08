@@ -75,7 +75,8 @@
         "images",
         "categorization",
         "knowledge-import",
-        "scheduler"
+        "scheduler",
+        "mcp"
       ]
     },
     {
