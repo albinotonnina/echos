@@ -396,6 +396,21 @@ function translateExpected(
   return ids;
 }
 
+/**
+ * Translates a single small-corpus note ID to the equivalent note at the
+ * current corpus scale, using its topic index and position within that topic.
+ * Position 0 within a topic is always the most-recent note (ageDays 1–7).
+ */
+function translateSingleNote(smallCorpusId: string, dbs: TempDatabases): string[] {
+  const numStr = smallCorpusId.replace(/^bench-[sml]-0*/, '');
+  const num = parseInt(numStr, 10);
+  if (!Number.isFinite(num) || num < 1) return [];
+  const topicIndex = Math.floor((num - 1) / 10);
+  const noteIndexInTopic = (num - 1) % 10;
+  const sorted = dbs.topicToIds.get(topicIndex) ?? [];
+  return sorted[noteIndexInTopic] != null ? [sorted[noteIndexInTopic]!] : [];
+}
+
 async function runPipeline(
   pipeline: PipelineName,
   queries: BenchQuery[],
@@ -419,7 +434,7 @@ async function runPipeline(
     // MRR specifically measures whether the most-recent note is ranked first.
     const relevant =
       q.queryType === 'temporal' && q.temporalTopNote
-        ? new Set(translateExpected({ ...q, expectedNoteIds: [q.temporalTopNote] }, dbs))
+        ? new Set(translateSingleNote(q.temporalTopNote, dbs))
         : new Set(resolvedExpected);
     const topicIndex = guessTopicFromExpected(q.expectedNoteIds);
     const queryVector = pseudoEmbedQuery(topicIndex);

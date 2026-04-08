@@ -173,7 +173,7 @@ function decayImpactSection(summaries: PipelineSummary[], results: BenchmarkResu
 // ---------------------------------------------------------------------------
 
 function generateReport(results: BenchmarkResults): string {
-  const ts = results.timestamp.replace(/T/, ' ').replace(/-/g, ':').slice(0, 19);
+  const ts = results.timestamp.replace('T', ' ').slice(0, 19);
 
   const sections: string[] = [];
 
