@@ -393,7 +393,7 @@ describe('createSearchService - hotness scoring', () => {
   });
 
   it('recordAccess is called for all returned notes', async () => {
-    const rows = { a: makeRow('a'), b: makeRow('b') };
+    const rows: Record<string, NoteRow> = { a: makeRow('a'), b: makeRow('b') };
     const recordAccess = vi.fn();
     const sqlite = {
       searchFts: vi.fn().mockReturnValue([rows['a'], rows['b']]),
@@ -411,7 +411,7 @@ describe('createSearchService - hotness scoring', () => {
   });
 
   it('hotnessBoost: false skips hotness and does not call getHotness', async () => {
-    const rows = { a: makeRow('a'), b: makeRow('b') };
+    const rows: Record<string, NoteRow> = { a: makeRow('a'), b: makeRow('b') };
     const getHotness = vi.fn().mockReturnValue(new Map());
     const sqlite = {
       searchFts: vi.fn().mockReturnValue([rows['a'], rows['b']]),
@@ -429,7 +429,7 @@ describe('createSearchService - hotness scoring', () => {
   it('high-retrieval note scores higher than low-retrieval note with equal RRF', async () => {
     // Both notes have identical rank 1 in FTS and vector → equal RRF.
     // Note 'b' has 100 retrievals, 'a' has 0. After hotness, 'b' should win.
-    const rows = { a: makeRow('a'), b: makeRow('b') };
+    const rows: Record<string, NoteRow> = { a: makeRow('a'), b: makeRow('b') };
     const sqlite = {
       searchFts: vi.fn().mockReturnValue([rows['a'], rows['b']]),
       getNote: vi.fn().mockImplementation((id: string) => rows[id]),
