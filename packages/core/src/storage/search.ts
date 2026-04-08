@@ -12,7 +12,6 @@ export interface SearchService {
 
 const RRF_K = 60; // Reciprocal rank fusion constant
 const TEMPORAL_DECAY_DEFAULT_HALF_LIFE = 90; // days
-const HOTNESS_WEIGHT = 0.15;
 
 /**
  * Exponential temporal decay factor.
@@ -28,14 +27,6 @@ export function computeTemporalDecay(createdAt: string, halfLifeDays: number): n
   const ts = new Date(createdAt).getTime();
   const ageDays = Number.isFinite(ts) ? Math.max((Date.now() - ts) / (1000 * 60 * 60 * 24), 0) : 0;
   return Math.pow(2, -ageDays / safeHalfLife);
-}
-
-/**
- * Sigmoid of x, mapped to [0, 1].
- * Used to compress unbounded retrieval counts into a bounded boost factor.
- */
-function sigmoid(x: number): number {
-  return 1 / (1 + Math.exp(-x));
 }
 
 function noteRowToNote(row: NoteRow): Note {
@@ -146,67 +137,29 @@ export function createSearchService(
       // Fuse rankings
       const fused = reciprocalRankFusion(ftsRanked, vectorRanked);
 
-      // Resolve notes from the full candidate set, apply temporal decay and hotness boost,
-      // then truncate. Both modifiers must be applied before slicing because they can
-      // change relative ordering across the full candidate set.
+      // Resolve notes from the full candidate set, apply temporal decay, then truncate.
+      // Decay must be applied before slicing because it can change relative ordering:
+      // a recent-but-lower-RRF note may overtake an older higher-RRF note after decay.
       const applyDecay = opts.temporalDecay !== false;
       const halfLife = opts.decayHalfLifeDays ?? TEMPORAL_DECAY_DEFAULT_HALF_LIFE;
-      const applyHotness = opts.hotnessBoost !== false;
-
-      // Batch-load hotness data for all candidate IDs (one DB query)
-      const candidateIds = fused.map(({ id }) => id);
-      const hotnessMap = applyHotness ? sqlite.getHotness(candidateIds) : new Map<string, { retrievalCount: number; lastAccessed: string }>();
 
       const candidates: SearchResult[] = [];
       for (const { id, score } of fused) {
         const noteRow = sqlite.getNote(id);
         if (!noteRow) continue;
         if (noteRow.status === 'deleted') continue;
-
-        let finalScore = score;
-
-        // Temporal decay: older notes score lower
-        if (applyDecay) {
-          finalScore *= computeTemporalDecay(noteRow.created, halfLife);
-        }
-
-        // Hotness boost: frequently accessed notes score higher.
-        // Formula: score *= (1 + hotnessWeight * sigmoid(log1p(retrievalCount)))
-        // Access recency modulates the boost via temporal decay on lastAccessed.
-        if (applyHotness) {
-          const hotness = hotnessMap.get(id);
-          if (hotness) {
-            const accessDecay = computeTemporalDecay(hotness.lastAccessed, halfLife);
-            const hotnessSignal = sigmoid(Math.log1p(hotness.retrievalCount)) * accessDecay;
-            finalScore *= 1 + HOTNESS_WEIGHT * hotnessSignal;
-          }
-        }
-
+        const finalScore = applyDecay
+          ? score * computeTemporalDecay(noteRow.created, halfLife)
+          : score;
         candidates.push(noteRowToSearchResult(noteRow, finalScore, mdStorage, logger));
       }
 
-      // Sort by final score and take top `limit`
+      // Sort by decayed score and take top `limit`
       candidates.sort((a, b) => b.score - a.score);
       const results = candidates.slice(0, limit);
 
-      // Record access for all returned notes (fire-and-forget, non-blocking)
-      for (const result of results) {
-        try {
-          sqlite.recordAccess(result.note.metadata.id);
-        } catch {
-          // Access tracking is best-effort; don't fail the search on write errors
-        }
-      }
-
       logger.debug(
-        {
-          query: opts.query,
-          ftsCount: ftsRows.length,
-          vectorCount: vectorResults.length,
-          resultCount: results.length,
-          temporalDecay: applyDecay,
-          hotnessBoost: applyHotness,
-        },
+        { query: opts.query, ftsCount: ftsRows.length, vectorCount: vectorResults.length, resultCount: results.length, temporalDecay: applyDecay },
         'Hybrid search',
       );
       return results;

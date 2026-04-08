@@ -418,16 +418,7 @@ Hybrid search combines three strategies via Reciprocal Rank Fusion (RRF):
 
 1. **Keyword** (FTS5): BM25-ranked full-text search across title, content, tags
 2. **Semantic** (LanceDB): Cosine similarity on OpenAI embeddings
-3. **Hybrid**: RRF fusion of keyword + semantic results, then score-modulated by temporal decay and hotness
-
-### Search Scoring Pipeline (Hybrid Mode)
-
-After RRF fusion the raw score is adjusted by two optional signals before the final ranking is applied:
-
-- **Temporal decay** (default on, `temporalDecay?: boolean`): Multiplies each note's RRF score by `2^(-ageDays / halfLifeDays)` (default half-life: 90 days). A note created today retains its full score; one 90 days old scores at 0.5×. Configurable per query via `decayHalfLifeDays`.
-- **Hotness boost** (default on, `hotnessBoost?: boolean`): Notes that appear in search results frequently are rewarded. The boost formula is `score *= (1 + 0.15 * sigmoid(log1p(retrievalCount)) * temporalDecay(lastAccessed))`. Access recency modulates the boost — a note popular six months ago that hasn't been retrieved since decays back toward neutral.
-
-Both signals are applied to the full candidate set *before* slicing to `limit` results, so reordering across the cut-off is handled correctly. Retrieval counts are recorded in the `note_hotness` SQLite table, updated atomically after every search via `INSERT OR REPLACE … COALESCE` upserts.
+3. **Hybrid**: RRF fusion of keyword + semantic results
 
 ## Memory System
 

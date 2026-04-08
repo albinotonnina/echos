@@ -49,13 +49,7 @@ export interface SearchOptions {
   dateFrom?: string;
   dateTo?: string;
   temporalDecay?: boolean;
-  /**
-   * Half-life (in days) for exponential temporal decay.
-   * Applies to both note creation age and hotness access recency.
-   * Defaults to 90 days.
-   */
   decayHalfLifeDays?: number;
-  hotnessBoost?: boolean;
 }
 
 export interface MemoryEntry {
