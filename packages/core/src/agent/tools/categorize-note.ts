@@ -52,6 +52,12 @@ export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentToo
       const mode: ProcessingMode = params.mode ?? 'lightweight';
 
       try {
+        // Read on-disk content BEFORE categorization so the AI sees the latest edits
+        const existingNote = deps.markdown.read(noteRow.filePath);
+        // Prefer on-disk content as source of truth; fall back to SQLite if the file is missing
+        const noteContent = existingNote?.content ?? noteRow.content;
+        const oldCategory = existingNote?.metadata.category ?? noteRow.category;
+
         const model = resolveModel(deps.modelId ?? DEFAULT_CATEGORIZATION_MODEL, deps.llmBaseUrl);
         const apiKey =
           (model.provider as string) === 'anthropic'
@@ -60,7 +66,7 @@ export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentToo
         const vocabulary = deps.sqlite.getTopTagsWithCounts(50);
         const result = await categorizeContent(
           noteRow.title,
-          noteRow.content,
+          noteContent,
           mode,
           apiKey,
           deps.logger,
@@ -69,12 +75,6 @@ export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentToo
           deps.llmBaseUrl,
           vocabulary,
         );
-
-        // Parse existing note - fall back to SQLite content if file is missing
-        const existingNote = deps.markdown.read(noteRow.filePath);
-        // Prefer on-disk content as source of truth; fall back to SQLite if the file is missing
-        const noteContent = existingNote?.content ?? noteRow.content;
-        const oldCategory = existingNote?.metadata.category ?? noteRow.category;
         const existingMetadata = existingNote?.metadata ?? {
           id: noteRow.id,
           type: noteRow.type,
@@ -112,14 +112,14 @@ export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentToo
         // Update vector store — keep the vector for reuse in link suggestions below
         let noteVector: number[] | undefined;
         try {
-          const embedText = `${noteRow.title}\n\n${noteContent}`;
+          const embedText = `${metadata.title}\n\n${noteContent}`;
           noteVector = await deps.generateEmbedding(embedText);
           await deps.vectorDb.upsert({
             id: params.noteId,
             text: embedText,
             vector: noteVector,
             type: noteRow.type,
-            title: noteRow.title,
+            title: metadata.title as string,
           });
         } catch {
           // Non-fatal

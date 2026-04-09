@@ -123,6 +123,19 @@ describe('createCategorizeNoteTool', () => {
 
     await tool.execute('call-1', { noteId: 'note-abc' });
 
+    // categorizeContent should have been called with disk content, not stale SQLite content
+    expect(categorizeContent).toHaveBeenCalledWith(
+      expect.any(String),
+      diskContent,
+      expect.any(String),
+      expect.any(String),
+      expect.anything(),
+      undefined,
+      undefined,
+      undefined,
+      expect.anything(),
+    );
+
     // The markdown update should have been called with the disk content (same category → update path)
     expect(markdownUpdate).toHaveBeenCalledWith(
       expect.any(String),
@@ -206,6 +219,19 @@ describe('createCategorizeNoteTool', () => {
     });
 
     await tool.execute('call-3', { noteId: 'note-abc' });
+
+    // categorizeContent should receive disk content, not stale SQLite content
+    expect(categorizeContent).toHaveBeenCalledWith(
+      expect.any(String),
+      freshDiskContent,
+      expect.any(String),
+      expect.any(String),
+      expect.anything(),
+      undefined,
+      undefined,
+      undefined,
+      expect.anything(),
+    );
 
     // Disk content must be used, not the stale SQLite content
     expect(markdownSave).toHaveBeenCalledWith(expect.any(Object), freshDiskContent);
