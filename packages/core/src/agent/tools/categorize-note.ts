@@ -72,6 +72,8 @@ export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentToo
 
         // Parse existing note - fall back to SQLite content if file is missing
         const existingNote = deps.markdown.read(noteRow.filePath);
+        // Prefer on-disk content as source of truth; fall back to SQLite if the file is missing
+        const noteContent = existingNote?.content ?? noteRow.content;
         const oldCategory = existingNote?.metadata.category ?? noteRow.category;
         const existingMetadata = existingNote?.metadata ?? {
           id: noteRow.id,
@@ -96,21 +98,21 @@ export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentToo
         // If category changed, move the file to the new directory
         let savedFilePath: string;
         if (result.category !== oldCategory || !existingNote) {
-          savedFilePath = deps.markdown.save(metadata, noteRow.content);
+          savedFilePath = deps.markdown.save(metadata, noteContent);
           if (existingNote) {
             deps.markdown.remove(noteRow.filePath);
           }
         } else {
-          deps.markdown.update(noteRow.filePath, metadata, noteRow.content);
+          deps.markdown.update(noteRow.filePath, metadata, noteContent);
           savedFilePath = noteRow.filePath;
         }
 
-        deps.sqlite.upsertNote(metadata, noteRow.content, savedFilePath);
+        deps.sqlite.upsertNote(metadata, noteContent, savedFilePath);
 
         // Update vector store — keep the vector for reuse in link suggestions below
         let noteVector: number[] | undefined;
         try {
-          const embedText = `${noteRow.title}\n\n${noteRow.content}`;
+          const embedText = `${noteRow.title}\n\n${noteContent}`;
           noteVector = await deps.generateEmbedding(embedText);
           await deps.vectorDb.upsert({
             id: params.noteId,
