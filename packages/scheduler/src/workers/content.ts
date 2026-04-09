@@ -3,7 +3,12 @@ import type { Logger } from 'pino';
 import type { JobData } from '../queue.js';
 import { processArticle } from '@echos/plugin-article';
 import { processYoutube } from '@echos/plugin-youtube';
-import type { SqliteStorage, MarkdownStorage, VectorStorage } from '@echos/core';
+import type {
+  SqliteStorage,
+  MarkdownStorage,
+  VectorStorage,
+  SpeechToTextClient,
+} from '@echos/core';
 import type { NoteMetadata } from '@echos/shared';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -13,7 +18,7 @@ export interface ContentWorkerDeps {
   vectorDb: VectorStorage;
   generateEmbedding: (text: string) => Promise<number[]>;
   logger: Logger;
-  openaiApiKey?: string;
+  sttClient?: SpeechToTextClient;
   whisperLanguage?: string;
   notifyUser?: (chatId: number, message: string) => Promise<void>;
 }
@@ -28,7 +33,7 @@ export function createContentProcessor(deps: ContentWorkerDeps) {
     const processed =
       type === 'process_article'
         ? await processArticle(url, deps.logger)
-        : await processYoutube(url, deps.logger, deps.openaiApiKey, undefined, deps.whisperLanguage);
+        : await processYoutube(url, deps.logger, deps.sttClient, undefined, deps.whisperLanguage);
 
     const now = new Date().toISOString();
     const id = uuidv4();

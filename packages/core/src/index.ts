@@ -64,3 +64,11 @@ export {
   type BackupResult,
   type BackupInfo,
 } from './backup/index.js';
+export {
+  type SpeechToTextClient,
+  type TranscribeOptions,
+  type TranscribeResult,
+  transcribeWithRetry,
+  createSttClient,
+  probeSttProviders,
+} from './stt/index.js';

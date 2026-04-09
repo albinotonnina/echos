@@ -5,19 +5,26 @@
 import { join } from 'node:path';
 import type { Logger } from 'pino';
 import type { Config } from '@echos/shared';
-import type { AgentDeps, PluginRegistry } from '@echos/core';
+import type { AgentDeps, PluginRegistry, SpeechToTextClient } from '@echos/core';
 import type { StorageResult } from './storage-init.js';
 import type { createManageScheduleTool } from '@echos/scheduler';
 
-export function buildPluginConfig(config: Config): Record<string, unknown> {
+export function buildPluginConfig(
+  config: Config,
+  sttClient: SpeechToTextClient,
+): Record<string, unknown> {
   return {
     ...(config.openaiApiKey ? { openaiApiKey: config.openaiApiKey } : {}),
     ...(config.whisperLanguage ? { whisperLanguage: config.whisperLanguage } : {}),
     ...(config.anthropicApiKey ? { anthropicApiKey: config.anthropicApiKey } : {}),
     ...(config.llmApiKey ? { llmApiKey: config.llmApiKey } : {}),
     ...(config.llmBaseUrl ? { llmBaseUrl: config.llmBaseUrl } : {}),
-    ...(config.webshareProxyUsername ? { webshareProxyUsername: config.webshareProxyUsername } : {}),
-    ...(config.webshareProxyPassword ? { webshareProxyPassword: config.webshareProxyPassword } : {}),
+    ...(config.webshareProxyUsername
+      ? { webshareProxyUsername: config.webshareProxyUsername }
+      : {}),
+    ...(config.webshareProxyPassword
+      ? { webshareProxyPassword: config.webshareProxyPassword }
+      : {}),
     knowledgeDir: config.knowledgeDir,
     defaultModel: config.defaultModel,
     dbPath: config.dbPath,
@@ -29,6 +36,7 @@ export function buildAgentDeps(
   storage: StorageResult,
   pluginRegistry: PluginRegistry,
   manageScheduleTool: ReturnType<typeof createManageScheduleTool>,
+  sttClient: SpeechToTextClient | undefined,
   logger: Logger,
 ): AgentDeps {
   return {
@@ -60,5 +68,6 @@ export function buildAgentDeps(
     backupRetentionCount: config.backupRetentionCount,
     knowledgeDir: config.knowledgeDir,
     dbPath: config.dbPath,
+    sttClient,
   };
 }

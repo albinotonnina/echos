@@ -25,118 +25,142 @@ export const ECHOS_HOME = resolveEchosHome(process.env);
 
 export const configSchema = z
   .object({
-  // Required
-  telegramBotToken: z.string().optional(), // Required only when enableTelegram=true (checked at runtime)
-  allowedUserIds: commaSeparatedNumbers,
-  anthropicApiKey: z.string().min(1).optional(),
+    // Required
+    telegramBotToken: z.string().optional(), // Required only when enableTelegram=true (checked at runtime)
+    allowedUserIds: commaSeparatedNumbers,
+    anthropicApiKey: z.string().min(1).optional(),
 
-  // Optional
-  openaiApiKey: z.string().optional(),
+    // Optional
+    openaiApiKey: z.string().optional(),
 
-  // Whisper transcription language (ISO-639-1 code, e.g. 'en', 'fr', 'de').
-  // If not set, Whisper auto-detects the language (may misidentify short clips).
-  whisperLanguage: z.preprocess(
-    (val) => {
-      if (typeof val !== 'string') return val;
-      const trimmed = val.trim();
-      if (trimmed === '') return undefined;
-      return trimmed.toLowerCase();
-    },
-    z.string().regex(/^[a-z]{2}$/, 'Must be an ISO-639-1 language code (e.g. en, fr, de)').optional(),
-  ),
+    // Whisper transcription language (ISO-639-1 code, e.g. 'en', 'fr', 'de').
+    // If not set, Whisper auto-detects the language (may misidentify short clips).
+    whisperLanguage: z.preprocess(
+      (val) => {
+        if (typeof val !== 'string') return val;
+        const trimmed = val.trim();
+        if (trimmed === '') return undefined;
+        return trimmed.toLowerCase();
+      },
+      z
+        .string()
+        .regex(/^[a-z]{2}$/, 'Must be an ISO-639-1 language code (e.g. en, fr, de)')
+        .optional(),
+    ),
 
-  // Multi-provider LLM support
-  llmApiKey: z.string().min(1).optional(),
-  llmBaseUrl: z.string().url().optional(),
+    // STT (Speech-to-Text) provider configuration
+    sttProvider: z
+      .enum([
+        'auto',
+        'openai',
+        'groq',
+        'together',
+        'siliconflow',
+        'deepinfra',
+        'fireworks',
+        'huggingface',
+        'openrouter',
+        'local',
+      ])
+      .default('auto'),
+    sttApiKey: z.string().optional(),
+    sttBaseUrl: z.string().url().optional(),
+    sttModel: z.string().optional(),
+    sttLocalCommand: z.string().optional(),
+    sttLocalModel: z.string().default('base.en'),
+    sttLocalModelDir: z.string().optional(),
 
-  // Redis
-  redisUrl: z.string().url().default('redis://localhost:6379'),
+    // Multi-provider LLM support
+    llmApiKey: z.string().min(1).optional(),
+    llmBaseUrl: z.string().url().optional(),
 
-  // Storage paths (resolve relative to ECHOS_HOME)
-  knowledgeDir: z.string().default(join(ECHOS_HOME, 'knowledge')),
-  dbPath: z.string().default(join(ECHOS_HOME, 'db')),
-  sessionDir: z.string().default(join(ECHOS_HOME, 'sessions')),
+    // Redis
+    redisUrl: z.string().url().default('redis://localhost:6379'),
 
-  // LLM
-  defaultModel: z.string().default('claude-haiku-4-5-20251001'),
-  embeddingModel: z.string().default('text-embedding-3-small'),
-  embeddingDimensions: z.coerce.number().int().positive().default(1536),
+    // Storage paths (resolve relative to ECHOS_HOME)
+    knowledgeDir: z.string().default(join(ECHOS_HOME, 'knowledge')),
+    dbPath: z.string().default(join(ECHOS_HOME, 'db')),
+    sessionDir: z.string().default(join(ECHOS_HOME, 'sessions')),
 
-  // Interfaces
-  enableTelegram: z
-    .string()
-    .default('true')
-    .transform((s) => s === 'true'),
-  enableWeb: z
-    .string()
-    .default('false')
-    .transform((s) => s === 'true'),
-  telegramReactions: z
-    .string()
-    .default('true')
-    .transform((s) => s === 'true'),
-  // Web
-  webPort: z.coerce.number().int().positive().default(3000),
-  webApiKey: z.string().optional(),
+    // LLM
+    defaultModel: z.string().default('claude-haiku-4-5-20251001'),
+    embeddingModel: z.string().default('text-embedding-3-small'),
+    embeddingDimensions: z.coerce.number().int().positive().default(1536),
 
-  // Webshare Proxy (optional)
-  webshareProxyUsername: z.string().optional(),
-  webshareProxyPassword: z.string().optional(),
+    // Interfaces
+    enableTelegram: z
+      .string()
+      .default('true')
+      .transform((s) => s === 'true'),
+    enableWeb: z
+      .string()
+      .default('false')
+      .transform((s) => s === 'true'),
+    telegramReactions: z
+      .string()
+      .default('true')
+      .transform((s) => s === 'true'),
+    // Web
+    webPort: z.coerce.number().int().positive().default(3000),
+    webApiKey: z.string().optional(),
 
-  // LLM model presets (for /model switching)
-  modelBalanced: z.string().optional(),
-  modelDeep: z.string().optional(),
+    // Webshare Proxy (optional)
+    webshareProxyUsername: z.string().optional(),
+    webshareProxyPassword: z.string().optional(),
 
-  // LLM reasoning
-  thinkingLevel: z.enum(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']).default('off'),
+    // LLM model presets (for /model switching)
+    modelBalanced: z.string().optional(),
+    modelDeep: z.string().optional(),
 
-  // Prompt caching
-  cacheRetention: z.enum(['none', 'short', 'long']).default('long'),
+    // LLM reasoning
+    thinkingLevel: z.enum(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']).default('off'),
 
-  // Debug
-  logLlmPayloads: z
-    .string()
-    .default('false')
-    .transform((s) => s === 'true'),
+    // Prompt caching
+    cacheRetention: z.enum(['none', 'short', 'long']).default('long'),
 
-  // Update checker
-  disableUpdateCheck: z
-    .string()
-    .default('false')
-    .transform((s) => s === 'true'),
+    // Debug
+    logLlmPayloads: z
+      .string()
+      .default('false')
+      .transform((s) => s === 'true'),
 
-  // Backup
-  backupEnabled: z
-    .string()
-    .default('true')
-    .transform((s) => s === 'true'),
-  backupCron: z
-    .string()
-    .default('0 2 * * *')
-    .refine(isValidCron, { message: 'BACKUP_CRON must be a valid 5-field cron expression (e.g. "0 2 * * *")' }),
-  backupDir: z.string().default(join(ECHOS_HOME, 'backups')),
-  backupRetentionCount: z.coerce.number().int().positive().default(7),
-})
-.superRefine((data, ctx) => {
-  // Note: we intentionally do NOT validate that the API key matches DEFAULT_MODEL's provider here.
-  // defaultModel has a schema-level default ('claude-haiku-4-5-20251001'), so we cannot distinguish
-  // "user didn't set DEFAULT_MODEL" from "user set it to the default value" after parsing.
-  // Mismatched key+model combos are caught at agent creation by pickApiKey() with a clear error.
-  if (!data.anthropicApiKey && !data.llmApiKey) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'At least one of ANTHROPIC_API_KEY or LLM_API_KEY must be set',
-      path: ['anthropicApiKey'],
-    });
-  }
-  if (data.llmBaseUrl && !data.llmApiKey) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'LLM_API_KEY must be set when LLM_BASE_URL is provided',
-      path: ['llmApiKey'],
-    });
-  }
-});
+    // Update checker
+    disableUpdateCheck: z
+      .string()
+      .default('false')
+      .transform((s) => s === 'true'),
+
+    // Backup
+    backupEnabled: z
+      .string()
+      .default('true')
+      .transform((s) => s === 'true'),
+    backupCron: z.string().default('0 2 * * *').refine(isValidCron, {
+      message: 'BACKUP_CRON must be a valid 5-field cron expression (e.g. "0 2 * * *")',
+    }),
+    backupDir: z.string().default(join(ECHOS_HOME, 'backups')),
+    backupRetentionCount: z.coerce.number().int().positive().default(7),
+  })
+  .superRefine((data, ctx) => {
+    // Note: we intentionally do NOT validate that the API key matches DEFAULT_MODEL's provider here.
+    // defaultModel has a schema-level default ('claude-haiku-4-5-20251001'), so we cannot distinguish
+    // "user didn't set DEFAULT_MODEL" from "user set it to the default value" after parsing.
+    // Mismatched key+model combos are caught at agent creation by pickApiKey() with a clear error.
+    if (!data.anthropicApiKey && !data.llmApiKey) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'At least one of ANTHROPIC_API_KEY or LLM_API_KEY must be set',
+        path: ['anthropicApiKey'],
+      });
+    }
+    if (data.llmBaseUrl && !data.llmApiKey) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'LLM_API_KEY must be set when LLM_BASE_URL is provided',
+        path: ['llmApiKey'],
+      });
+    }
+  });
 
 export type Config = z.infer<typeof configSchema>;
 
@@ -155,6 +179,13 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     anthropicApiKey: env['ANTHROPIC_API_KEY'],
     openaiApiKey: env['OPENAI_API_KEY'],
     whisperLanguage: env['WHISPER_LANGUAGE'],
+    sttProvider: env['STT_PROVIDER'],
+    sttApiKey: env['STT_API_KEY'],
+    sttBaseUrl: env['STT_BASE_URL'],
+    sttModel: env['STT_MODEL'],
+    sttLocalCommand: env['STT_LOCAL_COMMAND'],
+    sttLocalModel: env['STT_LOCAL_MODEL'],
+    sttLocalModelDir: env['STT_LOCAL_MODEL_DIR'],
     llmApiKey: env['LLM_API_KEY'],
     llmBaseUrl: env['LLM_BASE_URL'],
     redisUrl: env['REDIS_URL'],
