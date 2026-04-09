@@ -76,7 +76,7 @@ export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentToo
 
         const vocabulary = deps.sqlite.getTopTagsWithCounts(50);
         const result = await categorizeContent(
-          noteRow.title,
+          existingMetadata.title,
           noteContent,
           mode,
           apiKey,
@@ -126,7 +126,7 @@ export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentToo
           // Non-fatal
         }
 
-        let responseText = `Categorized note "${noteRow.title}" (${mode} mode)\n`;
+        let responseText = `Categorized note "${metadata.title}" (${mode} mode)\n`;
         responseText += `Category: ${result.category}\n`;
         responseText += `Tags: [${result.tags.join(', ')}]`;
 
