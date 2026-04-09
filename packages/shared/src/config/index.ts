@@ -66,9 +66,8 @@ export const configSchema = z
     sttApiKey: z.string().optional(),
     sttBaseUrl: z.string().url().optional(),
     sttModel: z.string().optional(),
-    sttLocalCommand: z.string().optional(),
-    sttLocalModel: z.string().default('base.en'),
-    sttLocalModelDir: z.string().optional(),
+    sttLocalExecutable: z.string().optional(),
+    sttLocalModel: z.string().optional(), // Full path to model file
 
     // Multi-provider LLM support
     llmApiKey: z.string().min(1).optional(),
@@ -183,9 +182,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     sttApiKey: env['STT_API_KEY'],
     sttBaseUrl: env['STT_BASE_URL'],
     sttModel: env['STT_MODEL'],
-    sttLocalCommand: env['STT_LOCAL_COMMAND'],
+    sttLocalExecutable: env['STT_LOCAL_EXECUTABLE'],
     sttLocalModel: env['STT_LOCAL_MODEL'],
-    sttLocalModelDir: env['STT_LOCAL_MODEL_DIR'],
     llmApiKey: env['LLM_API_KEY'],
     llmBaseUrl: env['LLM_BASE_URL'],
     redisUrl: env['REDIS_URL'],

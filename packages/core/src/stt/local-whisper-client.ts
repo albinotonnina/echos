@@ -47,12 +47,10 @@ export class LocalWhisperClient implements SpeechToTextClient {
   private whisperType: 'whisper-cpp' | 'whispercpp-python' | 'openai-whisper' | 'faster-whisper' | 'generic';
 
   constructor(
-    command: string,
-    private model: string,
-    private modelDir?: string,
+    private command: string,
+    private model: string, // Full path to model file, or model name for Python packages
   ) {
     this.whisperType = this.detectWhisperType(command);
-    this.command = command;
   }
 
   private detectWhisperType(command: string): LocalWhisperClient['whisperType'] {
@@ -165,7 +163,6 @@ export class LocalWhisperClient implements SpeechToTextClient {
     const args = [...scriptArgs, '-f', audioPath];
     if (this.model) args.push('-m', this.model);
     if (language) args.push('-l', language);
-    if (this.modelDir) args.push('-o', this.modelDir);
     const { stdout } = await spawnAsync(cmd, args);
     return stdout.trim();
   }
@@ -229,8 +226,7 @@ export class LocalWhisperClient implements SpeechToTextClient {
    * Command: whisper-cli or /path/to/main
    */
   private async runWhisperCpp(audioPath: string, language?: string): Promise<string> {
-    const modelPath = `${this.modelDir ?? '/usr/local/share/whisper.cpp/models'}/${this.model}.bin`;
-    const args = ['-m', modelPath, '-f', audioPath, '-otxt'];
+    const args = ['-m', this.model, '-f', audioPath, '-otxt'];
     if (language) args.push('-l', language);
 
     await spawnAsync(this.command, args);

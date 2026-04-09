@@ -1,5 +1,7 @@
 import type { Config } from '@echos/shared';
 import { ValidationError } from '@echos/shared';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import type { SpeechToTextClient } from './index.js';
 import { OpenAICompatibleClient } from './openai-compatible-client.js';
 import { LocalWhisperClient } from './local-whisper-client.js';
@@ -14,6 +16,13 @@ import {
   saveCachedProvider,
   STT_PROVIDERS,
 } from './registry.js';
+
+/** Expand a leading `~` to the user's home directory. */
+function expandTilde(p: string): string {
+  if (p === '~') return homedir();
+  if (p.startsWith('~/')) return join(homedir(), p.slice(2));
+  return p;
+}
 
 export async function createSttClient(config: Config): Promise<SpeechToTextClient | undefined> {
   if (config.sttProvider === 'local') {
@@ -82,13 +91,13 @@ function createClientWithProvider(
 }
 
 function createLocalClient(config: Config): SpeechToTextClient {
-  if (!config.sttLocalCommand) {
-    throw new ValidationError('STT_LOCAL_COMMAND is required when STT_PROVIDER=local');
+  if (!config.sttLocalExecutable) {
+    throw new ValidationError('STT_LOCAL_EXECUTABLE is required when STT_PROVIDER=local');
   }
+  const modelPath = config.sttLocalModel ? expandTilde(config.sttLocalModel) : undefined;
   return new LocalWhisperClient(
-    config.sttLocalCommand,
-    config.sttLocalModel ?? 'base.en',
-    config.sttLocalModelDir,
+    expandTilde(config.sttLocalExecutable),
+    modelPath ?? 'base.en',
   );
 }
 

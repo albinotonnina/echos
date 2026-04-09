@@ -22,7 +22,7 @@ import { join } from 'node:path';
 
 describe('createSttClient', () => {
   it('returns undefined when no STT config is provided', async () => {
-    const config = { sttProvider: 'auto' as const } as Config;
+    const config = { sttProvider: 'auto' as const } as unknown as Config;
     expect(await createSttClient(config)).toBeUndefined();
   });
 
@@ -30,7 +30,7 @@ describe('createSttClient', () => {
     const config = {
       sttProvider: 'auto' as const,
       sttApiKey: 'sk-test',
-    } as Config;
+    } as unknown as Config;
     const client = await createSttClient(config);
     expect(client).toBeInstanceOf(OpenAICompatibleClient);
   });
@@ -39,7 +39,7 @@ describe('createSttClient', () => {
     const config = {
       sttProvider: 'auto' as const,
       sttApiKey: 'gsk_test123',
-    } as Config;
+    } as unknown as Config;
     const client = await createSttClient(config);
     expect(client).toBeInstanceOf(OpenAICompatibleClient);
   });
@@ -48,7 +48,7 @@ describe('createSttClient', () => {
     const config = {
       sttProvider: 'auto' as const,
       sttApiKey: 'hf_test123',
-    } as Config;
+    } as unknown as Config;
     const client = await createSttClient(config);
     expect(client).toBeInstanceOf(OpenAICompatibleClient);
   });
@@ -57,7 +57,7 @@ describe('createSttClient', () => {
     const config = {
       sttProvider: 'auto' as const,
       sttApiKey: 'sk-or-test123',
-    } as Config;
+    } as unknown as Config;
     const client = await createSttClient(config);
     expect(client).toBeInstanceOf(OpenAICompatibleClient);
   });
@@ -66,7 +66,7 @@ describe('createSttClient', () => {
     const config = {
       sttProvider: 'groq' as const,
       sttApiKey: 'sk-some-key',
-    } as Config;
+    } as unknown as Config;
     const client = await createSttClient(config);
     expect(client).toBeInstanceOf(OpenAICompatibleClient);
   });
@@ -77,7 +77,7 @@ describe('createSttClient', () => {
       sttApiKey: 'gsk-test',
       sttBaseUrl: 'https://api.groq.com/openai/v1',
       sttModel: 'whisper-large-v3-turbo',
-    } as Config;
+    } as unknown as Config;
     const client = await createSttClient(config);
     expect(client).toBeInstanceOf(OpenAICompatibleClient);
   });
@@ -85,9 +85,9 @@ describe('createSttClient', () => {
   it('creates LocalWhisperClient when provider is local', async () => {
     const config = {
       sttProvider: 'local' as const,
-      sttLocalCommand: 'whisper-cpp',
+      sttLocalExecutable: 'whisper-cpp',
       sttLocalModel: 'base.en',
-    } as Config;
+    } as unknown as Config;
     const client = await createSttClient(config);
     expect(client).toBeInstanceOf(LocalWhisperClient);
   });
@@ -276,7 +276,7 @@ describe('STT provider probing', () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('network error'));
 
     const together = getProbeableProviders().find((p) => p.id === 'together')!;
-    const result = await probeProvider('some-key', together);
+    const result = await probeProvider('some-key', together!);
     expect(result).toBe(false);
 
     globalThis.fetch = originalFetch;
@@ -361,7 +361,7 @@ describe('transcribeWithRetry', () => {
   });
 
   it('retries on rate limit error', async () => {
-    const error = new RateLimitError('Rate limit exceeded');
+    const error = new RateLimitError(2000);
 
     const mockClient = {
       transcribe: vi
@@ -400,7 +400,7 @@ describe('transcribeWithRetry', () => {
   });
 
   it('throws after max retries exhausted', async () => {
-    const error = new RateLimitError('Rate limit exceeded');
+    const error = new RateLimitError(2000);
 
     const mockClient = {
       transcribe: vi.fn().mockRejectedValue(error),
@@ -477,11 +477,10 @@ describe('LocalWhisperClient', () => {
       expect(client).toBeDefined();
     });
 
-    it('creates client with custom model directory', () => {
+    it('creates client with custom model path', () => {
       const client = new LocalWhisperClient(
         'whisper-cli',
-        'medium',
-        '/custom/models',
+        '/custom/models/ggml-medium.bin',
       );
       expect(client).toBeDefined();
     });
@@ -518,12 +517,12 @@ describe('STT provider registry', () => {
     });
 
     it('has correct key prefix confidence levels', () => {
-      expect(STT_PROVIDERS.openai.keyPrefixConfidence).toBe('high');
-      expect(STT_PROVIDERS.groq.keyPrefixConfidence).toBe('high');
-      expect(STT_PROVIDERS.huggingface.keyPrefixConfidence).toBe('high');
-      expect(STT_PROVIDERS.openrouter.keyPrefixConfidence).toBe('high');
-      expect(STT_PROVIDERS.together.keyPrefixConfidence).toBe('none');
-      expect(STT_PROVIDERS.siliconflow.keyPrefixConfidence).toBe('none');
+      expect(STT_PROVIDERS['openai']!.keyPrefixConfidence).toBe('high');
+      expect(STT_PROVIDERS['groq']!.keyPrefixConfidence).toBe('high');
+      expect(STT_PROVIDERS['huggingface']!.keyPrefixConfidence).toBe('high');
+      expect(STT_PROVIDERS['openrouter']!.keyPrefixConfidence).toBe('high');
+      expect(STT_PROVIDERS['together']!.keyPrefixConfidence).toBe('none');
+      expect(STT_PROVIDERS['siliconflow']!.keyPrefixConfidence).toBe('none');
     });
   });
 
@@ -570,7 +569,7 @@ describe('STT integration scenarios', () => {
     const config = {
       sttProvider: 'auto' as const,
       sttApiKey: 'sk-proj-abc123',
-    } as Config;
+    } as unknown as Config;
 
     const client = await createSttClient(config);
     expect(client).toBeInstanceOf(OpenAICompatibleClient);
@@ -580,7 +579,7 @@ describe('STT integration scenarios', () => {
     const config = {
       sttProvider: 'auto' as const,
       sttApiKey: 'gsk_abc123',
-    } as Config;
+    } as unknown as Config;
 
     const client = await createSttClient(config);
     expect(client).toBeInstanceOf(OpenAICompatibleClient);
@@ -590,7 +589,7 @@ describe('STT integration scenarios', () => {
     const config = {
       sttProvider: 'together' as const,
       sttApiKey: 'some-opaque-key',
-    } as Config;
+    } as unknown as Config;
 
     const client = await createSttClient(config);
     expect(client).toBeInstanceOf(OpenAICompatibleClient);
@@ -599,9 +598,9 @@ describe('STT integration scenarios', () => {
   it('creates local whisper client', async () => {
     const config = {
       sttProvider: 'local' as const,
-      sttLocalCommand: 'whisper-cli',
+      sttLocalExecutable: 'whisper-cli',
       sttLocalModel: 'base.en',
-    } as Config;
+    } as unknown as Config;
 
     const client = await createSttClient(config);
     expect(client).toBeInstanceOf(LocalWhisperClient);
@@ -610,10 +609,10 @@ describe('STT integration scenarios', () => {
   it('throws error when local provider configured but no command', async () => {
     const config = {
       sttProvider: 'local' as const,
-    } as Config;
+    } as unknown as Config;
 
     await expect(createSttClient(config)).rejects.toThrow(
-      'STT_LOCAL_COMMAND is required when STT_PROVIDER=local',
+      'STT_LOCAL_EXECUTABLE is required when STT_PROVIDER=local',
     );
   });
 
@@ -621,7 +620,7 @@ describe('STT integration scenarios', () => {
     const config = {
       sttProvider: 'unknown-provider' as const,
       sttApiKey: 'some-key',
-    } as Config;
+    } as unknown as Config;
 
     await expect(createSttClient(config)).rejects.toThrow(
       'Unknown STT provider: unknown-provider',
@@ -632,7 +631,7 @@ describe('STT integration scenarios', () => {
     const config = {
       sttProvider: 'auto' as const,
       openaiApiKey: 'sk-fallback-key',
-    } as Config;
+    } as unknown as Config;
 
     const client = await createSttClient(config);
     expect(client).toBeInstanceOf(OpenAICompatibleClient);
@@ -677,7 +676,7 @@ describe('STT error handling', () => {
   it('handles missing API key', async () => {
     const config = {
       sttProvider: 'auto' as const,
-    } as Config;
+    } as unknown as Config;
 
     const client = await createSttClient(config);
     expect(client).toBeUndefined();
@@ -690,7 +689,7 @@ describe('STT error handling', () => {
     });
 
     const together = getProbeableProviders().find((p) => p.id === 'together')!;
-    const result = await probeProvider('invalid-key', together);
+    const result = await probeProvider('invalid-key', together!);
     expect(result).toBe(false);
   });
 });
@@ -702,8 +701,8 @@ describe('STT provider probing edge cases', () => {
       status: 401,
     });
 
-    const openai = STT_PROVIDERS.openai;
-    const result = await probeProvider('', openai);
+    const openai = STT_PROVIDERS['openai'];
+    const result = await probeProvider('', openai!);
     expect(result).toBe(false);
   });
 
@@ -711,7 +710,7 @@ describe('STT provider probing edge cases', () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('Invalid URL'));
 
     const together = getProbeableProviders().find((p) => p.id === 'together')!;
-    const result = await probeProvider('some-key', together);
+    const result = await probeProvider('some-key', together!);
     expect(result).toBe(false);
   });
 });
