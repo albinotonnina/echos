@@ -57,20 +57,8 @@ export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentToo
           (model.provider as string) === 'anthropic'
             ? (deps.anthropicApiKey ?? '')
             : (deps.llmApiKey ?? '');
-        const vocabulary = deps.sqlite.getTopTagsWithCounts(50);
-        const result = await categorizeContent(
-          noteRow.title,
-          noteRow.content,
-          mode,
-          apiKey,
-          deps.logger,
-          undefined,
-          deps.modelId,
-          deps.llmBaseUrl,
-          vocabulary,
-        );
 
-        // Parse existing note - fall back to SQLite content if file is missing
+        // Parse existing note first — disk is source of truth for content and metadata
         const existingNote = deps.markdown.read(noteRow.filePath);
         // Prefer on-disk content as source of truth; fall back to SQLite if the file is missing
         const noteContent = existingNote?.content ?? noteRow.content;
@@ -85,6 +73,19 @@ export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentToo
           links: noteRow.links ? noteRow.links.split(',').filter(Boolean) : [],
           category: noteRow.category,
         };
+
+        const vocabulary = deps.sqlite.getTopTagsWithCounts(50);
+        const result = await categorizeContent(
+          noteRow.title,
+          noteContent,
+          mode,
+          apiKey,
+          deps.logger,
+          undefined,
+          deps.modelId,
+          deps.llmBaseUrl,
+          vocabulary,
+        );
 
         // Update metadata with categorization results
         const metadata = {
@@ -112,14 +113,14 @@ export function createCategorizeNoteTool(deps: CategorizeNoteToolDeps): AgentToo
         // Update vector store — keep the vector for reuse in link suggestions below
         let noteVector: number[] | undefined;
         try {
-          const embedText = `${noteRow.title}\n\n${noteContent}`;
+          const embedText = `${metadata.title}\n\n${noteContent}`;
           noteVector = await deps.generateEmbedding(embedText);
           await deps.vectorDb.upsert({
             id: params.noteId,
             text: embedText,
             vector: noteVector,
             type: noteRow.type,
-            title: noteRow.title,
+            title: metadata.title,
           });
         } catch {
           // Non-fatal

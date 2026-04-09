@@ -1,13 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createCategorizeNoteTool } from './categorize-note.js';
 import type { SqliteStorage, NoteRow } from '../../storage/sqlite.js';
 import type { MarkdownStorage } from '../../storage/markdown.js';
 import type { Note } from '@echos/shared';
 import type { VectorStorage } from '../../storage/vectordb.js';
 import { createLogger } from '@echos/shared';
-import { categorizeContent } from '../categorization.js';
 
-// Mock the categorization module to avoid real AI calls
+// Mock the categorization module to avoid real AI calls — declared before the import below
 vi.mock('../categorization.js', () => ({
   categorizeContent: vi.fn(),
   DEFAULT_CATEGORIZATION_MODEL: 'claude-haiku-4-5',
@@ -22,6 +20,9 @@ vi.mock('../../graph/auto-linker.js', () => ({
 vi.mock('../model-resolver.js', () => ({
   resolveModel: vi.fn().mockReturnValue({ provider: 'anthropic', id: 'claude-haiku-4-5' }),
 }));
+
+import { createCategorizeNoteTool } from './categorize-note.js';
+import { categorizeContent } from '../categorization.js';
 
 const logger = createLogger('test', 'silent');
 
@@ -122,6 +123,19 @@ describe('createCategorizeNoteTool', () => {
     });
 
     await tool.execute('call-1', { noteId: 'note-abc' });
+
+    // categorizeContent must be called with on-disk content, not stale SQLite content
+    expect(vi.mocked(categorizeContent)).toHaveBeenCalledWith(
+      expect.any(String), // title
+      diskContent,        // content — must be on-disk, not stale SQLite
+      expect.any(String), // mode
+      expect.any(String), // apiKey
+      expect.anything(),  // logger
+      undefined,          // context
+      undefined,          // modelId
+      undefined,          // llmBaseUrl
+      expect.any(Array),  // vocabulary
+    );
 
     // The markdown update should have been called with the disk content (same category → update path)
     expect(markdownUpdate).toHaveBeenCalledWith(
