@@ -185,6 +185,7 @@ export async function streamAgentResponse(
   agent: Agent,
   prompt: string,
   ctx: Context,
+  enableReactions: boolean = true,
 ): Promise<void> {
   let messageId: number | undefined;
   let textBuffer = '';        // AI response text only — never contains tool indicators
@@ -422,7 +423,7 @@ export async function streamAgentResponse(
 
   // React to the original user message to signal completion
   const userMessageId = ctx.message?.message_id;
-  if (userMessageId) {
+  if (enableReactions && userMessageId) {
     await ctx.api.setMessageReaction(
       ctx.chat!.id,
       userMessageId,
