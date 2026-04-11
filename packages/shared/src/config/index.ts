@@ -25,85 +25,103 @@ export const ECHOS_HOME = resolveEchosHome(process.env);
 
 export const configSchema = z
   .object({
-  // Required
-  telegramBotToken: z.string().optional(), // Required only when enableTelegram=true (checked at runtime)
-  allowedUserIds: commaSeparatedNumbers,
-  anthropicApiKey: z.string().min(1).optional(),
+    // Required
+    telegramBotToken: z.string().optional(), // Required only when enableTelegram=true (checked at runtime)
+    allowedUserIds: commaSeparatedNumbers,
+    anthropicApiKey: z.string().min(1).optional(),
 
-  // Optional
-  openaiApiKey: z.string().optional(),
+    // Optional
+    openaiApiKey: z.string().optional(),
 
-  // Whisper transcription language (ISO-639-1 code, e.g. 'en', 'fr', 'de').
-  // If not set, Whisper auto-detects the language (may misidentify short clips).
-  whisperLanguage: z.preprocess(
-    (val) => {
-      if (typeof val !== 'string') return val;
-      const trimmed = val.trim();
-      if (trimmed === '') return undefined;
-      return trimmed.toLowerCase();
-    },
-    z.string().regex(/^[a-z]{2}$/, 'Must be an ISO-639-1 language code (e.g. en, fr, de)').optional(),
-  ),
+    // Whisper transcription language (ISO-639-1 code, e.g. 'en', 'fr', 'de').
+    // If not set, Whisper auto-detects the language (may misidentify short clips).
+    whisperLanguage: z.preprocess(
+      (val) => {
+        if (typeof val !== 'string') return val;
+        const trimmed = val.trim();
+        if (trimmed === '') return undefined;
+        return trimmed.toLowerCase();
+      },
+      z
+        .string()
+        .regex(/^[a-z]{2}$/, 'Must be an ISO-639-1 language code (e.g. en, fr, de)')
+        .optional(),
+    ),
 
-  // Multi-provider LLM support
-  llmApiKey: z.string().min(1).optional(),
-  llmBaseUrl: z.string().url().optional(),
+    // STT (Speech-to-Text) provider configuration
+    sttProvider: z
+      .enum([
+        'auto',
+        'openai',
+        'groq',
+        'together',
+        'siliconflow',
+        'deepinfra',
+        'fireworks',
+        'huggingface',
+        'openrouter',
+        'local',
+      ])
+      .default('auto'),
+    sttApiKey: z.string().optional(),
+    sttBaseUrl: z.string().url().optional(),
+    sttModel: z.string().optional(),
+    sttLocalExecutable: z.string().optional(),
+    sttLocalModel: z.string().optional(), // Full path to model file
 
-  // Redis
-  redisUrl: z.string().url().default('redis://localhost:6379'),
+    // Multi-provider LLM support
+    llmApiKey: z.string().min(1).optional(),
+    llmBaseUrl: z.string().url().optional(),
 
-  // Storage paths (resolve relative to ECHOS_HOME)
-  knowledgeDir: z.string().default(join(ECHOS_HOME, 'knowledge')),
-  dbPath: z.string().default(join(ECHOS_HOME, 'db')),
-  sessionDir: z.string().default(join(ECHOS_HOME, 'sessions')),
+    // Redis
+    redisUrl: z.string().url().default('redis://localhost:6379'),
 
-  // LLM
-  defaultModel: z.string().default('claude-haiku-4-5-20251001'),
-  embeddingModel: z.string().default('text-embedding-3-small'),
-  embeddingDimensions: z.coerce.number().int().positive().default(1536),
+    // Storage paths (resolve relative to ECHOS_HOME)
+    knowledgeDir: z.string().default(join(ECHOS_HOME, 'knowledge')),
+    dbPath: z.string().default(join(ECHOS_HOME, 'db')),
+    sessionDir: z.string().default(join(ECHOS_HOME, 'sessions')),
 
-  // Interfaces
-  enableTelegram: z
-    .string()
-    .default('true')
-    .transform((s) => s === 'true'),
-  enableWeb: z
-    .string()
-    .default('false')
-    .transform((s) => s === 'true'),
-  telegramReactions: z
-    .string()
-    .default('true')
-    .transform((s) => s === 'true'),
-  // Web
-  webPort: z.coerce.number().int().positive().default(3000),
-  webApiKey: z.string().optional(),
+    // LLM
+    defaultModel: z.string().default('claude-haiku-4-5-20251001'),
+    embeddingModel: z.string().default('text-embedding-3-small'),
+    embeddingDimensions: z.coerce.number().int().positive().default(1536),
 
-  // Webshare Proxy (optional)
-  webshareProxyUsername: z.string().optional(),
-  webshareProxyPassword: z.string().optional(),
+    // Interfaces
+    enableTelegram: z
+      .string()
+      .default('true')
+      .transform((s) => s === 'true'),
+    enableWeb: z
+      .string()
+      .default('false')
+      .transform((s) => s === 'true'),
+    telegramReactions: z
+      .string()
+      .default('true')
+      .transform((s) => s === 'true'),
+    // Web
+    webPort: z.coerce.number().int().positive().default(3000),
+    webApiKey: z.string().optional(),
 
-  // LLM model presets (for /model switching)
-  modelBalanced: z.string().optional(),
-  modelDeep: z.string().optional(),
+    // Webshare Proxy (optional)
+    webshareProxyUsername: z.string().optional(),
+    webshareProxyPassword: z.string().optional(),
 
-  // LLM reasoning
-  thinkingLevel: z.enum(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']).default('off'),
+    // LLM model presets (for /model switching)
+    modelBalanced: z.string().optional(),
+    modelDeep: z.string().optional(),
 
-  // Prompt caching
-  cacheRetention: z.enum(['none', 'short', 'long']).default('long'),
+    // LLM reasoning
+    thinkingLevel: z.enum(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']).default('off'),
 
-  // Debug
-  logLlmPayloads: z
-    .string()
-    .default('false')
-    .transform((s) => s === 'true'),
+    // Prompt caching
+    cacheRetention: z.enum(['none', 'short', 'long']).default('long'),
 
-  // Update checker
-  disableUpdateCheck: z
-    .string()
-    .default('false')
-    .transform((s) => s === 'true'),
+    // Debug
+    logLlmPayloads: z
+      .string()
+      .default('false')
+      .transform((s) => s === 'true'),
 
   // MCP Server
   enableMcp: z
@@ -163,6 +181,12 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     anthropicApiKey: env['ANTHROPIC_API_KEY'],
     openaiApiKey: env['OPENAI_API_KEY'],
     whisperLanguage: env['WHISPER_LANGUAGE'],
+    sttProvider: env['STT_PROVIDER'],
+    sttApiKey: env['STT_API_KEY'],
+    sttBaseUrl: env['STT_BASE_URL'],
+    sttModel: env['STT_MODEL'],
+    sttLocalExecutable: env['STT_LOCAL_EXECUTABLE'],
+    sttLocalModel: env['STT_LOCAL_MODEL'],
     llmApiKey: env['LLM_API_KEY'],
     llmBaseUrl: env['LLM_BASE_URL'],
     redisUrl: env['REDIS_URL'],
@@ -184,7 +208,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     thinkingLevel: env['THINKING_LEVEL'],
     cacheRetention: env['CACHE_RETENTION'],
     logLlmPayloads: env['LOG_LLM_PAYLOADS'],
-    disableUpdateCheck: env['DISABLE_UPDATE_CHECK'],
     enableMcp: env['ENABLE_MCP'],
     mcpPort: env['MCP_PORT'],
     mcpApiKey: env['MCP_API_KEY'],

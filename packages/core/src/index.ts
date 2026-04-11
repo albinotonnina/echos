@@ -64,4 +64,12 @@ export {
   type BackupResult,
   type BackupInfo,
 } from './backup/index.js';
+export {
+  type SpeechToTextClient,
+  type TranscribeOptions,
+  type TranscribeResult,
+  transcribeWithRetry,
+  createSttClient,
+  probeSttProviders,
+} from './stt/index.js';
 export { createMcpServer, type McpServerDeps, type McpServerOptions, type McpAdapter } from './mcp/index.js';

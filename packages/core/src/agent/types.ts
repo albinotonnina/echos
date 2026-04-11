@@ -5,6 +5,7 @@ import type { SqliteStorage } from '../storage/sqlite.js';
 import type { MarkdownStorage } from '../storage/markdown.js';
 import type { VectorStorage } from '../storage/vectordb.js';
 import type { SearchService } from '../storage/search.js';
+import type { SpeechToTextClient } from '../stt/index.js';
 
 export interface AgentDeps {
   sqlite: SqliteStorage;
@@ -41,6 +42,8 @@ export interface AgentDeps {
   knowledgeDir?: string;
   /** Path to the database directory containing echos.db and vectors/ (used by knowledge_stats tool) */
   dbPath?: string;
+  /** Speech-to-text client for voice transcription */
+  sttClient?: SpeechToTextClient;
 }
 
 export interface AgentToolDeps {
