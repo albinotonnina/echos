@@ -16,15 +16,15 @@
     "@echos/shared": "workspace:*",
     "@echos/plugin-article": "workspace:*",
     "@echos/plugin-youtube": "workspace:*",
-    "@mariozechner/pi-agent-core": "^0.65.2",
-    "bullmq": "^5.73.0",
+    "@mariozechner/pi-agent-core": "^0.67.68",
+    "bullmq": "^5.75.2",
     "ioredis": "^5.10.1",
     "pino": "^10.3.1",
     "uuid": "^13.0.0",
     "@sinclair/typebox": "^0.34.49"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
+    "@types/node": "^25.6.0",
     "@types/uuid": "^11.0.0",
     "typescript": "^5.7.0"
   }

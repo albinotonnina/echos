@@ -14,11 +14,11 @@
   "dependencies": {
     "@echos/shared": "workspace:*",
     "@lancedb/lancedb": "^0.22.3",
-    "@mariozechner/pi-agent-core": "^0.65.2",
-    "@mariozechner/pi-ai": "^0.65.2",
+    "@mariozechner/pi-agent-core": "^0.67.68",
+    "@mariozechner/pi-ai": "^0.67.68",
     "@modelcontextprotocol/sdk": "1.29.0",
     "@sinclair/typebox": "^0.34.49",
-    "better-sqlite3": "^12.8.0",
+    "better-sqlite3": "^12.9.0",
     "chokidar": "^5.0.0",
     "gray-matter": "^4.0.3",
     "jszip": "^3.10.1",
@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^25.5.2",
+    "@types/node": "^25.6.0",
     "@types/uuid": "^11.0.0",
     "typescript": "^5.7.0"
   }
