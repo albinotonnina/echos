@@ -14,6 +14,7 @@ import { loadPlugins } from './plugin-loader.js';
 import { setupScheduler } from './scheduler-setup.js';
 import { createShutdownHandler } from './shutdown.js';
 import { buildPluginConfig, buildAgentDeps } from './agent-deps.js';
+import { startHeartbeat } from './heartbeat.js';
 
 const logger = createLogger('echos');
 
@@ -84,10 +85,12 @@ async function main(): Promise<void> {
   for (const iface of interfaces) await iface.start();
   logger.info({ interfaceCount: interfaces.length }, 'EchOS started');
 
+  const heartbeat = startHeartbeat(logger);
+
   const shutdown = createShutdownHandler({
     worker: scheduler.worker, queueService: scheduler.queueService,
     fileWatcher: storage.fileWatcher, interfaces, pluginRegistry,
-    sqlite: storage.sqlite, vectorDb: storage.vectorDb, logger,
+    sqlite: storage.sqlite, vectorDb: storage.vectorDb, logger, heartbeat,
   });
   process.on('SIGINT', () => void shutdown());
   process.on('SIGTERM', () => void shutdown());

@@ -7,6 +7,19 @@ description: "Configuration changes and fixes log."
 
 This document tracks configuration changes and fixes made to ensure the project runs correctly.
 
+## July 2026 — Docker healthcheck decoupled from `ENABLE_WEB`
+
+### Problem
+
+The `echos` service's Docker healthcheck (`docker/docker-compose.yml`) fetched `http://localhost:3000/health`, which is served by the web interface (`packages/web`). On Telegram-only deployments (`ENABLE_WEB=false`), nothing listens on port 3000, so `docker compose ps` reported the container as permanently "unhealthy" regardless of actual health — masking real incidents (e.g. a genuinely wedged process after a host OOM kill looked no different from normal operation).
+
+### Fix
+
+- New `src/heartbeat.ts`: writes `/tmp/echos-heartbeat` every 15s, started unconditionally in `src/index.ts` alongside the other interfaces (not gated by `ENABLE_WEB`/`ENABLE_TELEGRAM`/`ENABLE_MCP`), stopped via `src/shutdown.ts`.
+- `docker/docker-compose.yml`: healthcheck now checks the heartbeat file's age instead of fetching `/health`.
+
+The web interface's own `GET /health` endpoint (`packages/web/src/index.ts`) is unchanged and still useful for external uptime monitoring when `ENABLE_WEB=true`.
+
 ## April 2026 — MCP Server Core (Phase 11.01)
 
 ### New env vars: `ENABLE_MCP`, `MCP_PORT`, `MCP_API_KEY`

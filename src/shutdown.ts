@@ -7,6 +7,7 @@ import type { Logger } from 'pino';
 import type { InterfaceAdapter } from '@echos/shared';
 import type { PluginRegistry, FileWatcher } from '@echos/core';
 import type { QueueService } from '@echos/scheduler';
+import type { Heartbeat } from './heartbeat.js';
 
 export interface ShutdownResources {
   worker?: { close(): Promise<void> };
@@ -17,11 +18,13 @@ export interface ShutdownResources {
   sqlite: { close(): void };
   vectorDb: { close(): void };
   logger: Logger;
+  heartbeat: Heartbeat;
 }
 
 export function createShutdownHandler(resources: ShutdownResources): () => Promise<void> {
   return async () => {
     resources.logger.info('Shutting down...');
+    resources.heartbeat.stop();
 
     if (resources.worker) {
       await resources.worker.close();

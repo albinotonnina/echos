@@ -32,7 +32,10 @@ services:
     ports:
       - "${WEB_PORT:-3000}:3000"
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      # Checks the process's liveness heartbeat file (src/heartbeat.ts) rather than the
+      # web interface's /health endpoint, since ENABLE_WEB=false leaves nothing listening
+      # on port 3000.
+      test: ["CMD", "node", "-e", "const fs=require('fs');try{process.exit(Date.now()-fs.statSync('/tmp/echos-heartbeat').mtimeMs<60000?0:1)}catch{process.exit(1)}"]
       interval: 30s
       timeout: 10s
       retries: 3
