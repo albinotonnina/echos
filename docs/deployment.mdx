@@ -38,7 +38,7 @@ docker compose down
 
 Services:
 - **redis**: Redis 7 for BullMQ job queue (required)
-- **echos**: The EchOS application (healthcheck: GET /health)
+- **echos**: The EchOS application (healthcheck: liveness heartbeat file, independent of `ENABLE_WEB` — see [Troubleshooting](/troubleshooting#docker-compose-ps-shows-echos-as-unhealthy-even-though-its-working))
 
 Data is persisted via volume mounts to `./data/`.
 

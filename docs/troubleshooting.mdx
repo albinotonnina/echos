@@ -423,6 +423,36 @@ Error: ENOENT: no such file or directory
    pnpm start
    ```
 
+### `docker compose ps` shows echos as unhealthy even though it's working
+
+**Problem**: Prior to this fix, the Docker healthcheck did `fetch('http://localhost:3000/health')`, which is served by the web interface (`packages/web`). If `ENABLE_WEB=false` (e.g. Telegram-only deployments), nothing ever listens on port 3000, so the healthcheck failed permanently — even on a perfectly healthy container. This made `docker compose ps` useless for spotting real problems, since "unhealthy" was the permanent baseline rather than a meaningful signal.
+
+**Fix**: The healthcheck now checks a liveness heartbeat file (`/tmp/echos-heartbeat`, written every 15s by `src/heartbeat.ts`) instead of the web interface's `/health` endpoint. This works regardless of `ENABLE_WEB`/`ENABLE_TELEGRAM`/`ENABLE_MCP` and still catches a wedged event loop (a hung process stops writing the heartbeat, same as it would stop responding to HTTP).
+
+**If you're still seeing "unhealthy"** after upgrading:
+
+```bash
+# Confirm the container's own process can see a recent heartbeat
+docker compose exec echos node -e "const fs=require('fs');console.log(Date.now()-fs.statSync('/tmp/echos-heartbeat').mtimeMs, 'ms old')"
+
+# If docker exec itself fails ("cannot exec in a stopped state") while docker inspect
+# still reports Running=true, the container is likely wedged (e.g. after an OOM kill
+# on a memory-constrained host) and Docker hasn't detected the exit. Force-recreate it:
+docker compose up -d --force-recreate echos
+```
+
+On low-memory hosts (e.g. Oracle Cloud's free-tier `VM.Standard.E2.1.Micro`, 1GB RAM / no swap), a wedged-but-still-"Running" container after an OOM kill is the most common root cause. Check `dmesg -T | grep -i oom` on the host for confirmation, and add swap so transient spikes (e.g. the `backup` job's `tar`/`cp` work) don't trigger the OOM-killer:
+
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+echo 'vm.swappiness=10' | sudo tee /etc/sysctl.d/99-swappiness.conf
+sudo sysctl --system
+```
+
 ## Development Issues
 
 ### TypeScript Errors
