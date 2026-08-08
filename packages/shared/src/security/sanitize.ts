@@ -1,11 +1,3 @@
-const HTML_ENTITIES: Record<string, string> = {
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  "'": '&#x27;',
-};
-
 const XML_ENTITIES: Record<string, string> = {
   '&': '&amp;',
   '<': '&lt;',
@@ -38,8 +30,8 @@ export function sanitizeHtml(input: string): string {
     if (codePoint <= 0x1F && codePoint !== 9 && codePoint !== 10 && codePoint !== 13) return match;
     return String.fromCodePoint(codePoint);
   });
-  // Re-escape for safety
-  clean = clean.replace(/[&<>"']/g, (char) => HTML_ENTITIES[char] ?? char);
+  // No re-encoding: all callers (YouTube, article) save to markdown, not HTML.
+  // Undecoded entities (invalid surrogates, control chars) keep their raw & which is fine in markdown.
   return clean.trim();
 }
 

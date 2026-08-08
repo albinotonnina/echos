@@ -167,48 +167,47 @@ describe('timingSafeStringEqual', () => {
 describe('sanitizeHtml — HTML entity decoding', () => {
   it('decodes decimal numeric entities (e.g. &#39; → apostrophe)', () => {
     const result = sanitizeHtml('it&#39;s great');
-    expect(result).toBe('it&#x27;s great');
+    expect(result).toBe("it's great");
   });
 
   it('decodes hex numeric entities (e.g. &#x27; → apostrophe)', () => {
     const result = sanitizeHtml('it&#x27;s great');
-    expect(result).toBe('it&#x27;s great');
+    expect(result).toBe("it's great");
   });
 
   it('decodes uppercase hex numeric entities (e.g. &#X27; → apostrophe)', () => {
     const result = sanitizeHtml('it&#X27;s great');
-    expect(result).toBe('it&#x27;s great');
+    expect(result).toBe("it's great");
   });
 
   it('does not double-encode decimal apostrophe entities from YouTube transcripts', () => {
     const youtubeSnippet = 'it&#39;s a great video';
     const result = sanitizeHtml(youtubeSnippet);
-    expect(result).not.toContain('&amp;#39;');
-    expect(result).not.toContain('&amp;#x27;');
+    expect(result).toBe("it's a great video");
   });
 
   it('does not crash on invalid surrogate numeric entities and sanitizes the ampersand', () => {
     const result = sanitizeHtml('&#55296;'); // 0xD800 — invalid surrogate
-    // Entity is not decoded; the & is re-escaped, producing &amp;#55296;
-    expect(result).toBe('&amp;#55296;');
+    // Entity is not decoded; raw entity preserved as-is
+    expect(result).toBe('&#55296;');
     expect(result).not.toContain('\uD800'); // no actual surrogate character
   });
 
   it('does not crash on out-of-range numeric entities and sanitizes the ampersand', () => {
     const result = sanitizeHtml('&#1114112;'); // 0x110000 — above max code point
-    // Entity is not decoded; the & is re-escaped, producing &amp;#1114112;
-    expect(result).toBe('&amp;#1114112;');
+    // Entity is not decoded; raw entity preserved as-is
+    expect(result).toBe('&#1114112;');
   });
 
   it('rejects C0 control character entities (except TAB, LF, CR)', () => {
     // NUL (&#0;) should not be decoded
     const nul = sanitizeHtml('a&#0;b');
-    expect(nul).toBe('a&amp;#0;b');
+    expect(nul).toBe('a&#0;b');
     expect(nul).not.toContain('\0');
 
     // BEL (&#7;) should not be decoded
     const bel = sanitizeHtml('a&#7;b');
-    expect(bel).toBe('a&amp;#7;b');
+    expect(bel).toBe('a&#7;b');
 
     // TAB (&#9;), LF (&#10;), CR (&#13;) ARE allowed
     expect(sanitizeHtml('a&#9;b')).toBe('a\tb');
@@ -216,13 +215,13 @@ describe('sanitizeHtml — HTML entity decoding', () => {
     expect(sanitizeHtml('a&#13;b')).toBe('a\rb');
   });
 
-  it('strips HTML tags and re-encodes special characters', () => {
+  it('strips HTML tags and preserves decoded text', () => {
     const result = sanitizeHtml('<b>hello & world</b>');
-    expect(result).toBe('hello &amp; world');
+    expect(result).toBe('hello & world');
   });
 
-  it('decodes &amp; and re-encodes it once', () => {
+  it('decodes &amp; to &', () => {
     const result = sanitizeHtml('A &amp; B');
-    expect(result).toBe('A &amp; B');
+    expect(result).toBe('A & B');
   });
 });
