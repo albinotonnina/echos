@@ -59,7 +59,7 @@ export function registerMessageHandlers(bot: Bot, deps: MessageDeps): void {
       return;
     }
 
-    await ctx.react('👀').catch(() => undefined);
+    if (config.telegramReactions) await ctx.react('👀').catch(() => undefined);
 
     let tmpFilePath: string | undefined;
     try {
@@ -97,7 +97,7 @@ export function registerMessageHandlers(bot: Bot, deps: MessageDeps): void {
         `The file has been downloaded to a temporary location on the server; ` +
         `please process this document and extract its contents as a knowledge note.`;
 
-      await streamAgentResponse(agent, instruction, ctx);
+      await streamAgentResponse(agent, instruction, ctx, config.telegramReactions);
     } catch (error) {
       logger.error({ err: error, fileName }, 'Failed to process document');
       await ctx.reply(`Sorry, I couldn't process "${fileName}". Please try again later.`);
@@ -123,7 +123,7 @@ export function registerMessageHandlers(bot: Bot, deps: MessageDeps): void {
     }
 
     if (config.telegramReactions) await ctx.react('👀').catch(() => undefined);
-    await streamAgentResponse(agent, ctx.message.text, ctx);
+    await streamAgentResponse(agent, ctx.message.text, ctx, config.telegramReactions);
   });
 
   // Handle voice messages via Whisper transcription
@@ -138,7 +138,7 @@ export function registerMessageHandlers(bot: Bot, deps: MessageDeps): void {
 
     if (config.telegramReactions) await ctx.react('🤗').catch(() => undefined);
     const agent = getOrCreateSession(userId, agentDeps);
-    await handleVoiceMessage(ctx, agent, config.openaiApiKey, logger, config.whisperLanguage);
+    await handleVoiceMessage(ctx, agent, config.openaiApiKey, logger, config.whisperLanguage, config.telegramReactions);
   });
 
   // Handle photo messages
@@ -148,6 +148,6 @@ export function registerMessageHandlers(bot: Bot, deps: MessageDeps): void {
 
     if (config.telegramReactions) await ctx.react('👀').catch(() => undefined);
     const agent = getOrCreateSession(userId, agentDeps);
-    await handlePhotoMessage(ctx, agent, logger);
+    await handlePhotoMessage(ctx, agent, logger, config.telegramReactions);
   });
 }

@@ -13,6 +13,7 @@ export async function handlePhotoMessage(
   ctx: Context,
   agent: Agent,
   logger: Logger,
+  enableReactions: boolean = true,
 ): Promise<void> {
   const photos = ctx.message?.photo;
   if (!photos || photos.length === 0) return;
@@ -77,11 +78,13 @@ export async function handlePhotoMessage(
 
   } catch (err) {
     logger.error({ err }, 'Failed to process photo message');
-    await ctx.api.setMessageReaction(
-      ctx.chat!.id,
-      ctx.message!.message_id,
-      [{ type: 'emoji', emoji: '😱' }],
-    ).catch(() => undefined);
+    if (enableReactions) {
+      await ctx.api.setMessageReaction(
+        ctx.chat!.id,
+        ctx.message!.message_id,
+        [{ type: 'emoji', emoji: '😱' }],
+      ).catch(() => undefined);
+    }
     await ctx.api.editMessageText(
       ctx.chat!.id,
       statusMsg.message_id,
